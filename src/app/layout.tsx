@@ -22,9 +22,18 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'Bobbies Homie',
   description: 'Shared household management web-app',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Bobbies Homie',
   },
   formatDetection: {
