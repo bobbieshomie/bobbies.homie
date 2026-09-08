@@ -57,20 +57,33 @@ export default function JoinPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase
-        .from('profiles')
-        .update({ household_id: household.id })
-        .eq('id', user.id);
-    } else {
-      localStorage.setItem('pending_invite_code', cleanCode);
-    }
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('join_household_by_invite', {
+        invite_code_input: cleanCode,
+      });
 
-    document.cookie = `homie_session=joined_${cleanCode}; path=/; max-age=604800; SameSite=Lax`;
-    setStatusMsg({ type: 'success', text: t.auth.joinSuccess });
-    setTimeout(() => {
-      router.push('/dashboard');
-      router.refresh();
-    }, 700);
+      if (rpcErr || (rpcRes && !(rpcRes as { success?: boolean }).success)) {
+        const errorText = (rpcRes as { error?: string })?.error || t.auth.invalidInviteCode;
+        setStatusMsg({ type: 'error', text: errorText });
+        setLoading(false);
+        return;
+      }
+
+      document.cookie = `homie_session=joined_${cleanCode}; path=/; max-age=604800; SameSite=Lax`;
+      setStatusMsg({ type: 'success', text: t.auth.joinSuccess });
+      setTimeout(() => {
+        router.push('/dashboard');
+        router.refresh();
+      }, 700);
+    } else {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pending_invite_code', cleanCode);
+      }
+      setStatusMsg({ type: 'success', text: t.auth.joinSuccess });
+      setTimeout(() => {
+        router.push(`/register?invite=${cleanCode}`);
+        router.refresh();
+      }, 700);
+    }
   };
 
   return (

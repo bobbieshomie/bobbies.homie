@@ -3,7 +3,7 @@ import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-interface UseSupabaseSubscriptionOptions<T extends { [key: string]: any }> {
+interface UseSupabaseSubscriptionOptions<T extends Record<string, unknown>> {
   table: string;
   schema?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
@@ -17,7 +17,7 @@ interface UseSupabaseSubscriptionOptions<T extends { [key: string]: any }> {
  * Generic Realtime subscription hook that synchronizes Supabase table changes
  * with TanStack Query cache across couples' devices in real time.
  */
-export function useSupabaseSubscription<T extends { [key: string]: any }>({
+export function useSupabaseSubscription<T extends Record<string, unknown>>({
   table,
   schema = 'public',
   event = '*',
@@ -57,7 +57,7 @@ export function useSupabaseSubscription<T extends { [key: string]: any }>({
       channel
         .on(
           'postgres_changes',
-          subscriptionConfig as any,
+          subscriptionConfig,
           (payload: RealtimePostgresChangesPayload<T>) => {
             if (queryKey) {
               queryClient.invalidateQueries({ queryKey });

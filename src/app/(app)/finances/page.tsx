@@ -21,7 +21,6 @@ import {
   type DbProfile 
 } from '@/lib/services/db';
 import { useLanguage } from '@/lib/i18n/language-context';
-import { LanguageToggle } from '@/components/ui/language-toggle';
 
 export default function FinancesPage() {
   const { t, language } = useLanguage();
@@ -154,8 +153,9 @@ export default function FinancesPage() {
       setNewTitle('');
       setNewAmount('');
       setIsAddModalOpen(false);
-    } catch (err: any) {
-      alert(err.message || 'บันทึกค่าใช้จ่ายไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกค่าใช้จ่ายไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -218,18 +218,17 @@ export default function FinancesPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1F1511] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
-          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#F5EBE6]">
+          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
             {t.finances.title}
           </h1>
-          <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#BCAAA4] mt-0.5">
+          <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
             {t.finances.subtitle}
           </p>
         </div>
-        <LanguageToggle />
       </div>
 
       {loading ? (
@@ -240,22 +239,22 @@ export default function FinancesPage() {
         <>
           {/* Balance Summary Card */}
           <div className="px-6 pb-5 pt-2">
-            <div className="box-border flex flex-col items-start p-5 gap-3 w-full bg-[#FFFFFF] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] shadow-[0px_4px_16px_rgba(93,64,55,0.04)] rounded-[24px]">
+            <div className="box-border flex flex-col items-start p-5 gap-3 w-full bg-[#FFFFFF] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.04)] rounded-[24px]">
               <div className="flex justify-between items-center w-full">
-                <span className="font-outfit font-semibold text-[13px] text-[#8D6E63] dark:text-[#BCAAA4] tracking-wide">
+                <span className="font-outfit font-semibold text-[13px] text-[#8D6E63] dark:text-[#948D87] tracking-wide">
                   {t.finances.currentBalance}
                 </span>
-                <div className="w-9 h-9 rounded-full bg-[#BBDEFB] dark:bg-[#1A334B] flex items-center justify-center text-[#1565C0] dark:text-[#90CAF9]">
+                <div className="w-9 h-9 rounded-full bg-[#BBDEFB] dark:bg-[#1565C0]/30 flex items-center justify-center text-[#1565C0] dark:text-[#90CAF9]">
                   <Wallet className="w-4 h-4 stroke-current" />
                 </div>
               </div>
 
               <div className="flex items-baseline gap-2">
-                <span className="font-outfit font-bold text-[32px] leading-[40px] text-[#5D4037] dark:text-[#F5EBE6]">
+                <span className="font-outfit font-bold text-[32px] leading-[40px] text-[#5D4037] dark:text-[#DDD7D2]">
                   ฿{balanceSummary.amount.toFixed(2)}
                 </span>
                 {!balanceSummary.isSettled ? (
-                  <span className="font-dm-sans text-[12px] font-medium text-[#E65100] dark:text-[#FFCC80] bg-[#FFE0B2] dark:bg-[#3E2723] px-2.5 py-0.5 rounded-full border border-[#FFCC80]/40">
+                  <span className="font-dm-sans text-[12px] font-medium text-[#E65100] dark:text-[#FFCC80] bg-[#FFE0B2] dark:bg-[#2E2A27] px-2.5 py-0.5 rounded-full border border-[#FFCC80]/40">
                     {balanceSummary.debtor} → {balanceSummary.creditor}
                   </span>
                 ) : (
@@ -269,7 +268,7 @@ export default function FinancesPage() {
                 <button
                   type="button"
                   onClick={handleSettleAll}
-                  className="w-full mt-1 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[12px] font-semibold text-[#5D4037] dark:text-[#F5EBE6] hover:opacity-90 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full mt-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[12px] font-semibold text-[#5D4037] dark:text-[#DDD7D2] hover:opacity-90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 stroke-[#2E7D32]" />
                   {t.finances.settleAll}
@@ -281,33 +280,33 @@ export default function FinancesPage() {
           {/* Expenses List */}
           <div className="flex-1 px-6 space-y-2.5">
             <div className="flex justify-between items-center px-1 pb-1">
-              <h2 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#F5EBE6]">
+              <h2 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.common.all} ({expenses.length})
               </h2>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline"
+                className="text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline cursor-pointer"
               >
                 + {t.finances.addExpense}
               </button>
             </div>
 
             {expenses.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[24px] text-center mt-2">
-                <div className="w-12 h-12 rounded-full bg-[#E8DFD8] dark:bg-[#3E2723] flex items-center justify-center text-[#5D4037] dark:text-[#F5EBE6] mb-3">
+              <div className="flex flex-col items-center justify-center p-8 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] text-center mt-2">
+                <div className="w-12 h-12 rounded-full bg-[#E8DFD8] dark:bg-[#2E2A27] flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2] mb-3">
                   <Receipt className="w-6 h-6 stroke-current" />
                 </div>
-                <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#F5EBE6] mb-1">
+                <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2] mb-1">
                   {t.finances.emptyExpenses}
                 </h3>
-                <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#BCAAA4] max-w-[240px] mb-4">
+                <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87] max-w-[240px] mb-4">
                   {t.finances.emptyExpensesPrompt}
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[13px] font-semibold hover:opacity-95 shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[13px] font-semibold hover:opacity-95 shadow-xs cursor-pointer"
                 >
                   <Plus className="w-4 h-4 stroke-white" strokeWidth={2.5} />
                   {t.finances.addExpense}
@@ -322,18 +321,18 @@ export default function FinancesPage() {
                     key={expense.id}
                     className={`flex items-center justify-between p-3.5 rounded-[18px] border transition-all ${
                       isResolved
-                        ? 'bg-[#F4EFEA]/60 dark:bg-[#2D1E18]/50 border-[#D7CCC8]/60 dark:border-[#4E342E]/50 opacity-60'
-                        : 'bg-white dark:bg-[#2D1E18] border-[#D7CCC8] dark:border-[#4E342E] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]'
+                        ? 'bg-[#F4EFEA]/60 dark:bg-[#1F1D1B]/60 border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 opacity-60'
+                        : 'bg-white dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]'
                     }`}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(expense.id, expense.is_reimbursed)}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors shrink-0 ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors shrink-0 cursor-pointer ${
                           isResolved
                             ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
-                            : 'border-[#8D6E63] dark:border-[#BCAAA4] hover:border-[#5D4037]'
+                            : 'border-[#8D6E63] dark:border-[#D7CCC8] hover:border-[#5D4037]'
                         }`}
                       >
                         {isResolved && <CheckCircle2 className="w-4 h-4 stroke-white" />}
@@ -342,12 +341,12 @@ export default function FinancesPage() {
                       <div className="flex flex-col min-w-0">
                         <span
                           className={`font-dm-sans text-[14px] leading-[19px] truncate ${
-                            isResolved ? 'line-through text-[#8D6E63]' : 'font-medium text-[#5D4037] dark:text-[#F5EBE6]'
+                            isResolved ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'font-medium text-[#5D4037] dark:text-[#DDD7D2]'
                           }`}
                         >
                           {expense.title}
                         </span>
-                        <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                        <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                           {getCategoryLabel(expense.category)} • {getPayerName(expense.paid_by)}
                         </span>
                       </div>
@@ -355,10 +354,10 @@ export default function FinancesPage() {
 
                     <div className="flex items-center gap-2">
                       <div className="text-right">
-                        <div className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#F5EBE6]">
+                        <div className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2]">
                           ฿{Number(expense.amount).toFixed(2)}
                         </div>
-                        <div className="text-[10px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                        <div className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
                           {isResolved ? t.finances.resolved : t.finances.pendingPay}
                         </div>
                       </div>
@@ -367,7 +366,7 @@ export default function FinancesPage() {
                         type="button"
                         onClick={() => handleDelete(expense.id)}
                         title={t.common.delete}
-                        className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors ml-1"
+                        className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors ml-1 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4 stroke-current" />
                       </button>
@@ -383,15 +382,15 @@ export default function FinancesPage() {
       {/* Add Expense Modal Dialog */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#F5EBE6]">
+              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.finances.addExpense}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]"
+                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -399,7 +398,7 @@ export default function FinancesPage() {
 
             <form onSubmit={handleAddExpense} className="space-y-3.5">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.addExpense}
                 </label>
                 <input
@@ -408,12 +407,12 @@ export default function FinancesPage() {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder={t.finances.expenseTitlePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.amount} (THB)
                 </label>
                 <input
@@ -424,18 +423,18 @@ export default function FinancesPage() {
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.category}
                 </label>
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 >
                   <option value="groceries">{t.finances.groceriesCat}</option>
                   <option value="utilities">{t.finances.utilitiesCat}</option>
@@ -449,13 +448,13 @@ export default function FinancesPage() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.paidBy}
                 </label>
                 <select
                   value={newPaidBy}
                   onChange={(e) => setNewPaidBy(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 >
                   {currentUser && (
                     <option value={currentUser.id}>
@@ -476,14 +475,14 @@ export default function FinancesPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#BCAAA4]"
+                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87] cursor-pointer"
                 >
                   {t.common.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : t.common.add}
                 </button>

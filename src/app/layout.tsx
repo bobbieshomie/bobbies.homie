@@ -57,7 +57,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${outfit.variable} ${dmSans.variable}`} suppressHydrationWarning>
-      <body className="safe-h-screen bg-[#FDFBF7] dark:bg-[#1F1511] text-[#5D4037] dark:text-[#F5EBE6] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function() {
+              try {
+                var t = localStorage.getItem('bobbies_theme');
+                var isDark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.setAttribute('data-theme', 'dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              } catch (e) {}
+            })();`,
+          }}
+        />
+      </head>
+      <body className="safe-h-screen bg-[#FDFBF7] dark:bg-[#2A1B16] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
         <ThemeProvider>
           <QueryProvider>
             <LanguageProvider>{children}</LanguageProvider>

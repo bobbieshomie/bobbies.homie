@@ -18,9 +18,22 @@ const ThemeContext = createContext<ThemeContextType>({
 
 const THEME_STORAGE_KEY = 'bobbies_theme';
 
+function applyTheme(newTheme: Theme) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (newTheme === 'dark') {
+    root.classList.add('dark');
+    root.setAttribute('data-theme', 'dark');
+    root.style.colorScheme = 'dark';
+  } else {
+    root.classList.remove('dark');
+    root.setAttribute('data-theme', 'light');
+    root.style.colorScheme = 'light';
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
@@ -33,19 +46,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setThemeState(initialTheme);
       applyTheme(initialTheme);
     }
-    setMounted(true);
   }, []);
-
-  const applyTheme = (newTheme: Theme) => {
-    const root = document.documentElement;
-    if (newTheme === 'dark') {
-      root.classList.add('dark');
-      root.setAttribute('data-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
-    }
-  };
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);

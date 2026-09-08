@@ -92,7 +92,7 @@ function RegisterForm() {
         .maybeSingle();
 
       if (existingProfile) {
-        setErrorMsg(t.auth.accountNotFoundError);
+        setErrorMsg(t.auth.usernameTakenError);
         setLoading(false);
         return;
       }
@@ -100,7 +100,26 @@ function RegisterForm() {
       // Non-blocking in case of network issue
     }
 
-    // Call Supabase Auth SignUp
+    // Pre-validate invite code if joining
+    if (householdMode === 'join') {
+      try {
+        const { data: foundH } = await supabase
+          .from('households')
+          .select('id')
+          .eq('invite_code', inviteCode.trim().toUpperCase())
+          .maybeSingle();
+
+        if (!foundH) {
+          setErrorMsg(t.auth.invalidInviteCode);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Continue if network check fails
+      }
+    }
+
+    // Call Supabase Auth SignUp with complete metadata
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
@@ -109,6 +128,9 @@ function RegisterForm() {
           full_name: fullName.trim() || cleanUsername,
           nickname: fullName.trim() || cleanUsername,
           username: cleanUsername,
+          household_mode: householdMode,
+          household_name: householdName.trim() || 'Bobbies Homie',
+          invite_code: inviteCode.trim().toUpperCase(),
         },
       },
     });
@@ -129,37 +151,26 @@ function RegisterForm() {
     const userId = authData.user?.id;
     if (userId) {
       try {
-        let assignedHouseholdId: string | null = null;
-        if (householdMode === 'create') {
-          const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-          const { data: newH } = await supabase
-            .from('households')
-            .insert({
-              name: householdName.trim() || 'Bobbies Homie',
-              invite_code: newCode,
-            })
-            .select()
-            .single();
-          if (newH) assignedHouseholdId = newH.id;
-        } else {
-          const { data: foundH } = await supabase
-            .from('households')
-            .select('id')
-            .eq('invite_code', inviteCode.trim().toUpperCase())
-            .maybeSingle();
-          if (foundH) assignedHouseholdId = foundH.id;
-        }
+        // Verify profile and household linkage
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('household_id')
+          .eq('id', userId)
+          .maybeSingle();
 
-        await supabase.from('profiles').upsert({
-          id: userId,
-          username: cleanUsername,
-          full_name: fullName.trim() || cleanUsername,
-          nickname: fullName.trim() || cleanUsername,
-          email: email.trim().toLowerCase(),
-          household_id: assignedHouseholdId,
-        });
+        if (!profile?.household_id) {
+          if (householdMode === 'join' && inviteCode.trim()) {
+            await supabase.rpc('join_household_by_invite', {
+              invite_code_input: inviteCode.trim().toUpperCase(),
+            });
+          } else {
+            await supabase.rpc('create_household_and_join', {
+              household_name: householdName.trim() || 'Bobbies Homie',
+            });
+          }
+        }
       } catch (dbErr) {
-        console.warn('Profile/Household bootstrap error:', dbErr);
+        console.warn('Profile/Household verification notice:', dbErr);
       }
     }
 

@@ -30,7 +30,6 @@ import {
 } from '@/lib/services/db';
 import { uploadPetPhoto } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
-import { LanguageToggle } from '@/components/ui/language-toggle';
 
 export default function PetsPage() {
   const { t, language } = useLanguage();
@@ -167,8 +166,9 @@ export default function PetsPage() {
       setPetPhotoFile(null);
       setPetPhotoPreview(null);
       setIsAddPetModalOpen(false);
-    } catch (err: any) {
-      alert(err.message || 'บันทึกสัตว์เลี้ยงไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกสัตว์เลี้ยงไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmittingPet(false);
     }
@@ -183,8 +183,9 @@ export default function PetsPage() {
       if (selectedPetId === petId) {
         setSelectedPetId(updated.length > 0 ? updated[0].id : null);
       }
-    } catch (err: any) {
-      alert(err.message || 'ลบสัตว์เลี้ยงไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'ลบสัตว์เลี้ยงไม่สำเร็จ';
+      alert(msg);
     }
   };
 
@@ -206,8 +207,9 @@ export default function PetsPage() {
       setNewLogTitle('');
       setNewLogDate(new Date().toISOString().split('T')[0]);
       setIsAddLogModalOpen(false);
-    } catch (err: any) {
-      alert(err.message || 'บันทึกบันทึกดูแลไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกบันทึกดูแลไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmittingLog(false);
     }
@@ -219,24 +221,23 @@ export default function PetsPage() {
       setPetLogs((prev) =>
         prev.map((l) => (l.id === logId ? { ...l, is_done: !currentDone } : l))
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1F1511] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
-          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#F5EBE6]">
+          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
             {t.pets.title}
           </h1>
-          <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#BCAAA4] mt-0.5">
+          <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
             {language === 'th' ? 'ดูแลสัตว์เลี้ยง อัพเดตรูปและตารางวัคซีน/กรูมมิ่ง' : 'Manage pets, photos, and care schedules'}
           </p>
         </div>
-        <LanguageToggle />
       </div>
 
       {loading ? (
@@ -245,20 +246,20 @@ export default function PetsPage() {
         </div>
       ) : pets.length === 0 ? (
         <div className="px-6 mt-6">
-          <div className="flex flex-col items-center justify-center p-8 bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[24px] text-center">
-            <div className="w-16 h-16 rounded-full bg-[#FFE0B2] dark:bg-[#3E2723] flex items-center justify-center text-[#E65100] mb-3">
+          <div className="flex flex-col items-center justify-center p-8 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] text-center">
+            <div className="w-16 h-16 rounded-full bg-[#FFE0B2] dark:bg-[#2E2A27] flex items-center justify-center text-[#E65100] mb-3">
               <PawPrint className="w-8 h-8 stroke-[#E65100]" strokeWidth={2.2} />
             </div>
-            <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#F5EBE6] mb-1">
+            <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2] mb-1">
               {t.pets.emptyPets}
             </h3>
-            <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#BCAAA4] max-w-[240px] mb-4">
+            <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87] max-w-[240px] mb-4">
               {t.pets.emptyPetsPrompt}
             </p>
             <button
               type="button"
               onClick={() => setIsAddPetModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[13px] font-semibold hover:opacity-95 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[13px] font-semibold hover:opacity-95 shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-white" strokeWidth={2.5} />
               {t.pets.addPet}
@@ -278,10 +279,10 @@ export default function PetsPage() {
                     key={pet.id}
                     type="button"
                     onClick={() => setSelectedPetId(pet.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-full border transition-all shrink-0 ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-full border transition-all shrink-0 cursor-pointer ${
                       isSelected
                         ? 'bg-[#5D4037] text-white border-[#5D4037] shadow-xs'
-                        : 'bg-[#F4EFEA] dark:bg-[#2D1E18] border-[#D7CCC8] dark:border-[#4E342E] text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]'
+                        : 'bg-[#F4EFEA] dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
                     }`}
                   >
                     {pet.photo_url ? (
@@ -301,7 +302,7 @@ export default function PetsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddPetModalOpen(true)}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037] shrink-0"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] shrink-0 cursor-pointer"
                 title={t.pets.addPet}
               >
                 <Plus className="w-4 h-4 stroke-current" strokeWidth={2.5} />
@@ -312,9 +313,9 @@ export default function PetsPage() {
           {currentPet && (
             <div className="px-6 space-y-4 mt-2">
               {/* Pet Info Card with Photo */}
-              <div className="p-4 bg-white dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)] flex items-center justify-between">
+              <div className="p-4 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)] flex items-center justify-between">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-[20px] overflow-hidden bg-[#FFE0B2] dark:bg-[#3E2723] flex items-center justify-center text-[#E65100] relative shrink-0 border-2 border-white dark:border-[#5D4037] shadow-xs">
+                  <div className="w-14 h-14 rounded-[20px] overflow-hidden bg-[#FFE0B2] dark:bg-[#2E2A27] flex items-center justify-center text-[#E65100] relative shrink-0 border-2 border-white dark:border-[#2E2A27] shadow-xs">
                     {currentPet.photo_url ? (
                       <Image 
                         src={currentPet.photo_url} 
@@ -327,10 +328,10 @@ export default function PetsPage() {
                     )}
                   </div>
                   <div>
-                    <h2 className="font-outfit font-bold text-[19px] text-[#5D4037] dark:text-[#F5EBE6]">
+                    <h2 className="font-outfit font-bold text-[19px] text-[#5D4037] dark:text-[#DDD7D2]">
                       {currentPet.name}
                     </h2>
-                    <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                    <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
                       {currentPet.breed || (language === 'th' ? 'เพื่อนร่วมบ้าน' : 'Companion')} • {currentPet.gender === 'male' ? t.pets.male : t.pets.female}
                     </p>
                   </div>
@@ -340,21 +341,21 @@ export default function PetsPage() {
                   type="button"
                   onClick={() => handleDeletePet(currentPet.id)}
                   title={t.common.delete}
-                  className="p-2 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors"
+                  className="p-2 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4 stroke-current" />
                 </button>
               </div>
 
               {/* Tab Selector: Vaccines vs Grooming */}
-              <div className="flex p-1 bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[16px]">
+              <div className="flex p-1 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px]">
                 <button
                   type="button"
                   onClick={() => setActiveTab('vaccines')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[12px] text-[12px] font-semibold transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[12px] text-[12px] font-semibold transition-all cursor-pointer ${
                     activeTab === 'vaccines'
-                      ? 'bg-white dark:bg-[#4E342E] text-[#5D4037] dark:text-[#F5EBE6] shadow-xs'
-                      : 'text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]'
+                      ? 'bg-white dark:bg-[#6E544A] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                      : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
                   }`}
                 >
                   <Activity className="w-3.5 h-3.5 stroke-current" />
@@ -363,10 +364,10 @@ export default function PetsPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('grooming')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[12px] text-[12px] font-semibold transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-[12px] text-[12px] font-semibold transition-all cursor-pointer ${
                     activeTab === 'grooming'
-                      ? 'bg-white dark:bg-[#4E342E] text-[#5D4037] dark:text-[#F5EBE6] shadow-xs'
-                      : 'text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]'
+                      ? 'bg-white dark:bg-[#6E544A] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                      : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
                   }`}
                 >
                   <Scissors className="w-3.5 h-3.5 stroke-current" />
@@ -377,27 +378,27 @@ export default function PetsPage() {
               {/* Care Logs List */}
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center px-1">
-                  <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#F5EBE6]">
+                  <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
                     {activeTab === 'vaccines' ? t.pets.vaccinesTab : t.pets.groomingTab}
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsAddLogModalOpen(true)}
-                    className="text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline"
+                    className="text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline cursor-pointer"
                   >
                     + {t.pets.addLog}
                   </button>
                 </div>
 
                 {currentPetLogs.length === 0 ? (
-                  <div className="p-6 bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[18px] text-center">
-                    <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#BCAAA4] mb-3">
+                  <div className="p-6 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] text-center">
+                    <p className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87] mb-3">
                       {t.pets.emptyLogs}
                     </p>
                     <button
                       type="button"
                       onClick={() => setIsAddLogModalOpen(true)}
-                      className="px-4 py-1.5 bg-[#5D4037] dark:bg-[#4E342E] text-white text-[12px] font-semibold rounded-[12px] shadow-xs"
+                      className="px-4 py-1.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white text-[12px] font-semibold rounded-[12px] shadow-xs cursor-pointer"
                     >
                       + {t.pets.addLog}
                     </button>
@@ -406,16 +407,16 @@ export default function PetsPage() {
                   currentPetLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="flex items-center justify-between p-3.5 bg-white dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.02)]"
+                      className="flex items-center justify-between p-3.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.02)]"
                     >
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => handleToggleLog(log.id, log.is_done)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
                             log.is_done 
                               ? 'bg-[#2E7D32] text-white' 
-                              : 'bg-[#F4EFEA] dark:bg-[#1F1511] text-[#5D4037] dark:text-[#D7CCC8]'
+                              : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#948D87]'
                           }`}
                         >
                           {log.is_done ? (
@@ -426,11 +427,11 @@ export default function PetsPage() {
                         </button>
                         <div>
                           <div className={`font-dm-sans font-medium text-[14px] ${
-                            log.is_done ? 'line-through text-[#8D6E63] dark:text-[#8D6E63]' : 'text-[#5D4037] dark:text-[#F5EBE6]'
+                            log.is_done ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'text-[#5D4037] dark:text-[#DDD7D2]'
                           }`}>
                             {log.title}
                           </div>
-                          <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                          <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                             {log.scheduled_date}
                           </div>
                         </div>
@@ -447,15 +448,15 @@ export default function PetsPage() {
       {/* Add Pet Modal with Photo Upload */}
       {isAddPetModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#F5EBE6]">
+              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addPet}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddPetModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]"
+                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -474,14 +475,14 @@ export default function PetsPage() {
                 <button
                   type="button"
                   onClick={() => petFileInputRef.current?.click()}
-                  className="relative group w-20 h-20 rounded-[22px] bg-[#F4EFEA] dark:bg-[#1F1511] border-2 border-dashed border-[#D7CCC8] dark:border-[#4E342E] overflow-hidden flex flex-col items-center justify-center hover:border-[#5D4037] transition-colors"
+                  className="relative group w-20 h-20 rounded-[22px] bg-[#F4EFEA] dark:bg-[#141312] border-2 border-dashed border-[#D7CCC8] dark:border-[#2E2A27] overflow-hidden flex flex-col items-center justify-center hover:border-[#5D4037] transition-colors cursor-pointer"
                 >
                   {petPhotoPreview ? (
                     <Image src={petPhotoPreview} alt="Pet Preview" fill className="object-cover" />
                   ) : (
                     <>
-                      <Camera className="w-6 h-6 text-[#8D6E63] dark:text-[#BCAAA4] mb-1" />
-                      <span className="text-[10px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                      <Camera className="w-6 h-6 text-[#8D6E63] dark:text-[#948D87] mb-1" />
+                      <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
                         {language === 'th' ? 'เพิ่มรูป' : 'Photo'}
                       </span>
                     </>
@@ -490,7 +491,7 @@ export default function PetsPage() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.petNamePlaceholder}
                 </label>
                 <input
@@ -499,12 +500,12 @@ export default function PetsPage() {
                   value={newPetName}
                   onChange={(e) => setNewPetName(e.target.value)}
                   placeholder={t.pets.petNamePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.breedPlaceholder}
                 </label>
                 <input
@@ -512,22 +513,22 @@ export default function PetsPage() {
                   value={newPetBreed}
                   onChange={(e) => setNewPetBreed(e.target.value)}
                   placeholder={t.pets.breedPlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.gender}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setNewPetGender('male')}
-                    className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors ${
+                    className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors cursor-pointer ${
                       newPetGender === 'male'
-                        ? 'bg-[#5D4037] dark:bg-[#4E342E] text-white border-[#5D4037]'
-                        : 'bg-[#F4EFEA] dark:bg-[#1F1511] text-[#8D6E63] dark:text-[#BCAAA4] border-[#D7CCC8] dark:border-[#4E342E]'
+                        ? 'bg-[#5D4037] dark:bg-[#6E544A] text-white border-[#5D4037]'
+                        : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border-[#D7CCC8] dark:border-[#2E2A27]'
                     }`}
                   >
                     {t.pets.male}
@@ -535,10 +536,10 @@ export default function PetsPage() {
                   <button
                     type="button"
                     onClick={() => setNewPetGender('female')}
-                    className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors ${
+                    className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors cursor-pointer ${
                       newPetGender === 'female'
-                        ? 'bg-[#5D4037] dark:bg-[#4E342E] text-white border-[#5D4037]'
-                        : 'bg-[#F4EFEA] dark:bg-[#1F1511] text-[#8D6E63] dark:text-[#BCAAA4] border-[#D7CCC8] dark:border-[#4E342E]'
+                        ? 'bg-[#5D4037] dark:bg-[#6E544A] text-white border-[#5D4037]'
+                        : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border-[#D7CCC8] dark:border-[#2E2A27]'
                     }`}
                   >
                     {t.pets.female}
@@ -550,14 +551,14 @@ export default function PetsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddPetModalOpen(false)}
-                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#BCAAA4]"
+                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87] cursor-pointer"
                 >
                   {t.common.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingPet}
-                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50 cursor-pointer"
                 >
                   {submittingPet ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : t.common.add}
                 </button>
@@ -570,15 +571,15 @@ export default function PetsPage() {
       {/* Add Log Modal */}
       {isAddLogModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#F5EBE6]">
+              <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addLog}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddLogModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]"
+                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -586,7 +587,7 @@ export default function PetsPage() {
 
             <form onSubmit={handleCreateLog} className="space-y-3.5">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.logTitlePlaceholder}
                 </label>
                 <input
@@ -595,12 +596,12 @@ export default function PetsPage() {
                   value={newLogTitle}
                   onChange={(e) => setNewLogTitle(e.target.value)}
                   placeholder={t.pets.logTitlePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.datePlaceholder}
                 </label>
                 <input
@@ -608,7 +609,7 @@ export default function PetsPage() {
                   required
                   value={newLogDate}
                   onChange={(e) => setNewLogDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
@@ -616,14 +617,14 @@ export default function PetsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddLogModalOpen(false)}
-                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#BCAAA4]"
+                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87] cursor-pointer"
                 >
                   {t.common.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingLog}
-                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[14px] text-[13px] font-semibold hover:opacity-95 disabled:opacity-50 cursor-pointer"
                 >
                   {submittingLog ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : t.common.add}
                 </button>

@@ -30,7 +30,7 @@ export function BottomNav() {
         {/* bottom-nav-pill */}
         <nav
           aria-label="Mobile Bottom Navigation"
-          className="w-[354px] h-[64px] bg-[#F4EFEA] dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[32px] px-2 flex items-center justify-between transition-colors"
+          className="w-[354px] h-[64px] bg-[#F4EFEA] dark:bg-[#5D4037] border border-[#D7CCC8] dark:border-[#7A5C52] shadow-[0px_4px_16px_rgba(93,64,55,0.10)] dark:shadow-[0px_4px_20px_rgba(0,0,0,0.35)] rounded-[32px] px-2 flex items-center justify-between transition-colors"
         >
           {tabs.map((tab) => {
             const isActive =
@@ -45,8 +45,8 @@ export function BottomNav() {
                 href={tab.href}
                 className={`flex flex-col items-center justify-center py-2 px-2.5 rounded-[20px] transition-all duration-200 ${
                   isActive
-                    ? 'bg-[#FFFFFF] dark:bg-[#1F1511] text-[#5D4037] dark:text-[#F5EBE6] shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
-                    : 'text-[#5D4037]/70 dark:text-[#BCAAA4] hover:text-[#5D4037] dark:hover:text-[#F5EBE6] hover:bg-white/40 dark:hover:bg-white/5'
+                    ? 'bg-[#FFFFFF] dark:bg-[#3E2A23] text-[#5D4037] dark:text-[#FDFBF7] shadow-[0_2px_8px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:ring-white/10'
+                    : 'text-[#5D4037]/70 dark:text-[#D7CCC8]/80 hover:text-[#5D4037] dark:hover:text-white hover:bg-white/40 dark:hover:bg-white/10'
                 }`}
               >
                 <Icon

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import type { Database } from '@/types/database.types';
 
 export interface DbProfile {
   id: string;
@@ -126,6 +127,21 @@ export async function fetchProfile(userId: string): Promise<DbProfile | null> {
     .single();
 
   if (error || !data) return null;
+
+  // Auto-heal: If user is authenticated but somehow has no household, automatically create & join one
+  if (!data.household_id) {
+    try {
+      const { data: rpcRes } = await supabase.rpc('create_household_and_join', {
+        household_name: 'Bobbies Homie',
+      });
+      if (rpcRes && (rpcRes as { success?: boolean; household_id?: string }).success) {
+        data.household_id = (rpcRes as { household_id: string }).household_id;
+      }
+    } catch (e) {
+      console.warn('Auto-heal household error:', e);
+    }
+  }
+
   return data as DbProfile;
 }
 
@@ -174,12 +190,29 @@ export async function createNewHousehold(
   userId: string
 ): Promise<DbHousehold> {
   const supabase = createClient();
-  const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const name = householdName.trim() || 'Bobbies Homie';
 
+  // 1. Try atomic SECURITY DEFINER RPC
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('create_household_and_join', {
+      household_name: name,
+    });
+
+    if (!rpcErr && rpcRes && (rpcRes as { success?: boolean; household_id?: string }).success) {
+      const hId = (rpcRes as { household_id: string }).household_id;
+      const created = await fetchHousehold(hId);
+      if (created) return created;
+    }
+  } catch (e) {
+    console.warn('RPC create_household_and_join notice:', e);
+  }
+
+  // 2. Direct fallback
+  const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
   const { data: household, error: houseError } = await supabase
     .from('households')
     .insert({
-      name: householdName || 'Bobbies Homie',
+      name,
       invite_code: inviteCode,
     })
     .select()
@@ -205,6 +238,28 @@ export async function joinHouseholdByCode(
   const supabase = createClient();
   const cleanCode = inviteCode.trim().toUpperCase();
 
+  // 1. Try atomic SECURITY DEFINER RPC
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('join_household_by_invite', {
+      invite_code_input: cleanCode,
+    });
+
+    if (!rpcErr && rpcRes) {
+      const res = rpcRes as { success?: boolean; household_id?: string; error?: string };
+      if (res.success && res.household_id) {
+        const joined = await fetchHousehold(res.household_id);
+        if (joined) return joined;
+      } else if (res.error) {
+        throw new Error(res.error);
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message !== 'Invalid invite code') {
+      throw e;
+    }
+  }
+
+  // 2. Direct fallback
   const { data: household, error: houseError } = await supabase
     .from('households')
     .select('*')
@@ -319,7 +374,7 @@ export async function createBatchShoppingList(
     if (itemsToInsert.length > 0) {
       const { data: insertedItems, error: itemsError } = await supabase
         .from('shopping_items')
-        .insert(itemsToInsert as any)
+        .insert(itemsToInsert as Database['public']['Tables']['shopping_items']['Insert'][])
         .select();
 
       if (itemsError) throw new Error(itemsError.message);
@@ -380,7 +435,7 @@ export async function createChore(
       household_id: householdId,
       title: chore.title,
       assigned_to: chore.assigned_to || 'All',
-      frequency: (chore.frequency as any) || 'weekly',
+      frequency: (chore.frequency as Database['public']['Enums']['chore_frequency']) || 'weekly',
       points: chore.points || 10,
       created_by: userId,
     })
@@ -446,7 +501,7 @@ export async function createCalendarEvent(
       assigned_to: event.assigned_to || 'All',
       color_tag: event.color_tag || '#5D4037',
       owner_id: userId,
-    } as any)
+    } as Database['public']['Tables']['calendar_events']['Insert'])
     .select()
     .single();
 
@@ -496,7 +551,7 @@ export async function createPet(
       gender: pet.gender || 'male',
       photo_url: pet.photo_url || null,
       notes: pet.notes || null,
-    } as any)
+    })
     .select()
     .single();
 
@@ -527,11 +582,11 @@ export async function createPetLog(log: {
     .from('pet_logs')
     .insert({
       pet_id: log.pet_id,
-      log_type: (log.log_type as any) || 'vet',
+      log_type: (log.log_type as Database['public']['Enums']['pet_log_type']) || 'vet',
       title: log.title,
       scheduled_date: log.scheduled_date,
       is_done: false,
-    } as any)
+    })
     .select()
     .single();
 
@@ -587,7 +642,7 @@ export async function createFinance(
       household_id: householdId,
       title: finance.title,
       amount: finance.amount,
-      category: (finance.category as any) || 'groceries',
+      category: (finance.category as Database['public']['Enums']['finance_category']) || 'groceries',
       paid_by: finance.paid_by,
       date: finance.date || new Date().toISOString().split('T')[0],
       is_reimbursed: false,

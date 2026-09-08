@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-outfit: var(--font-outfit), 'Outfit', sans-serif;
   --font-dm-sans: var(--font-dm-sans), 'DM Sans', sans-serif;
@@ -21,15 +23,16 @@
   --input-bg: #F4EFEA;
 }
 
-html.dark {
-  --background: #1F1511;
-  --foreground: #F5EBE6;
-  --card: #2D1E18;
-  --card-foreground: #F5EBE6;
-  --border: #4E342E;
-  --muted: #BCAAA4;
-  --subtle: #35231C;
-  --input-bg: #261A15;
+html.dark,
+[data-theme="dark"] {
+  --background: #2A1B16;
+  --foreground: #FDFBF7;
+  --card: #38241D;
+  --card-foreground: #FDFBF7;
+  --border: #5D4037;
+  --muted: #D7CCC8;
+  --subtle: #4A332B;
+  --input-bg: #321F18;
 }
 
 .font-outfit {

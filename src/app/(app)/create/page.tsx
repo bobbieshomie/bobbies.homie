@@ -36,7 +36,6 @@ import {
 } from '@/lib/services/db';
 import { uploadPetPhoto } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
-import { LanguageToggle } from '@/components/ui/language-toggle';
 
 type CreationTab = 'shopping' | 'calendar' | 'finance' | 'pets' | 'chores' | 'memory';
 
@@ -205,8 +204,9 @@ function CreatePageContent() {
       );
 
       showSuccessAndRedirect(t.create.successShopping, '/shopping');
-    } catch (err: any) {
-      alert(err.message || 'บันทึกรายการซื้อของไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกรายการซื้อของไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -232,8 +232,9 @@ function CreatePageContent() {
       });
 
       showSuccessAndRedirect(t.create.successCalendar, '/calendar');
-    } catch (err: any) {
-      alert(err.message || 'บันทึกกิจกรรมไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกกิจกรรมไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -256,8 +257,9 @@ function CreatePageContent() {
       });
 
       showSuccessAndRedirect(t.create.successFinance, '/finances');
-    } catch (err: any) {
-      alert(err.message || 'บันทึกค่าใช้จ่ายไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกค่าใช้จ่ายไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -299,8 +301,9 @@ function CreatePageContent() {
 
         showSuccessAndRedirect(t.create.successPets, '/pets');
       }
-    } catch (err: any) {
-      alert(err.message || 'บันทึกไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -321,8 +324,9 @@ function CreatePageContent() {
       });
 
       showSuccessAndRedirect(t.create.successChores, '/dashboard');
-    } catch (err: any) {
-      alert(err.message || 'บันทึกงานบ้านไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกงานบ้านไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
@@ -348,31 +352,32 @@ function CreatePageContent() {
 
       await createMemory(currentUser.household_id, currentUser.id, photoUrl, memCaption.trim() || undefined);
       showSuccessAndRedirect(t.create.successMemory, '/profile');
-    } catch (err: any) {
-      alert(err.message || 'บันทึกรูปภาพไม่สำเร็จ');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'บันทึกรูปภาพไม่สำเร็จ';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1F1511] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <Link
           href="/dashboard"
-          className="p-1.5 -ml-1.5 text-[#5D4037] dark:text-[#F5EBE6] hover:text-[#4A332C] rounded-lg transition-colors"
+          className="p-1.5 -ml-1.5 text-[#5D4037] dark:text-[#DDD7D2] hover:text-[#4A332C] rounded-lg transition-colors"
         >
           <ChevronLeft className="w-5 h-5 stroke-current" />
         </Link>
-        <h1 className="font-outfit font-bold text-[20px] text-[#5D4037] dark:text-[#F5EBE6]">
+        <h1 className="font-outfit font-bold text-[20px] text-[#5D4037] dark:text-[#DDD7D2]">
           {t.create.title}
         </h1>
-        <LanguageToggle />
+        <div className="w-8" />
       </div>
 
       <div className="px-6 pb-3 text-center">
-        <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#BCAAA4]">
+        <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87]">
           {t.create.subtitle}
         </p>
       </div>
@@ -404,10 +409,10 @@ function CreatePageContent() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as CreationTab)}
-                className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-[16px] border transition-all ${
+                className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-[16px] border transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-[#5D4037] dark:bg-[#4E342E] text-white border-[#5D4037] shadow-xs'
-                    : 'bg-[#F4EFEA] dark:bg-[#2D1E18] border-[#D7CCC8] dark:border-[#4E342E] text-[#8D6E63] dark:text-[#BCAAA4] hover:text-[#5D4037]'
+                    ? 'bg-[#5D4037] dark:bg-[#6E544A] text-white border-[#5D4037] shadow-xs'
+                    : 'bg-[#F4EFEA] dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
                 }`}
               >
                 <Icon className="w-4 h-4 mb-1 stroke-current" />
@@ -422,12 +427,12 @@ function CreatePageContent() {
 
       {/* Active Form */}
       <div className="px-6">
-        <div className="p-4 bg-white dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)]">
+        <div className="p-4 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)]">
           {/* 1. Shopping Form: Batch Multi-Item Creation */}
           {activeTab === 'shopping' && (
             <form onSubmit={handleShoppingSubmit} className="space-y-4">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {language === 'th' ? 'หัวข้อรายการซื้อของ' : 'Shopping List Title'} *
                 </label>
                 <input
@@ -436,24 +441,24 @@ function CreatePageContent() {
                   value={shopListTitle}
                   onChange={(e) => setShopListTitle(e.target.value)}
                   placeholder={language === 'th' ? 'เช่น ของสดสัปดาห์นี้, ของใช้เข้าบ้าน' : 'e.g. Weekly Groceries, Kitchen Restock'}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'วันที่' : 'Date'}
                   </label>
                   <input
                     type="date"
                     value={shopListDate}
                     onChange={(e) => setShopListDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'สถานที่' : 'Location'}
                   </label>
                   <input
@@ -461,21 +466,21 @@ function CreatePageContent() {
                     value={shopListLocation}
                     onChange={(e) => setShopListLocation(e.target.value)}
                     placeholder={language === 'th' ? 'เช่น Tops, Lotus' : 'e.g. Market, Mart'}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
               </div>
 
               {/* Items in this list */}
-              <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#4E342E]/60">
+              <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27]/60">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#F5EBE6]">
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                     {language === 'th' ? 'รายการของที่ต้องซื้อ (ใส่ได้หลายชิ้น)' : 'Items to Buy (Multiple Items)'}
                   </label>
                   <button
                     type="button"
                     onClick={handleAddShoppingItemRow}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     {language === 'th' ? 'เพิ่มรายการ' : 'Add row'}
@@ -484,27 +489,27 @@ function CreatePageContent() {
 
                 <div className="space-y-2 max-h-[220px] overflow-y-auto no-scrollbar pr-0.5">
                   {shopItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 p-2 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px]">
+                    <div key={idx} className="flex items-center gap-1.5 p-2 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px]">
                       <input
                         type="text"
                         required
                         value={item.title}
                         onChange={(e) => handleUpdateShoppingItem(idx, 'title', e.target.value)}
                         placeholder={language === 'th' ? `สินค้าชิ้นที่ ${idx + 1}` : `Item #${idx + 1}`}
-                        className="flex-1 px-2.5 py-1.5 bg-white dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[10px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                        className="flex-1 px-2.5 py-1.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[10px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                       />
                       <input
                         type="text"
                         value={item.quantity}
                         onChange={(e) => handleUpdateShoppingItem(idx, 'quantity', e.target.value)}
                         placeholder="จำนวน"
-                        className="w-16 px-2 py-1.5 bg-white dark:bg-[#2D1E18] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[10px] text-[12px] text-center text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                        className="w-16 px-2 py-1.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[10px] text-[12px] text-center text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                       />
                       {shopItems.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveShoppingItemRow(idx)}
-                          className="p-1 text-[#8D6E63] hover:text-red-500 rounded-md"
+                          className="p-1 text-[#8D6E63] hover:text-red-500 rounded-md cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -517,7 +522,7 @@ function CreatePageContent() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกชุดรายการซื้อของ' : 'Create Shopping List')}
               </button>
@@ -528,7 +533,7 @@ function CreatePageContent() {
           {activeTab === 'calendar' && (
             <form onSubmit={handleCalendarSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {language === 'th' ? 'ชื่อกิจกรรม' : 'Event Title'} *
                 </label>
                 <input
@@ -537,13 +542,13 @@ function CreatePageContent() {
                   value={calTitle}
                   onChange={(e) => setCalTitle(e.target.value)}
                   placeholder={t.calendar.eventTitlePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'วันที่' : 'Date'}
                   </label>
                   <input
@@ -551,11 +556,11 @@ function CreatePageContent() {
                     required
                     value={calDate}
                     onChange={(e) => setCalDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {t.calendar.time}
                   </label>
                   <input
@@ -563,20 +568,20 @@ function CreatePageContent() {
                     required
                     value={calTime}
                     onChange={(e) => setCalTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {t.calendar.category}
                   </label>
                   <select
                     value={calCategory}
                     onChange={(e) => setCalCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
                     <option value="date">{language === 'th' ? 'กิจกรรมในบ้าน' : 'House Activity'}</option>
                     <option value="shopping">{t.create.shoppingTab}</option>
@@ -587,25 +592,25 @@ function CreatePageContent() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'กำหนดให้ใคร' : 'Assign To'}
                   </label>
                   <select
                     value={calAssigned}
                     onChange={(e) => setCalAssigned(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
-                    <option value="All">{language === 'th' ? '👥 ทุกคนในบ้าน' : '👥 All Members'}</option>
+                    <option value="All">{language === 'th' ? 'ทุกคนในบ้าน' : 'All Members'}</option>
                     {currentUser && (
                       <option value={currentUser.nickname || currentUser.full_name || 'Me'}>
-                        👤 {currentUser.nickname || currentUser.full_name || 'Me'} ({language === 'th' ? 'ฉัน' : 'Me'})
+                        {currentUser.nickname || currentUser.full_name || 'Me'} ({language === 'th' ? 'ฉัน' : 'Me'})
                       </option>
                     )}
                     {householdMembers
                       .filter((m) => m.id !== currentUser?.id)
                       .map((m) => (
                         <option key={m.id} value={m.nickname || m.full_name || m.username || 'Member'}>
-                          👤 {m.nickname || m.full_name || m.username || 'Member'}
+                          {m.nickname || m.full_name || m.username || 'Member'}
                         </option>
                       ))}
                   </select>
@@ -613,7 +618,7 @@ function CreatePageContent() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.calendar.location}
                 </label>
                 <input
@@ -621,14 +626,14 @@ function CreatePageContent() {
                   value={calLocation}
                   onChange={(e) => setCalLocation(e.target.value)}
                   placeholder={t.calendar.locationPlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกกิจกรรม' : 'Add Event')}
               </button>
@@ -639,7 +644,7 @@ function CreatePageContent() {
           {activeTab === 'finance' && (
             <form onSubmit={handleFinanceSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.expenseTitlePlaceholder} *
                 </label>
                 <input
@@ -648,12 +653,12 @@ function CreatePageContent() {
                   value={finTitle}
                   onChange={(e) => setFinTitle(e.target.value)}
                   placeholder={t.finances.expenseTitlePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.finances.amount} (THB) *
                 </label>
                 <input
@@ -663,19 +668,19 @@ function CreatePageContent() {
                   value={finAmount}
                   onChange={(e) => setFinAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {t.finances.category}
                   </label>
                   <select
                     value={finCategory}
                     onChange={(e) => setFinCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
                     <option value="groceries">{t.finances.groceriesCat}</option>
                     <option value="utilities">{t.finances.utilitiesCat}</option>
@@ -685,13 +690,13 @@ function CreatePageContent() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {t.finances.paidBy}
                   </label>
                   <select
                     value={finPaidBy}
                     onChange={(e) => setFinPaidBy(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
                     {currentUser && (
                       <option value={currentUser.nickname || currentUser.full_name || 'Me'}>
@@ -712,7 +717,7 @@ function CreatePageContent() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกค่าใช้จ่าย' : 'Add Expense')}
               </button>
@@ -722,14 +727,14 @@ function CreatePageContent() {
           {/* 4. Pet Form: Add Pet with Photo OR Care Log */}
           {activeTab === 'pets' && (
             <div>
-              <div className="flex p-1 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] mb-4">
+              <div className="flex p-1 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] mb-4">
                 <button
                   type="button"
                   onClick={() => setPetFormMode('new_pet')}
-                  className={`flex-1 py-1.5 rounded-[10px] text-[12px] font-semibold transition-all ${
+                  className={`flex-1 py-1.5 rounded-[10px] text-[12px] font-semibold transition-all cursor-pointer ${
                     petFormMode === 'new_pet'
-                      ? 'bg-white dark:bg-[#4E342E] text-[#5D4037] dark:text-[#F5EBE6] shadow-xs'
-                      : 'text-[#8D6E63] dark:text-[#BCAAA4]'
+                      ? 'bg-white dark:bg-[#6E544A] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                      : 'text-[#8D6E63] dark:text-[#948D87]'
                   }`}
                 >
                   {language === 'th' ? '+ เพิ่มสัตว์เลี้ยงใหม่' : '+ Add New Pet'}
@@ -737,10 +742,10 @@ function CreatePageContent() {
                 <button
                   type="button"
                   onClick={() => setPetFormMode('care_log')}
-                  className={`flex-1 py-1.5 rounded-[10px] text-[12px] font-semibold transition-all ${
+                  className={`flex-1 py-1.5 rounded-[10px] text-[12px] font-semibold transition-all cursor-pointer ${
                     petFormMode === 'care_log'
-                      ? 'bg-white dark:bg-[#4E342E] text-[#5D4037] dark:text-[#F5EBE6] shadow-xs'
-                      : 'text-[#8D6E63] dark:text-[#BCAAA4]'
+                      ? 'bg-white dark:bg-[#6E544A] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                      : 'text-[#8D6E63] dark:text-[#948D87]'
                   }`}
                 >
                   {language === 'th' ? 'ตารางวัคซีน / กรูมมิ่ง' : 'Care Schedule'}
@@ -766,14 +771,14 @@ function CreatePageContent() {
                     <button
                       type="button"
                       onClick={() => petFileInputRef.current?.click()}
-                      className="w-20 h-20 rounded-[20px] bg-[#F4EFEA] dark:bg-[#1F1511] border-2 border-dashed border-[#D7CCC8] dark:border-[#4E342E] overflow-hidden flex flex-col items-center justify-center relative hover:border-[#5D4037]"
+                      className="w-20 h-20 rounded-[20px] bg-[#F4EFEA] dark:bg-[#141312] border-2 border-dashed border-[#D7CCC8] dark:border-[#2E2A27] overflow-hidden flex flex-col items-center justify-center relative hover:border-[#5D4037] cursor-pointer"
                     >
                       {newPetPhotoPreview ? (
                         <Image src={newPetPhotoPreview} alt="Pet" fill className="object-cover" />
                       ) : (
                         <>
-                          <Camera className="w-6 h-6 text-[#8D6E63] dark:text-[#BCAAA4] mb-1" />
-                          <span className="text-[10px] text-[#8D6E63] dark:text-[#BCAAA4]">
+                          <Camera className="w-6 h-6 text-[#8D6E63] dark:text-[#948D87] mb-1" />
+                          <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
                             {language === 'th' ? 'อัพรูปสัตว์' : 'Upload'}
                           </span>
                         </>
@@ -782,7 +787,7 @@ function CreatePageContent() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                       {t.pets.petNamePlaceholder} *
                     </label>
                     <input
@@ -791,12 +796,12 @@ function CreatePageContent() {
                       value={newPetName}
                       onChange={(e) => setNewPetName(e.target.value)}
                       placeholder={t.pets.petNamePlaceholder}
-                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                       {t.pets.breedPlaceholder}
                     </label>
                     <input
@@ -804,22 +809,22 @@ function CreatePageContent() {
                       value={newPetBreed}
                       onChange={(e) => setNewPetBreed(e.target.value)}
                       placeholder={t.pets.breedPlaceholder}
-                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                       {t.pets.gender}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setNewPetGender('male')}
-                        className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors ${
+                        className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors cursor-pointer ${
                           newPetGender === 'male'
-                            ? 'bg-[#5D4037] dark:bg-[#4E342E] text-white border-[#5D4037]'
-                            : 'bg-[#F4EFEA] dark:bg-[#1F1511] text-[#8D6E63] dark:text-[#BCAAA4] border-[#D7CCC8] dark:border-[#4E342E]'
+                            ? 'bg-[#5D4037] dark:bg-[#6E544A] text-white border-[#5D4037]'
+                            : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border-[#D7CCC8] dark:border-[#2E2A27]'
                         }`}
                       >
                         {t.pets.male}
@@ -827,10 +832,10 @@ function CreatePageContent() {
                       <button
                         type="button"
                         onClick={() => setNewPetGender('female')}
-                        className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors ${
+                        className={`py-2 rounded-[12px] text-[13px] font-medium border transition-colors cursor-pointer ${
                           newPetGender === 'female'
-                            ? 'bg-[#5D4037] dark:bg-[#4E342E] text-white border-[#5D4037]'
-                            : 'bg-[#F4EFEA] dark:bg-[#1F1511] text-[#8D6E63] dark:text-[#BCAAA4] border-[#D7CCC8] dark:border-[#4E342E]'
+                            ? 'bg-[#5D4037] dark:bg-[#6E544A] text-white border-[#5D4037]'
+                            : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border-[#D7CCC8] dark:border-[#2E2A27]'
                         }`}
                       >
                         {t.pets.female}
@@ -841,7 +846,7 @@ function CreatePageContent() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                    className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
                     {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'เพิ่มสัตว์เลี้ยง' : 'Add Pet')}
                   </button>
@@ -849,13 +854,13 @@ function CreatePageContent() {
               ) : (
                 <form onSubmit={handlePetSubmit} className="space-y-3.5">
                   <div>
-                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                       {language === 'th' ? 'เลือกสัตว์เลี้ยง' : 'Select Pet'}
                     </label>
                     <select
                       value={selectedPetId}
                       onChange={(e) => setSelectedPetId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                     >
                       {householdPets.length === 0 ? (
                         <option value="">{language === 'th' ? 'ยังไม่มีสัตว์เลี้ยง (โปรดเพิ่มสัตว์เลี้ยงก่อน)' : 'No pets yet'}</option>
@@ -870,7 +875,7 @@ function CreatePageContent() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                    <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                       {language === 'th' ? 'หัวข้อการดูแล' : 'Care Task'} *
                     </label>
                     <input
@@ -879,19 +884,19 @@ function CreatePageContent() {
                       value={petLogTitle}
                       onChange={(e) => setPetLogTitle(e.target.value)}
                       placeholder={language === 'th' ? 'เช่น ฉีดวัคซีนพิษสุนัขบ้า, อาบน้ำตัดขน' : 'e.g. Rabies Vaccine, Grooming'}
-                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                      className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                      <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                         {language === 'th' ? 'ประเภท' : 'Type'}
                       </label>
                       <select
                         value={petLogType}
-                        onChange={(e) => setPetLogType(e.target.value as any)}
-                        className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                        onChange={(e) => setPetLogType(e.target.value as 'vaccine' | 'grooming')}
+                        className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                       >
                         <option value="vaccine">{t.pets.vaccinesTab}</option>
                         <option value="grooming">{t.pets.groomingTab}</option>
@@ -899,7 +904,7 @@ function CreatePageContent() {
                     </div>
 
                     <div>
-                      <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                      <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                         {language === 'th' ? 'วันที่' : 'Date'}
                       </label>
                       <input
@@ -907,7 +912,7 @@ function CreatePageContent() {
                         required
                         value={petLogDate}
                         onChange={(e) => setPetLogDate(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                        className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                       />
                     </div>
                   </div>
@@ -915,7 +920,7 @@ function CreatePageContent() {
                   <button
                     type="submit"
                     disabled={submitting || householdPets.length === 0}
-                    className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                    className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
                   >
                     {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกตารางดูแล' : 'Save Care Log')}
                   </button>
@@ -928,7 +933,7 @@ function CreatePageContent() {
           {activeTab === 'chores' && (
             <form onSubmit={handleChoreSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.create.choreTitlePlaceholder} *
                 </label>
                 <input
@@ -937,19 +942,19 @@ function CreatePageContent() {
                   value={choreTitle}
                   onChange={(e) => setChoreTitle(e.target.value)}
                   placeholder={t.create.choreTitlePlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {t.create.choreFrequency}
                   </label>
                   <select
                     value={choreFrequency}
                     onChange={(e) => setChoreFrequency(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
                     <option value="daily">{t.create.daily}</option>
                     <option value="weekly">{t.create.weekly}</option>
@@ -958,25 +963,25 @@ function CreatePageContent() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'มอบหมายให้ใคร' : 'Assign To'}
                   </label>
                   <select
                     value={choreAssignedTo}
                     onChange={(e) => setChoreAssignedTo(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                   >
-                    <option value="All">{language === 'th' ? '👥 ทุกคนในบ้าน' : '👥 All Members'}</option>
+                    <option value="All">{language === 'th' ? 'ทุกคนในบ้าน' : 'All Members'}</option>
                     {currentUser && (
                       <option value={currentUser.nickname || currentUser.full_name || 'Me'}>
-                        👤 {currentUser.nickname || currentUser.full_name || 'Me'} ({language === 'th' ? 'ฉัน' : 'Me'})
+                        {currentUser.nickname || currentUser.full_name || 'Me'} ({language === 'th' ? 'ฉัน' : 'Me'})
                       </option>
                     )}
                     {householdMembers
                       .filter((m) => m.id !== currentUser?.id)
                       .map((m) => (
                         <option key={m.id} value={m.nickname || m.full_name || m.username || 'Member'}>
-                          👤 {m.nickname || m.full_name || m.username || 'Member'}
+                          {m.nickname || m.full_name || m.username || 'Member'}
                         </option>
                       ))}
                   </select>
@@ -984,7 +989,7 @@ function CreatePageContent() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.create.points}
                 </label>
                 <input
@@ -992,14 +997,14 @@ function CreatePageContent() {
                   min={1}
                   value={chorePoints}
                   onChange={(e) => setChorePoints(parseInt(e.target.value) || 10)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกงานบ้าน' : 'Add Chore')}
               </button>
@@ -1026,14 +1031,14 @@ function CreatePageContent() {
                 <button
                   type="button"
                   onClick={() => memFileInputRef.current?.click()}
-                  className="w-full h-36 rounded-[18px] bg-[#F4EFEA] dark:bg-[#1F1511] border-2 border-dashed border-[#D7CCC8] dark:border-[#4E342E] overflow-hidden flex flex-col items-center justify-center relative hover:border-[#5D4037]"
+                  className="w-full h-36 rounded-[18px] bg-[#F4EFEA] dark:bg-[#141312] border-2 border-dashed border-[#D7CCC8] dark:border-[#2E2A27] overflow-hidden flex flex-col items-center justify-center relative hover:border-[#5D4037] cursor-pointer"
                 >
                   {memPhotoPreview ? (
                     <Image src={memPhotoPreview} alt="Memory Preview" fill className="object-cover" />
                   ) : (
                     <>
-                      <Camera className="w-8 h-8 text-[#8D6E63] dark:text-[#BCAAA4] mb-1" />
-                      <span className="text-[12px] text-[#8D6E63] dark:text-[#BCAAA4] font-medium">
+                      <Camera className="w-8 h-8 text-[#8D6E63] dark:text-[#948D87] mb-1" />
+                      <span className="text-[12px] text-[#8D6E63] dark:text-[#948D87] font-medium">
                         {language === 'th' ? 'กดเลือกรูปภาพความทรงจำ' : 'Upload photo memory'}
                       </span>
                     </>
@@ -1042,7 +1047,7 @@ function CreatePageContent() {
               </div>
 
               <div>
-                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#BCAAA4] mb-1">
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.profile.captionPlaceholder}
                 </label>
                 <input
@@ -1050,14 +1055,14 @@ function CreatePageContent() {
                   value={memCaption}
                   onChange={(e) => setMemCaption(e.target.value)}
                   placeholder={t.profile.captionPlaceholder}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1511] border border-[#D7CCC8] dark:border-[#4E342E] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#F5EBE6] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
+                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting || !memPhoto}
-                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#4E342E] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50"
+                className="w-full mt-2 py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-semibold hover:opacity-95 shadow-xs transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? (language === 'th' ? 'กำลังบันทึก...' : 'Saving...') : (language === 'th' ? 'บันทึกภาพความทรงจำ' : 'Save Memory')}
               </button>
@@ -1072,7 +1077,7 @@ function CreatePageContent() {
 export default function CreatePage() {
   return (
     <Suspense fallback={
-      <div className="flex justify-center items-center min-h-screen bg-[#FDFBF7] dark:bg-[#1F1511]">
+      <div className="flex justify-center items-center min-h-screen bg-[#FDFBF7] dark:bg-[#141312]">
         <Loader2 className="w-8 h-8 animate-spin text-[#8D6E63]" />
       </div>
     }>

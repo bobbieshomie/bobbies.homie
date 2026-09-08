@@ -294,17 +294,12 @@ DECLARE
     v_h_name TEXT;
     v_member_count INT;
 BEGIN
-    v_mode := NEW.raw_user_meta_data->>'household_mode';
+    v_mode := LOWER(COALESCE(NEW.raw_user_meta_data->>'household_mode', 'create'));
     v_invite_code := UPPER(TRIM(COALESCE(NEW.raw_user_meta_data->>'invite_code', '')));
-    v_h_name := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'household_name'), ''), 'Our Home');
+    v_h_name := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'household_name'), ''), 'Bobbies Homie');
 
-    -- Option 1: Create a new household if requested
-    IF v_mode = 'create' THEN
-        INSERT INTO public.households (name)
-        VALUES (v_h_name)
-        RETURNING id INTO v_household_id;
-    -- Option 2: Join an existing household by invite code if provided
-    ELSIF v_mode = 'join' AND v_invite_code <> '' THEN
+    -- Option 1: Join an existing household by invite code if provided
+    IF v_mode = 'join' AND v_invite_code <> '' THEN
         SELECT id INTO v_household_id
         FROM public.households
         WHERE invite_code = v_invite_code;
@@ -315,15 +310,23 @@ BEGIN
             WHERE household_id = v_household_id;
 
             IF v_member_count >= 2 THEN
-                v_household_id := NULL; -- Household full, profile left unattached
+                v_household_id := NULL; -- Household is full
             END IF;
         END IF;
+    END IF;
+
+    -- Option 2: If no household linked yet (either create mode, or invalid/full invite code), auto-create one
+    IF v_household_id IS NULL THEN
+        INSERT INTO public.households (name)
+        VALUES (v_h_name)
+        RETURNING id INTO v_household_id;
     END IF;
 
     INSERT INTO public.profiles (
         id, 
         household_id,
         username,
+        email,
         full_name, 
         nickname,
         avatar_url,
@@ -333,11 +336,19 @@ BEGIN
         NEW.id,
         v_household_id,
         LOWER(NULLIF(TRIM(NEW.raw_user_meta_data->>'username'), '')),
+        NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'username', 'Homie Partner'),
         COALESCE(NEW.raw_user_meta_data->>'nickname', NEW.raw_user_meta_data->>'full_name', 'Honey'),
         COALESCE(NEW.raw_user_meta_data->>'avatar_url', NULL),
-        CASE WHEN v_household_id IS NOT NULL AND v_mode = 'create' THEN 'partner_1' ELSE 'partner' END
-    );
+        CASE WHEN v_mode = 'join' AND v_household_id IS NOT NULL THEN 'partner' ELSE 'partner_1' END
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET 
+        household_id = COALESCE(public.profiles.household_id, EXCLUDED.household_id),
+        email = COALESCE(public.profiles.email, EXCLUDED.email),
+        full_name = COALESCE(public.profiles.full_name, EXCLUDED.full_name),
+        nickname = COALESCE(public.profiles.nickname, EXCLUDED.nickname);
+
     RETURN NEW;
 END;
 $$;
