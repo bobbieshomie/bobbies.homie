@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-outfit: var(--font-outfit), 'Outfit', sans-serif;
+  --font-dm-sans: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --color-homie-bg: #FDFBF7;
+  --color-homie-card: #F4EFEA;
+  --color-homie-border: #D7CCC8;
+  --color-homie-primary: #5D4037;
+  --color-homie-secondary: #8D6E63;
+}
+
+:root {
+  --background: #FDFBF7;
+  --foreground: #5D4037;
+  --card: #F4EFEA;
+  --card-foreground: #5D4037;
+  --border: #D7CCC8;
+  --muted: #8D6E63;
+  --subtle: #EFEBE9;
+  --input-bg: #F4EFEA;
+}
+
+html.dark {
+  --background: #1F1511;
+  --foreground: #F5EBE6;
+  --card: #2D1E18;
+  --card-foreground: #F5EBE6;
+  --border: #4E342E;
+  --muted: #BCAAA4;
+  --subtle: #35231C;
+  --input-bg: #261A15;
+}
+
+.font-outfit {
+  font-family: var(--font-outfit), 'Outfit', sans-serif;
+}
+
+.font-dm-sans {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+
+/* Mobile PWA Touch Optimization */
+html {
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Safe Area Inset Utility Classes */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
