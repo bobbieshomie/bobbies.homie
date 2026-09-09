@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   Sparkles,
   Check,
+  X,
   Plus,
   Trash2,
   Edit3,
@@ -30,7 +31,10 @@ import {
   ShoppingBag,
   Loader2,
   Calendar as CalendarIcon,
-  RefreshCw
+  RefreshCw,
+  Settings2,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -43,6 +47,11 @@ import {
   createChoreReward,
   updateChoreReward,
   deleteChoreReward,
+  proposeCreateChoreReward,
+  proposeEditChoreReward,
+  proposeDeleteChoreReward,
+  cancelChoreRewardProposal,
+  respondChoreRewardProposal,
   fetchRewardRedemptions,
   requestRewardRedemption,
   respondRewardRedemption,
@@ -60,7 +69,7 @@ import { SwipeableRow } from '@/components/ui/swipeable-row';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
-type ActiveTab = 'tasks' | 'rewards' | 'approvals' | 'logs';
+type ActiveTab = 'tasks' | 'rewards' | 'logs' | 'manage';
 type ChoreFilter = 'all' | 'today' | 'pending' | 'done';
 
 const REWARD_ICONS = [
@@ -102,7 +111,7 @@ export default function ChoresPage() {
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modals
+  // Modals for Chore
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<DbChore | null>(null);
   const [choreTitle, setChoreTitle] = useState('');
@@ -111,6 +120,7 @@ export default function ChoresPage() {
   const [chorePoints, setChorePoints] = useState(10);
   const [savingChore, setSavingChore] = useState(false);
 
+  // Modals for Reward Management
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<DbChoreReward | null>(null);
   const [rewardTitle, setRewardTitle] = useState('');
@@ -119,6 +129,7 @@ export default function ChoresPage() {
   const [rewardIcon, setRewardIcon] = useState('Gift');
   const [savingReward, setSavingReward] = useState(false);
 
+  // Modal for Redeem Confirmation
   const [redeemConfirmItem, setRedeemConfirmItem] = useState<DbChoreReward | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
@@ -201,15 +212,41 @@ export default function ChoresPage() {
     return members.find((m) => m.id === currentUserId) || null;
   }, [members, currentUserId]);
 
-  // Pending Approvals Count (items waiting for MY approval)
-  const pendingApprovalsForMe = useMemo(() => {
-    return redemptions.filter((r) => {
-      if (r.status !== 'pending') return false;
-      if (r.user_id === currentUserId) return false; // requested by me
-      const myApproval = r.approvals?.[currentUserId || ''];
+  // Active Approved Rewards for the Shop (Browse & Redeem only)
+  const activeShopRewards = useMemo(() => {
+    return rewards.filter((r) => !r.status || r.status === 'active');
+  }, [rewards]);
+
+  // Pending Reward Proposals (Create, Edit, Delete)
+  const pendingRewardProposals = useMemo(() => {
+    return rewards.filter(
+      (r) =>
+        r.status === 'pending_create' ||
+        r.status === 'pending_edit' ||
+        r.status === 'pending_delete'
+    );
+  }, [rewards]);
+
+  // Pending Reward Redemptions
+  const pendingRedemptions = useMemo(() => {
+    return redemptions.filter((r) => r.status === 'pending');
+  }, [redemptions]);
+
+  // Count of pending items specifically waiting for MY approval
+  const totalPendingApprovalsForMe = useMemo(() => {
+    if (!currentUserId) return 0;
+    // 1. Reward proposals waiting for me
+    const proposalsForMe = pendingRewardProposals.filter(
+      (r) => r.proposed_by && r.proposed_by !== currentUserId
+    ).length;
+    // 2. Redemptions waiting for me
+    const redemptionsForMe = pendingRedemptions.filter((r) => {
+      if (r.user_id === currentUserId) return false;
+      const myApproval = r.approvals?.[currentUserId];
       return !myApproval?.approved;
-    });
-  }, [redemptions, currentUserId]);
+    }).length;
+    return proposalsForMe + redemptionsForMe;
+  }, [pendingRewardProposals, pendingRedemptions, currentUserId]);
 
   // Chore Stats
   const choreStats = useMemo(() => {
@@ -298,12 +335,11 @@ export default function ChoresPage() {
       }
     } catch (err) {
       console.error('Failed to toggle chore:', err);
-      // Revert optimistic update
       loadData();
     }
   };
 
-  // Open Create/Edit Chore Modal
+  // Open Create Chore Modal
   const openCreateChoreModal = () => {
     setEditingChore(null);
     setChoreTitle('');
@@ -313,6 +349,7 @@ export default function ChoresPage() {
     setIsChoreModalOpen(true);
   };
 
+  // Open Edit Chore Modal
   const openEditChoreModal = (c: DbChore) => {
     setEditingChore(c);
     setChoreTitle(c.title);
@@ -332,27 +369,26 @@ export default function ChoresPage() {
       if (editingChore) {
         const updated = await updateChore(editingChore.id, {
           title: choreTitle.trim(),
-          frequency: choreFrequency,
-          assigned_to: choreAssignedTo,
+          frequency: choreFrequency as any,
+          assigned_to: choreAssignedTo === 'All' ? null : choreAssignedTo,
           points: chorePoints,
         });
-        setChores((prev) =>
-          prev.map((c) => (c.id === editingChore.id ? { ...c, ...updated } : c))
-        );
+        setChores((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
         showToast(language === 'th' ? 'แก้ไขงานบ้านเรียบร้อย' : 'Chore updated');
       } else {
         const created = await createChore(householdId, currentUserId, {
           title: choreTitle.trim(),
-          frequency: choreFrequency,
-          assigned_to: choreAssignedTo,
+          frequency: choreFrequency as any,
+          assigned_to: choreAssignedTo === 'All' ? undefined : choreAssignedTo,
           points: chorePoints,
         });
         setChores((prev) => [created, ...prev]);
-        showToast(language === 'th' ? 'เพิ่มงานบ้านสำเร็จ' : 'Chore added');
+        showToast(language === 'th' ? 'เพิ่มงานบ้านเรียบร้อย' : 'Chore added');
       }
       setIsChoreModalOpen(false);
     } catch (err) {
       console.error('Error saving chore:', err);
+      alert('บันทึกงานบ้านไม่สำเร็จ');
     } finally {
       setSavingChore(false);
     }
@@ -370,12 +406,13 @@ export default function ChoresPage() {
     }
   };
 
-  // Open Create/Edit Reward Modal
+  // --- Reward Management (Available from Manage tab only) ---
+
   const openCreateRewardModal = () => {
     setEditingReward(null);
     setRewardTitle('');
     setRewardDesc('');
-    setRewardCost(50);
+    setRewardCost(25);
     setRewardIcon('Gift');
     setIsRewardModalOpen(true);
   };
@@ -389,55 +426,219 @@ export default function ChoresPage() {
     setIsRewardModalOpen(true);
   };
 
-  // Submit Reward Form
+  // Propose New Reward or Propose Edit
   const handleSaveReward = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rewardTitle.trim() || !householdId || !currentUserId) return;
     setSavingReward(true);
 
+    const needsApproval = members.length >= 2;
+    const senderName =
+      currentMember?.nickname ||
+      currentMember?.full_name ||
+      (language === 'th' ? 'คนในบ้าน' : 'Partner');
+
     try {
       if (editingReward) {
-        const updated = await updateChoreReward(editingReward.id, {
-          title: rewardTitle.trim(),
-          description: rewardDesc.trim() || null,
-          points_cost: rewardCost,
-          icon: rewardIcon,
-        });
-        setRewards((prev) =>
-          prev.map((r) => (r.id === editingReward.id ? { ...r, ...updated } : r))
-        );
-        showToast(language === 'th' ? 'แก้ไขของรางวัลเรียบร้อย' : 'Reward updated');
+        if (needsApproval) {
+          await proposeEditChoreReward(editingReward.id, currentUserId, {
+            title: rewardTitle.trim(),
+            description: rewardDesc.trim() || undefined,
+            points_cost: rewardCost,
+            icon: rewardIcon,
+          });
+
+          showToast(
+            language === 'th'
+              ? 'ส่งคำขอแก้ไขรางวัลแล้ว รอคนในบ้านอนุมัติ ✨'
+              : 'Edit proposal sent. Waiting for partner approval ✨'
+          );
+
+          // Notify partner
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              householdId,
+              excludeUserId: currentUserId,
+              title: '🎁 Bobbies Homie',
+              body:
+                language === 'th'
+                  ? `${senderName} เสนอแก้ไขรางวัล '${editingReward.title}' กรุณาอนุมัติ! ✏️`
+                  : `${senderName} proposed to edit reward '${editingReward.title}'. Please approve! ✏️`,
+              link: '/chores',
+            }),
+          }).catch(() => {});
+        } else {
+          const updated = await updateChoreReward(editingReward.id, {
+            title: rewardTitle.trim(),
+            description: rewardDesc.trim() || null,
+            points_cost: rewardCost,
+            icon: rewardIcon,
+          });
+          setRewards((prev) =>
+            prev.map((r) => (r.id === editingReward.id ? { ...r, ...updated } : r))
+          );
+          showToast(language === 'th' ? 'แก้ไขของรางวัลเรียบร้อย' : 'Reward updated');
+        }
       } else {
-        const created = await createChoreReward(householdId, currentUserId, {
-          title: rewardTitle.trim(),
-          description: rewardDesc.trim() || undefined,
-          points_cost: rewardCost,
-          icon: rewardIcon,
-        });
-        setRewards((prev) => [created, ...prev]);
-        showToast(language === 'th' ? 'สร้างของรางวัลใหม่สำเร็จ' : 'Reward created');
+        // Create new reward proposal
+        await proposeCreateChoreReward(
+          householdId,
+          currentUserId,
+          {
+            title: rewardTitle.trim(),
+            description: rewardDesc.trim() || undefined,
+            points_cost: rewardCost,
+            icon: rewardIcon,
+          },
+          needsApproval
+        );
+
+        showToast(
+          needsApproval
+            ? language === 'th'
+              ? 'ส่งคำขอเพิ่มรางวัลแล้ว รอคนในบ้านอนุมัติ ✨'
+              : 'Reward proposal sent. Waiting for partner approval ✨'
+            : language === 'th'
+            ? 'สร้างของรางวัลใหม่สำเร็จ'
+            : 'Reward created'
+        );
+
+        if (needsApproval) {
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              householdId,
+              excludeUserId: currentUserId,
+              title: '🎁 Bobbies Homie',
+              body:
+                language === 'th'
+                  ? `${senderName} เสนอเพิ่มรางวัลใหม่: '${rewardTitle.trim()}' (${rewardCost} คะแนน) กรุณาอนุมัติ! ✨`
+                  : `${senderName} proposed a new reward: '${rewardTitle.trim()}' (${rewardCost} pts). Please approve! ✨`,
+              link: '/chores',
+            }),
+          }).catch(() => {});
+        }
       }
+
       setIsRewardModalOpen(false);
+      loadData();
     } catch (err) {
       console.error('Error saving reward:', err);
+      alert('บันทึกของรางวัลไม่สำเร็จ');
     } finally {
       setSavingReward(false);
     }
   };
 
-  // Delete Reward
-  const handleDeleteReward = async (rewardId: string) => {
-    if (!confirm(t.chores.confirmDeleteReward)) return;
+  // Propose Delete Reward (Two-person confirmation)
+  const handleProposeDeleteReward = async (reward: DbChoreReward) => {
+    if (!householdId || !currentUserId) return;
+    const needsApproval = members.length >= 2;
+
+    const confirmMsg = needsApproval
+      ? language === 'th'
+        ? `ต้องการส่งคำขอลบรางวัล '${reward.title}' ให้คนในบ้านยืนยันใช่หรือไม่?`
+        : `Propose to delete '${reward.title}' for partner approval?`
+      : language === 'th'
+      ? `ต้องการลบรางวัล '${reward.title}' ใช่หรือไม่?`
+      : `Delete reward '${reward.title}'?`;
+
+    if (!confirm(confirmMsg)) return;
+
     try {
-      await deleteChoreReward(rewardId);
-      setRewards((prev) => prev.filter((r) => r.id !== rewardId));
-      showToast(language === 'th' ? 'ลบของรางวัลเรียบร้อย' : 'Reward deleted');
+      if (needsApproval) {
+        await proposeDeleteChoreReward(reward.id, currentUserId);
+        showToast(
+          language === 'th'
+            ? 'ส่งคำขอลบรางวัลแล้ว รอคนในบ้านอนุมัติ'
+            : 'Delete proposal sent. Waiting for partner approval'
+        );
+
+        const senderName =
+          currentMember?.nickname ||
+          currentMember?.full_name ||
+          (language === 'th' ? 'คนในบ้าน' : 'Partner');
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId,
+            excludeUserId: currentUserId,
+            title: '🎁 Bobbies Homie',
+            body:
+              language === 'th'
+                ? `${senderName} เสนอขอลบรางวัล '${reward.title}' กรุณาอนุมัติ 🗑️`
+                : `${senderName} proposed to delete reward '${reward.title}'. Please approve 🗑️`,
+            link: '/chores',
+          }),
+        }).catch(() => {});
+      } else {
+        await deleteChoreReward(reward.id);
+        showToast(language === 'th' ? 'ลบของรางวัลเรียบร้อย' : 'Reward deleted');
+      }
+      loadData();
     } catch (err) {
-      console.error('Error deleting reward:', err);
+      console.error('Error proposing delete reward:', err);
     }
   };
 
-  // Request Reward Redemption
+  // Cancel My Own Proposal
+  const handleCancelProposal = async (reward: DbChoreReward) => {
+    try {
+      await cancelChoreRewardProposal(reward);
+      showToast(language === 'th' ? 'ยกเลิกคำขอเรียบร้อยแล้ว' : 'Proposal cancelled');
+      loadData();
+    } catch (err) {
+      console.error('Error cancelling proposal:', err);
+    }
+  };
+
+  // Partner Approves or Rejects Reward Proposal (Create, Edit, Delete)
+  const handleRespondProposal = async (reward: DbChoreReward, approved: boolean) => {
+    if (!householdId) return;
+    try {
+      const res = await respondChoreRewardProposal(reward, approved);
+      showToast(
+        approved
+          ? language === 'th'
+            ? 'อนุมัติเรียบร้อยแล้ว! 🎉'
+            : 'Approved successfully! 🎉'
+          : language === 'th'
+          ? 'ปฏิเสธคำขอเรียบร้อยแล้ว'
+          : 'Proposal rejected'
+      );
+
+      // Notify partner
+      const approverName =
+        currentMember?.nickname ||
+        currentMember?.full_name ||
+        (language === 'th' ? 'คนในบ้าน' : 'Partner');
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId,
+          excludeUserId: currentUserId,
+          title: approved ? '🎉 Bobbies Homie' : 'แจ้งเตือน Bobbies Homie',
+          body: approved
+            ? `${approverName} อนุมัติของรางวัล '${reward.title}' เรียบร้อยแล้ว! ✨`
+            : `${approverName} ปฏิเสธคำขอเกี่ยวกับรางวัล '${reward.title}'`,
+          link: '/chores',
+        }),
+      }).catch(() => {});
+
+      loadData();
+    } catch (err) {
+      console.error('Error responding to proposal:', err);
+    }
+  };
+
+  // --- Redemptions ---
+
+  // Request Reward Redemption from Shop
   const handleConfirmRedeem = async () => {
     if (!redeemConfirmItem || !householdId || !currentUserId) return;
     if (myPoints < redeemConfirmItem.points_cost) {
@@ -472,10 +673,9 @@ export default function ChoresPage() {
           }),
         }).catch(() => {});
 
-        // Refresh redemptions list
-        const updatedReds = await fetchRewardRedemptions(householdId);
-        setRedemptions(updatedReds);
-        setActiveTab('approvals');
+        loadData();
+        // Switch to manage tab so user can see their pending redemption
+        setActiveTab('manage');
       }
     } catch (err: any) {
       alert(err?.message || 'Failed to request redemption');
@@ -484,7 +684,7 @@ export default function ChoresPage() {
     }
   };
 
-  // Respond to Redemption (Approve / Reject)
+  // Respond to Redemption (Approve / Reject) in Manage tab
   const handleRespondRedemption = async (
     redemption: DbRewardRedemption,
     approved: boolean
@@ -516,7 +716,6 @@ export default function ChoresPage() {
           }),
         }).catch(() => {});
 
-        // Refresh redemptions, logs, and current user points
         loadData();
       }
     } catch (err: any) {
@@ -529,8 +728,8 @@ export default function ChoresPage() {
       <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-32 transition-colors duration-200">
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-[#5D4037] text-white text-[13px] font-semibold shadow-lg animate-in fade-in slide-in-from-top-3 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#F2C94C]" />
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-[#5D4037] text-white text-[13px] font-semibold shadow-lg animate-in fade-in slide-in-from-top-3 flex items-center gap-2 max-w-[90%] text-center">
+            <Sparkles className="w-4 h-4 text-[#F2C94C] shrink-0" />
             <span>{toastMessage}</span>
           </div>
         )}
@@ -561,7 +760,7 @@ export default function ChoresPage() {
         </div>
 
         {/* Points Summary Header Card */}
-        <div className="px-6 pt-2 pb-3">
+        <div className="px-6 pt-2 pb-2">
           <div className="p-4 rounded-[22px] bg-gradient-to-br from-[#F4EFEA] to-[#EBE4DC] dark:from-[#24211E] dark:to-[#1C1A18] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xs">
             <div className="flex items-center justify-between">
               {/* My Score */}
@@ -617,60 +816,74 @@ export default function ChoresPage() {
           </div>
         </div>
 
-        {/* Tab Navigation Pill */}
-        <div className="px-6 py-1">
-          <div className="flex items-center p-1 bg-[#F4EFEA] dark:bg-[#23201D] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px]">
+        {/* ======================================================== */}
+        {/* SLIDEBAR TAB NAVIGATION                                  */}
+        {/* ======================================================== */}
+        <div className="px-6 py-2 w-full">
+          <div className="flex items-center gap-1.5 p-1.5 bg-[#F4EFEA] dark:bg-[#23201D] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[20px] overflow-x-auto no-scrollbar scroll-smooth">
+            {/* Tab 1: งานบ้าน */}
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
+              className={`shrink-0 px-3.5 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'tasks'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
-                  : 'text-[#8D6E63] dark:text-[#948D87]'
+                  : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
               }`}
             >
               <CheckSquare className="w-3.5 h-3.5" />
               <span>{t.chores.tabTasks}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('rewards')}
-              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                activeTab === 'rewards'
-                  ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
-                  : 'text-[#8D6E63] dark:text-[#948D87]'
-              }`}
-            >
-              <Gift className="w-3.5 h-3.5" />
-              <span>{t.chores.tabRewards}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('approvals')}
-              className={`relative flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                activeTab === 'approvals'
-                  ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
-                  : 'text-[#8D6E63] dark:text-[#948D87]'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>{t.chores.tabApprovals}</span>
-              {pendingApprovalsForMe.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[#E0533C] text-white text-[9px] font-extrabold flex items-center justify-center ml-0.5 animate-pulse">
-                  {pendingApprovalsForMe.length}
+              {choreStats.completed < choreStats.total && (
+                <span className="px-1.5 py-0.2 rounded-full bg-[#8D6E63]/15 text-[10px] font-bold">
+                  {choreStats.total - choreStats.completed}
                 </span>
               )}
             </button>
 
+            {/* Tab 2: ร้านค้า (แลกรางวัลอย่างเดียว) */}
+            <button
+              onClick={() => setActiveTab('rewards')}
+              className={`shrink-0 px-3.5 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'rewards'
+                  ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                  : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
+              }`}
+            >
+              <Gift className="w-3.5 h-3.5" />
+              <span>{t.chores.tabRewards}</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-[#5D4037]/10 dark:bg-[#DDD7D2]/10 text-[10px] font-bold">
+                {activeShopRewards.length}
+              </span>
+            </button>
+
+            {/* Tab 3: ประวัติคะแนน */}
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
+              className={`shrink-0 px-3.5 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'logs'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
-                  : 'text-[#8D6E63] dark:text-[#948D87]'
+                  : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
               }`}
             >
               <History className="w-3.5 h-3.5" />
               <span>{t.chores.tabLogs}</span>
+            </button>
+
+            {/* Tab 4: จัดการรางวัล (อยู่หลังประวัติคะแนนตามคำขอ) */}
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`relative shrink-0 px-3.5 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'manage'
+                  ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
+                  : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
+              }`}
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>{t.chores.tabManageRewards || 'จัดการรางวัล'}</span>
+              {totalPendingApprovalsForMe > 0 && (
+                <span className="w-4 h-4 rounded-full bg-[#E0533C] text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse">
+                  {totalPendingApprovalsForMe}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -679,28 +892,26 @@ export default function ChoresPage() {
         {/* TAB 1: CHORES TASKS                                      */}
         {/* ======================================================== */}
         {activeTab === 'tasks' && (
-          <div className="px-6 pt-3 space-y-3">
+          <div className="px-6 pt-2 space-y-3">
             {/* Filter Pills and Add Button */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                {(['all', 'today', 'pending', 'done'] as ChoreFilter[]).map(
-                  (f) => (
-                    <button
-                      key={f}
-                      onClick={() => setChoreFilter(f)}
-                      className={`px-3 py-1.5 rounded-[12px] text-[12px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                        choreFilter === f
-                          ? 'bg-[#5D4037] text-white dark:bg-[#DDD7D2] dark:text-[#1A1816]'
-                          : 'bg-[#F4EFEA] dark:bg-[#24211E] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8] dark:border-[#2E2A27]'
-                      }`}
-                    >
-                      {f === 'all' && t.chores.allTab}
-                      {f === 'today' && t.chores.todayTab}
-                      {f === 'pending' && t.chores.pendingTab}
-                      {f === 'done' && t.chores.doneTab}
-                    </button>
-                  )
-                )}
+                {(['all', 'today', 'pending', 'done'] as ChoreFilter[]).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setChoreFilter(f)}
+                    className={`px-3 py-1.5 rounded-[12px] text-[12px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                      choreFilter === f
+                        ? 'bg-[#5D4037] text-white dark:bg-[#DDD7D2] dark:text-[#1A1816]'
+                        : 'bg-[#F4EFEA] dark:bg-[#24211E] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8] dark:border-[#2E2A27]'
+                    }`}
+                  >
+                    {f === 'all' && t.chores.allTab}
+                    {f === 'today' && t.chores.todayTab}
+                    {f === 'pending' && t.chores.pendingTab}
+                    {f === 'done' && t.chores.doneTab}
+                  </button>
+                ))}
               </div>
 
               <button
@@ -748,46 +959,47 @@ export default function ChoresPage() {
                           className={`w-7 h-7 rounded-[10px] flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
                             chore.is_completed
                               ? 'bg-[#2E7D32] border-[#2E7D32] text-white shadow-xs'
-                              : 'border-[#D7CCC8] dark:border-[#5D4037] hover:border-[#2E7D32]'
+                              : 'border-[#8D6E63]/40 hover:border-[#5D4037] dark:hover:border-[#DDD7D2]'
                           }`}
                         >
                           {chore.is_completed && <Check className="w-4 h-4 stroke-[3]" />}
                         </button>
 
                         <div className="min-w-0 flex-1">
-                          <h3
-                            className={`text-[14px] font-bold truncate ${
+                          <span
+                            className={`text-[14px] font-bold block truncate transition-all ${
                               chore.is_completed
                                 ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
                                 : 'text-[#5D4037] dark:text-[#DDD7D2]'
                             }`}
                           >
                             {chore.title}
-                          </h3>
+                          </span>
 
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-[8px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8]/60 dark:border-[#2E2A27]">
-                              {chore.frequency === 'daily' && 'รายวัน'}
-                              {chore.frequency === 'weekly' && 'รายสัปดาห์'}
-                              {chore.frequency === 'monthly' && 'รายเดือน'}
+                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            <span className="capitalize">
+                              {chore.frequency === 'daily' && t.create.daily}
+                              {chore.frequency === 'weekly' && t.create.weekly}
+                              {chore.frequency === 'monthly' && t.create.monthly}
                               {chore.frequency === 'once' && 'ครั้งเดียว'}
                             </span>
-
-                            {chore.assigned_to && chore.assigned_to !== 'All' && (
-                              <span className="text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] flex items-center gap-0.5">
-                                <User className="w-3 h-3" />
-                                {chore.assigned_to}
-                              </span>
+                            {chore.assigned_to && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-0.5">
+                                  <User className="w-3 h-3" />
+                                  <span>{chore.assigned_to}</span>
+                                </span>
+                              </>
                             )}
                           </div>
                         </div>
                       </div>
 
                       {/* Right: Points Badge */}
-                      <div className="shrink-0 flex items-center gap-1.5">
-                        <span className="px-2.5 py-1 rounded-full bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[12px] font-bold flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-[#2E7D32]" />
-                          +{chore.points || 10}
+                      <div className="shrink-0 text-right">
+                        <span className="inline-flex items-center gap-0.5 px-2 py-1 rounded-[10px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8]/60 dark:border-[#2E2A27] text-[11px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                          +{chore.points || 10} ⭐
                         </span>
                       </div>
                     </div>
@@ -799,212 +1011,92 @@ export default function ChoresPage() {
         )}
 
         {/* ======================================================== */}
-        {/* TAB 2: REWARD STORE                                      */}
+        {/* TAB 2: REWARD SHOP (BROWSE & REDEEM ONLY)                */}
         {/* ======================================================== */}
         {activeTab === 'rewards' && (
-          <div className="px-6 pt-3 space-y-3">
+          <div className="px-6 pt-2 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.tabRewards}
                 </h2>
                 <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                  ใช้คะแนนแลกรางวัลที่คนในบ้านสร้างไว้
+                  ใช้คะแนนสะสมแลกของรางวัลที่ได้รับการอนุมัติแล้ว
                 </p>
               </div>
 
               <button
-                onClick={openCreateRewardModal}
-                className="px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer"
+                onClick={() => setActiveTab('manage')}
+                className="px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-90 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t.chores.createReward}</span>
+                <Settings2 className="w-3 h-3" />
+                <span>จัดการรางวัล</span>
               </button>
             </div>
 
-            {rewards.length === 0 ? (
+            {activeShopRewards.length === 0 ? (
               <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
                 <Gift className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
                 <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.noRewards}
                 </p>
                 <button
-                  onClick={openCreateRewardModal}
+                  onClick={() => setActiveTab('manage')}
                   className="mt-3 inline-flex items-center gap-1 text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] hover:underline cursor-pointer"
                 >
-                  + {t.chores.createReward}
+                  + ไปที่หน้าจัดการรางวัล
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-2.5">
-                {rewards.map((reward) => {
+                {activeShopRewards.map((reward) => {
                   const IconComponent = getRewardIconComponent(reward.icon);
                   const canAfford = myPoints >= reward.points_cost;
 
                   return (
-                    <SwipeableRow
-                      key={reward.id}
-                      onEdit={() => openEditRewardModal(reward)}
-                      onDelete={() => handleDeleteReward(reward.id)}
-                      className="rounded-[18px]"
-                    >
-                      <div className="p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3">
-                        {/* Icon & Details */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-11 h-11 rounded-[14px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-center shrink-0">
-                            <IconComponent className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
-                              {reward.title}
-                            </h3>
-                            {reward.description && (
-                              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
-                                {reward.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="font-outfit font-extrabold text-[13px] text-[#E0533C]">
-                                {reward.points_cost}
-                              </span>
-                              <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                                {t.chores.pointsUnit}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Redeem Action Button */}
-                        <button
-                          onClick={() => setRedeemConfirmItem(reward)}
-                          disabled={!canAfford}
-                          className={`px-3.5 py-2 rounded-[12px] text-[12px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer ${
-                            canAfford
-                              ? 'bg-[#5D4037] text-white hover:opacity-90 shadow-xs'
-                              : 'bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63]/60 dark:text-[#948D87]/60 cursor-not-allowed'
-                          }`}
-                        >
-                          <Gift className="w-3.5 h-3.5" />
-                          <span>{t.chores.redeem}</span>
-                        </button>
-                      </div>
-                    </SwipeableRow>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ======================================================== */}
-        {/* TAB 3: APPROVAL QUEUE                                    */}
-        {/* ======================================================== */}
-        {activeTab === 'approvals' && (
-          <div className="px-6 pt-3 space-y-3">
-            <div>
-              <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
-                {t.chores.pendingApprovals}
-              </h2>
-              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                การแลกรางวัลต้องได้รับความเห็นชอบจากทุกคนในบ้าน
-              </p>
-            </div>
-
-            {redemptions.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
-                <Clock className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
-                <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
-                  {t.chores.noApprovals}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {redemptions.map((red) => {
-                  const isRequester = red.user_id === currentUserId;
-                  const requesterName =
-                    red.user?.nickname ||
-                    red.user?.full_name ||
-                    (isRequester ? (language === 'th' ? 'ฉัน' : 'Me') : 'เพื่อนร่วมบ้าน');
-
-                  const isPending = red.status === 'pending';
-                  const isApproved = red.status === 'approved';
-                  const isRejected = red.status === 'rejected';
-
-                  return (
                     <div
-                      key={red.id}
-                      className="p-4 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[20px] space-y-3 shadow-xs"
+                      key={reward.id}
+                      className="p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3 shadow-2xs"
                     >
-                      {/* Top status header */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{requesterName} ขอแลก:</span>
-                        </span>
+                      {/* Icon & Details */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-11 h-11 rounded-[14px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-center shrink-0">
+                          <IconComponent className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
+                        </div>
 
-                        <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                            isPending
-                              ? 'bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]'
-                              : isApproved
-                              ? 'bg-[#E8F5E9] text-[#2E7D32] dark:bg-[#1B5E20]/20 dark:text-[#81C784]'
-                              : 'bg-[#FFEBEE] text-[#C62828] dark:bg-[#B71C1C]/20 dark:text-[#EF9A9A]'
-                          }`}
-                        >
-                          {isPending && t.chores.waitingApproval}
-                          {isApproved && t.chores.approved}
-                          {isRejected && t.chores.rejected}
-                        </span>
-                      </div>
-
-                      {/* Reward item info */}
-                      <div className="flex items-center justify-between py-1">
-                        <div>
-                          <h3 className="text-[15px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
-                            {red.reward_title}
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                            {reward.title}
                           </h3>
-                          <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                            {red.created_at ? new Date(red.created_at).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </span>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="font-outfit font-extrabold text-[18px] text-[#E0533C]">
-                            -{red.points_spent}
-                          </span>
-                          <span className="text-[11px] font-semibold text-[#8D6E63] dark:text-[#948D87] ml-1">
-                            {t.chores.pointsUnit}
-                          </span>
+                          {reward.description && (
+                            <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
+                              {reward.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="font-outfit font-extrabold text-[13px] text-[#E0533C]">
+                              {reward.points_cost}
+                            </span>
+                            <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              {t.chores.pointsUnit}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Action buttons (only if pending and NOT requested by current user) */}
-                      {isPending && !isRequester && (
-                        <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center gap-2">
-                          <button
-                            onClick={() => handleRespondRedemption(red, false)}
-                            className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
-                          >
-                            {t.chores.reject}
-                          </button>
-                          <button
-                            onClick={() => handleRespondRedemption(red, true)}
-                            className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>{t.chores.approve}</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Requester waiting status */}
-                      {isPending && isRequester && (
-                        <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] text-center text-[12px] text-[#8D6E63] dark:text-[#948D87] flex items-center justify-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 animate-spin" />
-                          <span>{t.chores.waitingOthers}</span>
-                        </div>
-                      )}
+                      {/* Redeem Action Button */}
+                      <button
+                        onClick={() => setRedeemConfirmItem(reward)}
+                        disabled={!canAfford}
+                        className={`px-3.5 py-2 rounded-[12px] text-[12px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer ${
+                          canAfford
+                            ? 'bg-[#5D4037] text-white hover:opacity-90 shadow-xs'
+                            : 'bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63]/60 dark:text-[#948D87]/60 cursor-not-allowed'
+                        }`}
+                      >
+                        <Gift className="w-3.5 h-3.5" />
+                        <span>{t.chores.redeem}</span>
+                      </button>
                     </div>
                   );
                 })}
@@ -1014,16 +1106,16 @@ export default function ChoresPage() {
         )}
 
         {/* ======================================================== */}
-        {/* TAB 4: POINT HISTORY & BALANCE SNAPSHOT                  */}
+        {/* TAB 3: POINT HISTORY & BALANCE SNAPSHOT                  */}
         {/* ======================================================== */}
         {activeTab === 'logs' && (
-          <div className="px-6 pt-3 space-y-3">
+          <div className="px-6 pt-2 space-y-3">
             <div>
               <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.chores.tabLogs}
               </h2>
               <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                บันทึกคะแนนที่ได้และใช้ พร้อมยอดคงเหลือ ณ ขณะนั้น
+                บันทึกประวัติคะแนน พร้อมแสดงคะแนนคงเหลือ ณ ขณะนั้น
               </p>
             </div>
 
@@ -1059,7 +1151,18 @@ export default function ChoresPage() {
                             {logUserName}
                           </span>
                           <span className="text-[10px] text-[#8D6E63]/60 dark:text-[#948D87]/60">
-                            • {log.created_at ? new Date(log.created_at).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                            •{' '}
+                            {log.created_at
+                              ? new Date(log.created_at).toLocaleDateString(
+                                  language === 'th' ? 'th-TH' : 'en-US',
+                                  {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  }
+                                )
+                              : ''}
                           </span>
                         </div>
 
@@ -1067,7 +1170,7 @@ export default function ChoresPage() {
                           {log.title}
                         </h4>
 
-                        {/* Promptly display the snapshot balance at that moment as requested */}
+                        {/* Snapshot Balance Display */}
                         <div className="mt-1 flex items-center gap-1">
                           <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                             {t.chores.balanceSnapshot}:
@@ -1098,6 +1201,307 @@ export default function ChoresPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 4: MANAGE REWARDS & APPROVALS (AFTER POINT HISTORY)  */}
+        {/* ======================================================== */}
+        {activeTab === 'manage' && (
+          <div className="px-6 pt-2 space-y-4">
+            {/* Action Bar */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                  {t.chores.tabManageRewards || 'จัดการรางวัล & อนุมัติ'}
+                </h2>
+                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                  เพิ่ม แก้ไข หรือลบรางวัล โดยต้องได้รับการยืนยันจากทั้งสองคน
+                </p>
+              </div>
+
+              <button
+                onClick={openCreateRewardModal}
+                className="px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>เพิ่มรางวัล</span>
+              </button>
+            </div>
+
+            {/* 1. APPROVALS QUEUE (Proposals & Redemptions) */}
+            {(pendingRewardProposals.length > 0 || pendingRedemptions.length > 0) && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                  <ShieldCheck className="w-4 h-4 text-[#E65100]" />
+                  <span>คำขอที่รอการยืนยัน & อนุมัติ ({totalPendingApprovalsForMe})</span>
+                </div>
+
+                {/* 1.1 Reward Proposals (Create, Edit, Delete) */}
+                {pendingRewardProposals.map((reward) => {
+                  const isMyProposal = reward.proposed_by === currentUserId;
+                  const proposerObj = members.find((m) => m.id === reward.proposed_by);
+                  const proposerName =
+                    proposerObj?.nickname ||
+                    proposerObj?.full_name ||
+                    (isMyProposal ? (language === 'th' ? 'ฉัน' : 'Me') : 'เพื่อนร่วมบ้าน');
+
+                  const isPendingCreate = reward.status === 'pending_create';
+                  const isPendingEdit = reward.status === 'pending_edit';
+                  const isPendingDelete = reward.status === 'pending_delete';
+
+                  return (
+                    <div
+                      key={reward.id}
+                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs"
+                    >
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" />
+                          <span>
+                            {proposerName}{' '}
+                            {isPendingCreate && 'เสนอเพิ่มรางวัลใหม่'}
+                            {isPendingEdit && 'เสนอแก้ไขรางวัล'}
+                            {isPendingDelete && 'เสนอขอลบรางวัล'}
+                          </span>
+                        </span>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
+                          {isMyProposal ? 'รอคนในบ้านยืนยัน' : 'รอคุณอนุมัติ'}
+                        </span>
+                      </div>
+
+                      {/* Content Comparison */}
+                      <div className="py-1">
+                        {isPendingCreate && (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                                {reward.title}
+                              </h3>
+                              {reward.description && (
+                                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                                  {reward.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="font-outfit font-extrabold text-[15px] text-[#E0533C]">
+                              {reward.points_cost} คะแนน
+                            </span>
+                          </div>
+                        )}
+
+                        {isPendingEdit && (
+                          <div className="space-y-1">
+                            <div className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              เดิม: <span className="line-through">{reward.title}</span> ({reward.points_cost} คะแนน)
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-[14px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                                  ใหม่: {reward.pending_payload?.title || reward.title}
+                                </h3>
+                                {reward.pending_payload?.description && (
+                                  <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                                    {reward.pending_payload.description}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="font-outfit font-extrabold text-[15px] text-[#E0533C]">
+                                {reward.pending_payload?.points_cost ?? reward.points_cost} คะแนน
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {isPendingDelete && (
+                          <div>
+                            <h3 className="text-[14px] font-bold text-[#C62828]">
+                              ขอลบรางวัล: &ldquo;{reward.title}&rdquo; ({reward.points_cost} คะแนน)
+                            </h3>
+                            <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              เมื่อทั้งสองคนอนุมัติ รางวัลนี้จะถูกลบออกจากร้านค้า
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions: Partner approves or Proposer cancels */}
+                      <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center gap-2">
+                        {isMyProposal ? (
+                          <button
+                            onClick={() => handleCancelProposal(reward)}
+                            className="w-full py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[12px] font-bold hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
+                          >
+                            ยกเลิกคำขอ
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleRespondProposal(reward, false)}
+                              className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
+                            >
+                              ปฏิเสธ
+                            </button>
+                            <button
+                              onClick={() => handleRespondProposal(reward, true)}
+                              className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>อนุมัติ</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* 1.2 Redemption Requests */}
+                {pendingRedemptions.map((red) => {
+                  const isRequester = red.user_id === currentUserId;
+                  const requesterName =
+                    red.user?.nickname ||
+                    red.user?.full_name ||
+                    (isRequester ? (language === 'th' ? 'ฉัน' : 'Me') : 'เพื่อนร่วมบ้าน');
+
+                  return (
+                    <div
+                      key={red.id}
+                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
+                          <Gift className="w-3.5 h-3.5 text-[#E65100]" />
+                          <span>{requesterName} ขอแลกรางวัล:</span>
+                        </span>
+
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
+                          {isRequester ? 'รอคนในบ้านอนุมัติ' : 'รอคุณอนุมัติ'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-1">
+                        <div>
+                          <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                            {red.reward_title}
+                          </h3>
+                          <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            {red.created_at
+                              ? new Date(red.created_at).toLocaleDateString(
+                                  language === 'th' ? 'th-TH' : 'en-US',
+                                  { hour: '2-digit', minute: '2-digit' }
+                                )
+                              : ''}
+                          </span>
+                        </div>
+
+                        <span className="font-outfit font-extrabold text-[16px] text-[#E0533C]">
+                          -{red.points_spent} คะแนน
+                        </span>
+                      </div>
+
+                      {!isRequester ? (
+                        <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center gap-2">
+                          <button
+                            onClick={() => handleRespondRedemption(red, false)}
+                            className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
+                          >
+                            {t.chores.reject}
+                          </button>
+                          <button
+                            onClick={() => handleRespondRedemption(red, true)}
+                            className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{t.chores.approve}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] text-center text-[12px] text-[#8D6E63] dark:text-[#948D87] flex items-center justify-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 animate-spin" />
+                          <span>{t.chores.waitingOthers}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 2. ACTIVE REWARDS LIST (With Edit & Delete options) */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <span>ของรางวัลปัจจุบัน ({activeShopRewards.length})</span>
+                <span className="text-[11px] text-[#8D6E63] font-normal">
+                  กดเพื่อแก้ไขหรือส่งคำขอลบ
+                </span>
+              </div>
+
+              {activeShopRewards.length === 0 ? (
+                <div className="py-8 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-4">
+                  <p className="text-[13px] text-[#8D6E63]">ยังไม่มีของรางวัลที่เปิดใช้งาน</p>
+                </div>
+              ) : (
+                activeShopRewards.map((reward) => {
+                  const IconComp = getRewardIconComponent(reward.icon);
+                  return (
+                    <SwipeableRow
+                      key={reward.id}
+                      onEdit={() => openEditRewardModal(reward)}
+                      onDelete={() => handleProposeDeleteReward(reward)}
+                      className="rounded-[18px]"
+                    >
+                      <div className="p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-[12px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-center shrink-0">
+                            <IconComp className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                                {reward.title}
+                              </h3>
+                              <span className="px-1.5 py-0.2 rounded-full bg-[#2E7D32]/10 text-[#2E7D32] text-[10px] font-bold shrink-0">
+                                ใช้งานอยู่
+                              </span>
+                            </div>
+                            {reward.description && (
+                              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
+                                {reward.description}
+                              </p>
+                            )}
+                            <span className="font-outfit font-extrabold text-[12px] text-[#E0533C] mt-0.5 block">
+                              {reward.points_cost} {t.chores.pointsUnit}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Explicit Edit & Delete Action Buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => openEditRewardModal(reward)}
+                            title="แก้ไขของรางวัล"
+                            className="p-2 rounded-[10px] bg-[#F4EFEA] dark:bg-[#282421] text-[#5D4037] dark:text-[#DDD7D2] hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleProposeDeleteReward(reward)}
+                            title="ขอลบของรางวัล"
+                            className="p-2 rounded-[10px] bg-[#FFEBEE] dark:bg-[#B71C1C]/20 text-[#C62828] hover:bg-[#FFCDD2] transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </SwipeableRow>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 
@@ -1207,14 +1611,19 @@ export default function ChoresPage() {
         )}
 
         {/* ======================================================== */}
-        {/* MODAL 2: ADD / EDIT REWARD                               */}
+        {/* MODAL 2: ADD / EDIT REWARD (PROPOSAL)                    */}
         {/* ======================================================== */}
         {isRewardModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="w-full max-w-[390px] bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] p-5 shadow-xl animate-in zoom-in-95 duration-200">
-              <h2 className="text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-3.5">
-                {editingReward ? t.chores.editReward : t.chores.createReward}
+              <h2 className="text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                {editingReward ? 'เสนอแก้ไขของรางวัล' : 'เสนอเพิ่มของรางวัลใหม่'}
               </h2>
+              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] mb-3">
+                {members.length >= 2
+                  ? 'ต้องได้รับการอนุมัติจากคนในบ้านทั้งสองคนก่อนใช้งานในร้านค้า'
+                  : 'บันทึกของรางวัลเข้าสู่ร้านค้า'}
+              </p>
 
               <form onSubmit={handleSaveReward} className="space-y-3.5">
                 <div>
@@ -1299,7 +1708,7 @@ export default function ChoresPage() {
                     className="flex-1 py-2.5 bg-[#5D4037] text-white rounded-[14px] text-[13px] font-bold hover:opacity-90 transition-opacity shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     {savingReward && <Loader2 className="w-4 h-4 animate-spin" />}
-                    <span>บันทึก</span>
+                    <span>{editingReward ? 'ส่งคำขอแก้ไข' : 'ส่งคำขอเพิ่ม'}</span>
                   </button>
                 </div>
               </form>

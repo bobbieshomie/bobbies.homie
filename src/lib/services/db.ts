@@ -69,8 +69,18 @@ export interface DbChoreReward {
   points_cost: number;
   icon: string | null;
   created_by: string | null;
+  status?: 'active' | 'pending_create' | 'pending_edit' | 'pending_delete';
+  proposed_by?: string | null;
+  pending_payload?: {
+    title?: string;
+    description?: string | null;
+    points_cost?: number;
+    icon?: string | null;
+  } | null;
+  approvals?: Record<string, { approved: boolean; updated_at?: string }>;
   created_at?: string;
   updated_at?: string;
+  proposer?: DbProfile;
 }
 
 export interface DbRewardRedemption {
@@ -660,6 +670,180 @@ export async function deleteChoreReward(rewardId: string): Promise<void> {
   const supabase = createClient();
   const { error } = await (supabase.from('chore_rewards') as any).delete().eq('id', rewardId);
   if (error) throw new Error(error.message);
+}
+
+export async function proposeCreateChoreReward(
+  householdId: string,
+  userId: string,
+  reward: {
+    title: string;
+    description?: string;
+    points_cost: number;
+    icon?: string;
+  },
+  needsApproval: boolean
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .insert({
+      household_id: householdId,
+      title: reward.title,
+      description: reward.description || null,
+      points_cost: reward.points_cost,
+      icon: reward.icon || 'Gift',
+      created_by: userId,
+      proposed_by: needsApproval ? userId : null,
+      status: needsApproval ? 'pending_create' : 'active',
+      approvals: { [userId]: { approved: true, updated_at: new Date().toISOString() } },
+    })
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to propose reward');
+  return data as DbChoreReward;
+}
+
+export async function proposeEditChoreReward(
+  rewardId: string,
+  userId: string,
+  payload: {
+    title: string;
+    description?: string;
+    points_cost: number;
+    icon?: string;
+  }
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .update({
+      status: 'pending_edit',
+      proposed_by: userId,
+      pending_payload: payload,
+      approvals: { [userId]: { approved: true, updated_at: new Date().toISOString() } },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', rewardId)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to propose edit');
+  return data as DbChoreReward;
+}
+
+export async function proposeDeleteChoreReward(
+  rewardId: string,
+  userId: string
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .update({
+      status: 'pending_delete',
+      proposed_by: userId,
+      approvals: { [userId]: { approved: true, updated_at: new Date().toISOString() } },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', rewardId)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to propose delete');
+  return data as DbChoreReward;
+}
+
+export async function cancelChoreRewardProposal(
+  reward: DbChoreReward
+): Promise<void> {
+  const supabase = createClient();
+  if (reward.status === 'pending_create') {
+    const { error } = await (supabase.from('chore_rewards') as any).delete().eq('id', reward.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await (supabase.from('chore_rewards') as any)
+      .update({
+        status: 'active',
+        proposed_by: null,
+        pending_payload: null,
+        approvals: {},
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', reward.id);
+    if (error) throw new Error(error.message);
+  }
+}
+
+export async function respondChoreRewardProposal(
+  reward: DbChoreReward,
+  approved: boolean
+): Promise<{ success: boolean; action: string }> {
+  const supabase = createClient();
+  if (reward.status === 'pending_create') {
+    if (approved) {
+      const { error } = await (supabase.from('chore_rewards') as any)
+        .update({
+          status: 'active',
+          proposed_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'create_approved' };
+    } else {
+      const { error } = await (supabase.from('chore_rewards') as any).delete().eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'create_rejected' };
+    }
+  } else if (reward.status === 'pending_edit') {
+    if (approved && reward.pending_payload) {
+      const { error } = await (supabase.from('chore_rewards') as any)
+        .update({
+          title: reward.pending_payload.title || reward.title,
+          description:
+            reward.pending_payload.description !== undefined
+              ? reward.pending_payload.description
+              : reward.description,
+          points_cost: reward.pending_payload.points_cost || reward.points_cost,
+          icon: reward.pending_payload.icon || reward.icon,
+          status: 'active',
+          proposed_by: null,
+          pending_payload: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'edit_approved' };
+    } else {
+      const { error } = await (supabase.from('chore_rewards') as any)
+        .update({
+          status: 'active',
+          proposed_by: null,
+          pending_payload: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'edit_rejected' };
+    }
+  } else if (reward.status === 'pending_delete') {
+    if (approved) {
+      const { error } = await (supabase.from('chore_rewards') as any).delete().eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'delete_approved' };
+    } else {
+      const { error } = await (supabase.from('chore_rewards') as any)
+        .update({
+          status: 'active',
+          proposed_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', reward.id);
+      if (error) throw new Error(error.message);
+      return { success: true, action: 'delete_rejected' };
+    }
+  }
+  return { success: false, action: 'unknown' };
 }
 
 // ---------------------------------------------------------------------------
