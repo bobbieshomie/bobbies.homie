@@ -314,6 +314,41 @@ export default function ChoresPage() {
     }
   };
 
+  // Add Mockup Chores for Testing
+  const [isAddingMockChores, setIsAddingMockChores] = useState(false);
+
+  const handleAddMockChores = async () => {
+    if (!householdId || !currentUserId) return;
+    setIsAddingMockChores(true);
+    try {
+      const mockList = [
+        { title: 'ล้างจานหลังอาหาร', points: 10, frequency: 'daily' },
+        { title: 'กวาดและถูพื้นห้องนั่งเล่น', points: 15, frequency: 'daily' },
+        { title: 'ซักผ้าและตากผ้า', points: 20, frequency: 'weekly' },
+        { title: 'เก็บขยะไปทิ้งหน้าบ้าน', points: 10, frequency: 'daily' },
+        { title: 'เช็ดเคาน์เตอร์ครัวและโต๊ะอาหาร', points: 10, frequency: 'daily' },
+        { title: 'ล้างห้องน้ำและเปลี่ยนผ้าเช็ดตัว', points: 25, frequency: 'weekly' },
+      ];
+
+      for (const item of mockList) {
+        await createChore(householdId, currentUserId, {
+          title: item.title,
+          points: item.points,
+          frequency: item.frequency,
+          assigned_to: null,
+        });
+      }
+
+      await loadData();
+      showToast(language === 'th' ? 'เพิ่มงานบ้านตัวอย่าง 6 รายการเรียบร้อยแล้ว!' : 'Added 6 mock chores successfully!');
+    } catch (err) {
+      console.error('Failed to add mock chores:', err);
+      showToast(language === 'th' ? 'เกิดข้อผิดพลาดในการเพิ่มงานบ้านตัวอย่าง' : 'Failed to add mock chores');
+    } finally {
+      setIsAddingMockChores(false);
+    }
+  };
+
   return (
     <PullToRefresh onRefresh={loadData}>
       <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-32 pt-4 transition-colors duration-200 font-dm-sans">
@@ -476,13 +511,25 @@ export default function ChoresPage() {
                 ))}
               </div>
 
-              <button
-                onClick={openCreateChoreModal}
-                className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer font-dm-sans"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t.chores.addChore}</span>
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleAddMockChores}
+                  disabled={isAddingMockChores}
+                  title="เพิ่มงานบ้านตัวอย่างสำหรับทดสอบ"
+                  className="px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#201D1A] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8]/80 dark:border-[#2E2A27] text-[11.5px] font-bold flex items-center gap-1 shadow-xs hover:bg-[#E8DFD8] transition-all cursor-pointer font-dm-sans whitespace-nowrap"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#FFB300]" />
+                  <span>{isAddingMockChores ? '...' : 'Mockup'}</span>
+                </button>
+                <button
+                  onClick={openCreateChoreModal}
+                  className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer font-dm-sans whitespace-nowrap"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t.chores.addChore}</span>
+                </button>
+              </div>
             </div>
 
             {/* Chores List */}
@@ -491,17 +538,28 @@ export default function ChoresPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#5D4037]" />
               </div>
             ) : filteredChores.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6 font-dm-sans">
+              <div className="py-10 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6 font-dm-sans">
                 <CheckSquare className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
                 <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.noChores}
                 </p>
-                <button
-                  onClick={openCreateChoreModal}
-                  className="mt-3 inline-flex items-center gap-1 text-[13px] font-bold text-[#2E7D32] hover:underline cursor-pointer"
-                >
-                  + {t.chores.addChore}
-                </button>
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2">
+                  <button
+                    onClick={openCreateChoreModal}
+                    className="w-full sm:w-auto px-4 py-2 rounded-[12px] bg-[#5D4037] dark:bg-[#6E544A] text-white text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs"
+                  >
+                    + {t.chores.addChore}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddMockChores}
+                    disabled={isAddingMockChores}
+                    className="w-full sm:w-auto px-4 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#3E3835] text-[13px] font-bold hover:bg-[#E8DFD8] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles className="w-4 h-4 text-[#FFB300]" />
+                    <span>{isAddingMockChores ? 'กำลังเพิ่ม...' : 'เพิ่มงานบ้านตัวอย่าง (Mockup)'}</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2.5">

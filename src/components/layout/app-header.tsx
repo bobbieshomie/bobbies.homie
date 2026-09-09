@@ -28,21 +28,21 @@ export function AppHeader({
       {/* Brand & Household Name */}
       <Link 
         href="/household"
-        className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer"
+        className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer min-w-0 flex-1 mr-2"
         title="ตั้งค่าบ้าน & สมาชิก"
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F4EFEA] dark:bg-[#38241D] border border-[#D7CCC8] dark:border-[#5D4037] text-[#5D4037] dark:text-[#FDFBF7]">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F4EFEA] dark:bg-[#38241D] border border-[#D7CCC8] dark:border-[#5D4037] text-[#5D4037] dark:text-[#FDFBF7] shrink-0">
           <RiBearSmileFill className="w-5 h-5 fill-[#5D4037] dark:fill-[#FDFBF7]" />
         </div>
-        <div>
-          <h1 className="text-base font-bold tracking-tight text-[#5D4037] dark:text-[#FDFBF7] font-outfit">
+        <div className="min-w-0">
+          <h1 className="text-base font-bold tracking-tight text-[#5D4037] dark:text-[#FDFBF7] font-outfit truncate max-w-[140px] sm:max-w-[220px]">
             {displayHousehold}
           </h1>
         </div>
       </Link>
 
       {/* Partner Actions */}
-      <div className="flex items-center space-x-2.5">
+      <div className="flex items-center space-x-2.5 shrink-0">
         <NotificationBell />
 
         {/* Partner Avatar / Status */}

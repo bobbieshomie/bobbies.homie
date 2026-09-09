@@ -30,7 +30,7 @@ export function BottomNav() {
         {/* bottom-nav-pill */}
         <nav
           aria-label="Mobile Bottom Navigation"
-          className="w-[354px] h-[64px] bg-[#F4EFEA] dark:bg-[#5D4037] border border-[#D7CCC8] dark:border-[#7A5C52] shadow-[0px_4px_16px_rgba(93,64,55,0.10)] dark:shadow-[0px_4px_20px_rgba(0,0,0,0.35)] rounded-[32px] px-2 flex items-center justify-between transition-colors"
+          className="w-full max-w-[354px] h-[64px] bg-[#F4EFEA] dark:bg-[#5D4037] border border-[#D7CCC8] dark:border-[#7A5C52] shadow-[0px_4px_16px_rgba(93,64,55,0.10)] dark:shadow-[0px_4px_20px_rgba(0,0,0,0.35)] rounded-[32px] px-2 flex items-center justify-between transition-colors"
         >
           {tabs.map((tab) => {
             const isActive =

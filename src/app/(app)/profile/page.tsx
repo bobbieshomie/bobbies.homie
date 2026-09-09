@@ -179,13 +179,13 @@ export default function AccountPage() {
         {/* Tab Switcher: Profile vs Household */}
         <div className="grid grid-cols-2 gap-2 mt-4 p-1 bg-[#F4EFEA] dark:bg-[#201D1A] rounded-[16px] border border-[#D7CCC8]/60 dark:border-[#2E2A27]">
           <div className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center bg-white dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#FDFBF7] shadow-xs">
-            {language === 'th' ? '👤 บัญชีส่วนตัว' : '👤 Profile'}
+            {language === 'th' ? 'บัญชีส่วนตัว' : 'Profile'}
           </div>
           <Link
             href="/household"
             className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center text-[#8D6E63] dark:text-[#948D87] hover:bg-white/60 dark:hover:bg-[#2E2A27]/60 transition-all"
           >
-            {language === 'th' ? '🏠 บ้านและสมาชิก' : '🏠 Household'}
+            {language === 'th' ? 'บ้านและสมาชิก' : 'Household'}
           </Link>
         </div>
       </div>
@@ -211,44 +211,7 @@ export default function AccountPage() {
       )}
 
       <div className="flex-1 px-6 space-y-4 pt-2">
-        {/* ======================================================== */}
-        {/* 1. SEPARATED HOUSEHOLD SETTINGS LINK CARD                */}
-        {/* ======================================================== */}
-        <Link
-          href="/household"
-          className="block p-4.5 bg-gradient-to-r from-[#F4EFEA] via-[#EFE8E1] to-[#F4EFEA] dark:from-[#1F1D1B] dark:via-[#26221F] dark:to-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] hover:border-[#5D4037] dark:hover:border-[#6E544A] rounded-[24px] shadow-xs transition-all group cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-[14px] bg-[#5D4037] dark:bg-[#6E544A] text-[#FFD54F] flex items-center justify-center shadow-xs shrink-0">
-                <Home className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-outfit font-bold text-[15.5px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
-                    {householdName || 'บ้านของเรา'}
-                  </h3>
-                  <span className="text-[10.5px] font-dm-sans font-bold px-2 py-0.5 rounded-full bg-white dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8]/60 dark:border-[#2E2A27] shrink-0">
-                    {members.length} {language === 'th' ? 'คนในบ้าน' : 'members'}
-                  </span>
-                </div>
-                <p className="font-dm-sans text-[11.5px] text-[#8D6E63] dark:text-[#948D87] mt-0.5 flex items-center gap-1 truncate">
-                  <Star className="w-3 h-3 text-[#FFB300] fill-[#FFB300] shrink-0" />
-                  <span className="truncate">
-                    {language === 'th'
-                      ? 'ดูคะแนนสะสมคนในบ้าน & ตั้งค่าบ้าน ➔'
-                      : 'View member points & household settings ➔'}
-                  </span>
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-[#8D6E63] dark:text-[#948D87] group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
-          </div>
-        </Link>
-
-        {/* ======================================================== */}
-        {/* 2. Profile & Avatar Card                                 */}
-        {/* ======================================================== */}
+        {/* Profile & Avatar Card */}
         <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors">
           <div className="flex items-center gap-4 mb-4">
             {/* Avatar with Camera Trigger */}

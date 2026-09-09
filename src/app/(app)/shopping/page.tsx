@@ -352,28 +352,28 @@ export default function ShoppingPage() {
                 {/* List Header: Title, Date, Location */}
                 <div className="border-b border-[#D7CCC8]/40 dark:border-[#2E2A27]/40 pb-2.5 mb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
                         {list.title}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                         {list.date && (
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 shrink-0">
                             <CalendarIcon className="w-3 h-3 stroke-current" />
                             {list.date}
                           </span>
                         )}
                         {list.location && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 stroke-current" />
-                            {list.location}
+                          <span className="flex items-center gap-1 truncate">
+                            <MapPin className="w-3 h-3 stroke-current shrink-0" />
+                            <span className="truncate">{list.location}</span>
                           </span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27]">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] whitespace-nowrap">
                         {purchasedInList}/{items.length} {language === 'th' ? 'ซื้อแล้ว' : 'Done'}
                       </span>
                       {list.id !== 'quick-list' && (

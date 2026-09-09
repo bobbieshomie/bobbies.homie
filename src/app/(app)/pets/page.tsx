@@ -344,8 +344,8 @@ export default function PetsPage() {
           {currentPet && (
             <div className="px-6 space-y-4 mt-2">
               {/* Pet Info Card with Photo */}
-              <div className="p-4 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)] flex items-center justify-between">
-                <div className="flex items-center gap-3.5">
+              <div className="p-4 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[22px] shadow-[0px_4px_16px_rgba(93,64,55,0.03)] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <div className="w-14 h-14 rounded-[20px] overflow-hidden bg-[#FFE0B2] dark:bg-[#2E2A27] flex items-center justify-center text-[#E65100] relative shrink-0 border-2 border-white dark:border-[#2E2A27] shadow-xs">
                     {currentPet.photo_url ? (
                       <Image 
@@ -358,11 +358,11 @@ export default function PetsPage() {
                       <PawPrint className="w-7 h-7 stroke-[#E65100]" strokeWidth={2.2} />
                     )}
                   </div>
-                  <div>
-                    <h2 className="font-outfit font-bold text-[19px] text-[#5D4037] dark:text-[#DDD7D2]">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-outfit font-bold text-[19px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
                       {currentPet.name}
                     </h2>
-                    <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+                    <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87] truncate">
                       {currentPet.breed || (language === 'th' ? 'เพื่อนร่วมบ้าน' : 'Companion')} • {currentPet.gender === 'male' ? t.pets.male : t.pets.female}
                     </p>
                   </div>
@@ -372,7 +372,7 @@ export default function PetsPage() {
                   type="button"
                   onClick={() => handleDeletePet(currentPet.id)}
                   title={t.common.delete}
-                  className="p-2 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0"
                 >
                   <Trash2 className="w-4 h-4 stroke-current" />
                 </button>

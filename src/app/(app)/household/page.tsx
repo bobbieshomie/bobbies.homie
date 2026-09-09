@@ -19,7 +19,8 @@ import {
   User, 
   ChevronRight,
   ShieldCheck,
-  Plus
+  Plus,
+  LogOut
 } from 'lucide-react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -186,6 +187,19 @@ export default function HouseholdSettingsPage() {
   // Calculate total household points
   const totalHouseholdPoints = members.reduce((sum, m) => sum + (m.chore_points || 0), 0);
 
+  // Log Out
+  const handleLogout = async () => {
+    document.cookie = 'homie_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // safe fallback
+    }
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
@@ -224,10 +238,10 @@ export default function HouseholdSettingsPage() {
             href="/profile"
             className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center text-[#8D6E63] dark:text-[#948D87] hover:bg-white/60 dark:hover:bg-[#2E2A27]/60 transition-all"
           >
-            {language === 'th' ? '👤 บัญชีส่วนตัว' : '👤 Profile'}
+            {language === 'th' ? 'บัญชีส่วนตัว' : 'Profile'}
           </Link>
           <div className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center bg-white dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#FDFBF7] shadow-xs">
-            {language === 'th' ? '🏠 บ้านและสมาชิก' : '🏠 Household'}
+            {language === 'th' ? 'บ้านและสมาชิก' : 'Household'}
           </div>
         </div>
       </div>
@@ -518,7 +532,7 @@ export default function HouseholdSettingsPage() {
             <Sparkles className="w-4 h-4 text-[#FFB300] shrink-0 mt-0.5" />
             <span>
               {language === 'th'
-                ? 'คะแนนสะสมจะเพิ่มขึ้นเมื่อกดทำงานบ้านเสร็จในหน้างายบ้าน และนำไปแลกของรางวัลในร้านค้าได้'
+                ? 'คะแนนสะสมจะเพิ่มขึ้นเมื่อกดทำงานบ้านเสร็จในหน้างานบ้าน และนำไปแลกของรางวัลในร้านค้าได้'
                 : 'Points increase upon completing chores and can be spent in the Rewards Shop.'}
             </span>
           </div>
@@ -580,6 +594,20 @@ export default function HouseholdSettingsPage() {
             </div>
             <ChevronRight className="w-4 h-4 text-[#8D6E63] group-hover:translate-x-0.5 transition-transform" />
           </Link>
+        </div>
+
+        {/* ======================================================== */}
+        {/* 5. LOGOUT BUTTON                                         */}
+        {/* ======================================================== */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full py-3.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-[18px] text-[14px] font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>{language === 'th' ? 'ออกจากระบบ' : 'Log Out'}</span>
+          </button>
         </div>
       </div>
     </div>
