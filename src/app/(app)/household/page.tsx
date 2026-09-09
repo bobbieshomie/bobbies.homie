@@ -406,10 +406,10 @@ export default function HouseholdSettingsPage() {
                           </div>
                           {isHouseLeader && (
                             <div 
-                              className="absolute -top-2.5 -right-1.5 pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
+                              className="absolute -top-1 -right-0.5 pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
                               title={language === 'th' ? 'หัวหน้าบ้าน' : 'Head of Household'}
                             >
-                              <IconoirCrown className="w-5 h-5 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/25" width="20" height="20" strokeWidth={2} />
+                              <IconoirCrown className="w-2.5 h-2.5 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/30" width="10" height="10" strokeWidth={2.4} />
                             </div>
                           )}
                         </div>

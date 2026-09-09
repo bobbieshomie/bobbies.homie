@@ -47,12 +47,12 @@ export function AppLoading({
         <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-[#FFB300]/15 via-[#E0533C]/10 to-transparent blur-2xl pointer-events-none" />
 
         {/* Pastel crown on the top-right ear */}
-        <div className="absolute -top-3 -right-2 z-20 pointer-events-none drop-shadow-sm">
+        <div className="absolute -top-1.5 -right-0.5 z-20 pointer-events-none drop-shadow-sm">
           <IconoirCrown
-            className="w-6 h-6 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/30"
-            width="24"
-            height="24"
-            strokeWidth={2}
+            className="w-3.5 h-3.5 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/30"
+            width="14"
+            height="14"
+            strokeWidth={2.2}
           />
         </div>
 
