@@ -8,7 +8,7 @@ import {
   BellRing, 
   ExternalLink, 
   AlertCircle, 
-  CheckCircle2, 
+  CheckCircle2,
   Smartphone 
 } from 'lucide-react';
 import { RiBearSmileFill } from '@remixicon/react';
@@ -32,8 +32,6 @@ export function NotificationPanel() {
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [fcmLoading, setFcmLoading] = useState(false);
   const [fcmResult, setFcmResult] = useState<FcmTokenResult | null>(null);
-  const [testPushLoading, setTestPushLoading] = useState(false);
-  const [testPushStatus, setTestPushStatus] = useState<string | null>(null);
 
   // Auto-detect if user already has an active FCM token
   useState(() => {
@@ -71,7 +69,6 @@ export function NotificationPanel() {
 
   const handleEnablePush = async () => {
     setFcmLoading(true);
-    setTestPushStatus(null);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,38 +78,6 @@ export function NotificationPanel() {
       setFcmResult({ token: null, status: 'error', message: String(err) });
     } finally {
       setFcmLoading(false);
-    }
-  };
-
-  const handleSendTestPush = async () => {
-    setTestPushLoading(true);
-    setTestPushStatus(null);
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not logged in');
-
-      const res = await fetch('/api/notifications/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUserId: user.id,
-          title: '🐻 Bobbies Homie',
-          body: language === 'th' ? 'การแจ้งเตือนเด้งบนมือถือของคุณแล้ว! 🎉' : 'Notification popped up on your device! 🎉',
-          link: '/',
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTestPushStatus(language === 'th' ? 'ส่งแล้ว! ลองสลับแอปหรือล็อกหน้าจอเพื่อดู' : 'Sent! Switch app or lock screen to view');
-      } else {
-        setTestPushStatus(data.error || data.message || 'Error sending');
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed';
-      setTestPushStatus(msg);
-    } finally {
-      setTestPushLoading(false);
     }
   };
 
@@ -183,21 +148,9 @@ export function NotificationPanel() {
             </div>
 
             {fcmResult?.status === 'granted' ? (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-[#E8F5E9] text-[#2E7D32] dark:bg-[#1B2E1D] dark:text-[#81C784]">
-                  {language === 'th' ? '✓ เปิดแล้ว' : '✓ Active'}
-                </span>
-                <button
-                  type="button"
-                  disabled={testPushLoading}
-                  onClick={handleSendTestPush}
-                  className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-[#5D4037] text-white hover:bg-[#4A332C] dark:bg-[#8D6E63] dark:hover:bg-[#9E7D72] active:scale-95 transition-all cursor-pointer shadow-sm"
-                >
-                  {testPushLoading 
-                    ? (language === 'th' ? 'ส่ง...' : 'Sending...') 
-                    : (language === 'th' ? '🔔 ทดสอบ' : '🔔 Test')}
-                </button>
-              </div>
+              <span className="px-2.5 py-1 text-[10px] font-medium rounded-full bg-[#E8F5E9] text-[#2E7D32] dark:bg-[#1B2E1D] dark:text-[#81C784] shrink-0">
+                {language === 'th' ? '✓ เปิดแล้ว' : '✓ Active'}
+              </span>
             ) : (
               <button
                 type="button"
@@ -209,13 +162,6 @@ export function NotificationPanel() {
               </button>
             )}
           </div>
-
-          {testPushStatus && (
-            <div className="mt-1.5 text-[11px] text-[#2E7D32] dark:text-[#81C784] flex items-center gap-1 font-medium animate-in fade-in">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>{testPushStatus}</span>
-            </div>
-          )}
 
           {fcmResult && fcmResult.status !== 'granted' && (
             <div className="mt-1.5 text-[10px] text-[#C62828] dark:text-[#EF9A9A] flex items-center gap-1">
