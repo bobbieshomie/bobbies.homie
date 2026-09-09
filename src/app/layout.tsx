@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Outfit, DM_Sans } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Mali, Outfit, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import { LanguageProvider } from '@/lib/i18n/language-context';
 import { ThemeProvider } from '@/lib/theme/theme-context';
 
-const pgHurricane = localFont({
-  src: '../fonts/PG-Hurricane-DEMO.ttf',
-  variable: '--font-pg-hurricane',
+const mali = Mali({
+  subsets: ['thai', 'latin'],
+  variable: '--font-mali',
   display: 'swap',
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 const outfit = Outfit({
@@ -66,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${pgHurricane.variable} ${outfit.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang="th" className={`${mali.variable} ${outfit.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -88,7 +88,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-hurricane font-dm-sans min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
+      <body className="font-mali min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
         <ThemeProvider>
           <QueryProvider>
             <LanguageProvider>{children}</LanguageProvider>
