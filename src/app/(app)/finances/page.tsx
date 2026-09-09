@@ -507,10 +507,10 @@ export default function FinancesPage() {
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
-          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
+          <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
             {t.finances.title}
           </h1>
-          <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+          <p className="font-dm-sans text-[13px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
             {t.finances.subtitle}
           </p>
         </div>

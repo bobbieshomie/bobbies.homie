@@ -784,11 +784,11 @@ function RewardsPageContent() {
             </Link>
 
             <div>
-              <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
+              <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
                 <Gift className="w-5 h-5 text-[#E0533C]" />
                 <span>{language === 'th' ? 'ร้านค้า & รางวัล' : 'Rewards & Shop'}</span>
               </h1>
-              <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+              <p className="font-dm-sans text-[13px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
                 {language === 'th' ? 'ใช้คะแนนสะสมแลกรางวัล หรือจัดการของรางวัล' : 'Redeem rewards and manage approvals'}
               </p>
             </div>
@@ -813,15 +813,17 @@ function RewardsPageContent() {
         {/* ======================================================== */}
         <div className="px-6 mb-3">
           <div className="p-4 bg-gradient-to-br from-[#FFF9F5] to-[#F4EFEA] dark:from-[#25221F] dark:to-[#1F1D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.06)]">
-            <div className="flex items-center justify-between">
-              {/* My Points */}
-              <div className="flex-1">
-                <span className="font-dm-sans text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1">
-                  <Coins className="w-3.5 h-3.5 text-[#F2C94C]" />
-                  <span>{t.chores.myPoints}</span>
-                </span>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="font-outfit font-extrabold text-[28px] leading-[32px] text-[#5D4037] dark:text-[#DDD7D2]">
+            <div className="flex items-center justify-between gap-2">
+              {/* My Points - Single line layout */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-[#FFD54F] dark:text-[#5D4037] flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="font-dm-sans text-[13px] font-bold text-[#8D6E63] dark:text-[#948D87]">
+                    {t.chores.myPoints}:
+                  </span>
+                  <span className="font-outfit font-extrabold text-[22px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
                     {myPoints}
                   </span>
                   <span className="font-dm-sans text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87]">
@@ -832,12 +834,12 @@ function RewardsPageContent() {
 
               {/* Partner Points */}
               {partnerMember && (
-                <div className="text-right border-l border-[#D7CCC8]/60 dark:border-[#2E2A27] pl-4">
-                  <span className="font-dm-sans text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] block">
+                <div className="text-right border-l border-[#D7CCC8]/60 dark:border-[#2E2A27] pl-3 shrink-0">
+                  <span className="font-dm-sans text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] block truncate max-w-[100px]">
                     {partnerMember.nickname || partnerMember.full_name}
                   </span>
-                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
-                    <span className="font-outfit font-bold text-[20px] text-[#5D4037]/80 dark:text-[#DDD7D2]/80">
+                  <div className="flex items-baseline justify-end gap-1">
+                    <span className="font-outfit font-bold text-[17px] text-[#5D4037]/80 dark:text-[#DDD7D2]/80">
                       {partnerMember.chore_points || 0}
                     </span>
                     <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">

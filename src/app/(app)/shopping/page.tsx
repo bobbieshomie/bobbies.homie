@@ -289,10 +289,10 @@ export default function ShoppingPage() {
       {/* Top Utility Row */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
-          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
+          <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
             {t.shopping.title}
           </h1>
-          <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+          <p className="font-dm-sans text-[12px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
             {language === 'th' ? 'สร้างรายการซื้อของตามวันและสถานที่' : 'Shopping trips & checklists'}
           </p>
         </div>

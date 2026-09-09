@@ -337,11 +337,11 @@ export default function ChoresPage() {
             </Link>
 
             <div>
-              <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
+              <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
                 <CheckSquare className="w-5 h-5 text-[#2E7D32]" />
                 <span>{language === 'th' ? 'งานบ้าน' : 'Chores'}</span>
               </h1>
-              <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+              <p className="font-dm-sans text-[13px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
                 {language === 'th' ? 'ช่วยกันดูแลบ้านให้สะอาดน่าอยู่' : 'Keeping our home cozy and clean'}
               </p>
             </div>

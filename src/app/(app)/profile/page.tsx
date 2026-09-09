@@ -279,10 +279,10 @@ export default function AccountPage() {
       {/* Top Bar */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
-          <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
+          <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
             {language === 'th' ? 'บัญชีและการตั้งค่า' : 'Account & Settings'}
           </h1>
-          <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+          <p className="font-dm-sans text-[12px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
             {language === 'th' ? 'จัดการข้อมูลส่วนตัว สมาชิกบ้าน และธีม' : 'Manage profile, household members & theme'}
           </p>
         </div>

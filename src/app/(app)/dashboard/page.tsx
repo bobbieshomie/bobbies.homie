@@ -543,20 +543,18 @@ export default function DashboardPage() {
                 <Gift className="w-5 h-5 text-[#F2C94C]" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
-                    {language === 'th' ? 'ร้านค้าแลกรางวัล' : 'Reward Shop'}
+                <h4 className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2] leading-snug">
+                  {language === 'th' ? 'ร้านค้าแลกรางวัล' : 'Reward Shop'}
+                </h4>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Coins className="w-3.5 h-3.5 text-[#E65100] shrink-0" />
+                  <span className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+                    {language === 'th' ? 'คะแนนของคุณ:' : 'Your Points:'}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[10px] font-outfit font-extrabold flex items-center gap-1">
-                    <Coins className="w-2.5 h-2.5 text-[#F2C94C]" />
-                    <span>{myChorePoints} คะแนน</span>
+                  <span className="font-outfit font-bold text-[13px] text-[#E65100] dark:text-[#FFB74D]">
+                    {myChorePoints} {language === 'th' ? 'คะแนน' : 'pts'}
                   </span>
                 </div>
-                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
-                  {partnerMember
-                    ? `${partnerMember.nickname || partnerMember.full_name} มี ${partnerMember.chore_points || 0} คะแนน`
-                    : 'ใช้คะแนนสะสมแลกของรางวัลในบ้าน'}
-                </p>
               </div>
             </div>
 
