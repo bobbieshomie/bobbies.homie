@@ -7,13 +7,22 @@ import {
   Wallet, 
   ShoppingCart, 
   PawPrint, 
-  Sparkles,
-  CheckCircle2,
-  Calendar,
-  UserPlus,
-  Coins,
-  ChevronRight,
-  Check
+  Sparkles, 
+  CheckCircle2, 
+  Calendar, 
+  UserPlus, 
+  Coins, 
+  ChevronRight, 
+  Check,
+  CheckSquare,
+  Gift,
+  History,
+  HelpCircle,
+  Trophy,
+  Zap,
+  Loader2,
+  X,
+  Dice5
 } from 'lucide-react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -30,7 +39,12 @@ import {
   fetchFinances,
   fetchUserChorePoints,
   toggleChoreWithPoints,
-  type DbProfile 
+  fetchChoreGachaSpins,
+  fetchMyActiveGachaSpin,
+  spinChoreGacha,
+  getWeekIdentifier,
+  type DbProfile,
+  type DbChoreGachaSpin
 } from '@/lib/services/db';
 
 export default function DashboardPage() {
@@ -55,6 +69,14 @@ export default function DashboardPage() {
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeCooldown, setNudgeCooldown] = useState(0);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
+
+  // Mystery Box / Gacha State
+  const [activeGachaSpin, setActiveGachaSpin] = useState<DbChoreGachaSpin | null>(null);
+  const [gachaHistory, setGachaHistory] = useState<DbChoreGachaSpin[]>([]);
+  const [isGachaModalOpen, setIsGachaModalOpen] = useState(false);
+  const [isGachaHistoryModalOpen, setIsGachaHistoryModalOpen] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number } | null>(null);
 
   // Household dual member avatars
   const currentMember = useMemo(() => {
@@ -100,6 +122,9 @@ export default function DashboardPage() {
             const pts = await fetchUserChorePoints(user.id);
             setMyChorePoints(pts);
 
+            const activeSpin = await fetchMyActiveGachaSpin(user.id);
+            setActiveGachaSpin(activeSpin);
+
             if (p.household_id) {
               setHouseholdId(p.household_id);
               const h = await fetchHousehold(p.household_id);
@@ -124,6 +149,9 @@ export default function DashboardPage() {
                   dueDate: c.due_date || undefined,
                 }))
               );
+
+              const allSpins = await fetchChoreGachaSpins(p.household_id);
+              setGachaHistory(allSpins);
             }
           }
         }
@@ -152,6 +180,13 @@ export default function DashboardPage() {
       const res = await toggleChoreWithPoints(choreId, nextCompleted);
       if (res.success) {
         setMyChorePoints(res.new_balance);
+
+        // Refresh active spin if bonus was used
+        if (nextCompleted && res.multiplier && res.multiplier > 1 && currentUserId) {
+          fetchMyActiveGachaSpin(currentUserId).then((updated) => {
+            if (updated) setActiveGachaSpin(updated);
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to toggle chore from dashboard:', err);
@@ -173,6 +208,102 @@ export default function DashboardPage() {
       }
     } finally {
       setTogglingChoreId(null);
+    }
+  };
+
+  // Spin Mystery Box
+  const handleSpinGacha = async () => {
+    if (!householdId || !currentUserId) return;
+    if (myChorePoints < 10) {
+      alert(language === 'th' ? 'คะแนนสะสมไม่พอ (ต้องใช้ 10 คะแนนในการสุ่ม)' : 'Not enough points (10 pts required)');
+      return;
+    }
+    if (activeGachaSpin) {
+      alert(language === 'th' ? 'คุณสุ่มกล่องปริศนาในสัปดาห์นี้ไปแล้ว! (สุ่มได้อีกครั้งในสัปดาห์หน้า)' : 'You already spun this week!');
+      return;
+    }
+
+    setIsSpinning(true);
+    setSpinResult(null);
+
+    try {
+      // Pick random chore from chore list or fallback
+      const pool = chores.length > 0 
+        ? chores.map((c) => ({ id: c.id, title: c.title })) 
+        : [
+            { id: null, title: 'กวาดบ้าน / ถูบ้าน' },
+            { id: null, title: 'ล้างจาน' },
+            { id: null, title: 'ซักผ้า / ตากผ้า' },
+            { id: null, title: 'ล้างห้องน้ำ' },
+            { id: null, title: 'เก็บขยะไปทิ้ง' },
+            { id: null, title: 'ทำความสะอาดห้องครัว' },
+          ];
+
+      const pickedChore = pool[Math.floor(Math.random() * pool.length)];
+
+      // Multipliers: x1.5 (35%), x2 (40%), x2.5 (15%), x3 (8%), x5 (2% jackpot!)
+      const multipliers = [1.5, 2, 2, 2, 2.5, 3, 5];
+      const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
+
+      // Suspense delay
+      await new Promise((r) => setTimeout(r, 1500));
+
+      const res = await spinChoreGacha({
+        householdId,
+        userId: currentUserId,
+        choreId: pickedChore.id,
+        choreTitle: pickedChore.title,
+        multiplier: pickedMultiplier,
+        pointsCost: 10,
+      });
+
+      if (res.success) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([80, 50, 120]);
+        }
+        setSpinResult({
+          chore_title: pickedChore.title,
+          multiplier: pickedMultiplier,
+        });
+
+        if (res.new_balance !== undefined) {
+          setMyChorePoints(res.new_balance);
+        }
+
+        // Refresh active spin and history
+        const active = await fetchMyActiveGachaSpin(currentUserId);
+        setActiveGachaSpin(active);
+        const hist = await fetchChoreGachaSpins(householdId);
+        setGachaHistory(hist);
+
+        // Push notification to partner
+        const senderName = currentMember?.nickname || currentMember?.full_name || (language === 'th' ? 'คนในบ้าน' : 'Partner');
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId,
+            excludeUserId: currentUserId,
+            title: '🎁 Bobbies Homie',
+            body: language === 'th'
+              ? `${senderName} สุ่มกล่องปริศนาได้งานบ้าน "${pickedChore.title}" รับโบนัสคะแนนคูณ x${pickedMultiplier}! 🌟`
+              : `${senderName} spun the mystery box and got "${pickedChore.title}" with x${pickedMultiplier} pts! 🌟`,
+            link: '/dashboard',
+          }),
+        }).catch(() => {});
+      } else {
+        if (res.error === 'already_spun_this_week') {
+          alert(language === 'th' ? 'คุณสุ่มกล่องปริศนาในสัปดาห์นี้ไปแล้ว' : 'Already spun this week');
+        } else if (res.error === 'insufficient_points') {
+          alert(language === 'th' ? 'คะแนนของคุณไม่พอ (ต้องใช้ 10 คะแนน)' : 'Insufficient points');
+        } else {
+          alert(language === 'th' ? 'เกิดข้อผิดพลาดในการสุ่ม' : 'Failed to spin');
+        }
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error spinning');
+    } finally {
+      setIsSpinning(false);
     }
   };
 
@@ -250,96 +381,74 @@ export default function DashboardPage() {
     return totalUnsettled / 2;
   }, [expenses]);
 
-  // Circular progress math
-  const radius = 33;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (choreStats.percent / 100) * circumference;
-
   return (
-    <div className="home-dashboard flex flex-col justify-between items-start p-0 relative w-full max-w-md sm:max-w-[448px] min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] mx-auto select-none transition-colors duration-200">
-      {/* scrollable-content */}
-      <div className="scrollable-content flex flex-col items-start p-0 w-full flex-none order-0 self-stretch flex-grow-0">
+    <div className="flex flex-col items-center bg-[#FDFBF7] dark:bg-[#1A1816] min-h-screen select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
+      <div className="flex flex-col items-start p-0 gap-6 w-full flex-none order-0 self-stretch flex-grow-0">
         
-        {/* Top utility row with household name and notification bell */}
-        <div className="flex flex-row justify-between items-center px-6 pt-4 pb-1 w-full flex-none order-0 self-stretch flex-grow-0">
-          <div className="flex items-center gap-1.5">
-            <RiBearSmileFill className="w-4 h-4 fill-[#5D4037] dark:fill-[#DDD7D2]" />
-            <span className="font-dm-sans font-medium text-[12px] text-[#8D6E63] dark:text-[#948D87]">
-              {profile.name || 'Bobbies Homie'}
-            </span>
-          </div>
-
-          <NotificationBell />
-        </div>
-
-        {/* dashboard-header */}
-        <header className="dashboard-header flex flex-col items-start px-6 pt-2 pb-4 gap-4 w-full flex-none order-1 self-stretch flex-grow-0">
-          <div className="header-row flex flex-row justify-between items-center p-0 w-full flex-none order-0 self-stretch flex-grow-0">
-            {/* greeting-info */}
-            <div className="greeting-info flex flex-col items-start p-0 gap-1 flex-none order-0 flex-grow-0">
-              <h1 className="font-outfit font-bold text-[26px] leading-[32px] text-[#5D4037] dark:text-[#DDD7D2] flex-none order-0 flex-grow-0">
-                {greeting}, {profile.myNickname || (language === 'th' ? 'เพื่อนร่วมบ้าน' : 'Homie')}
-              </h1>
-              <p className="font-dm-sans font-normal text-[14px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] flex-none order-1 flex-grow-0">
+        {/* header */}
+        <header className="header box-border flex flex-col items-start px-6 pt-5 pb-0 gap-3 w-full bg-transparent flex-none order-0 self-stretch flex-grow-0">
+          <div className="flex flex-row justify-between items-center p-0 w-full">
+            <div className="welcome-text flex flex-col items-start p-0 gap-1 flex-1">
+              <span className="font-dm-sans font-medium text-[13px] leading-[17px] text-[#8D6E63] dark:text-[#948D87] tracking-wide">
                 {formatCurrentDate()}
-              </p>
+              </span>
+              <h1 className="font-outfit font-extrabold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
+                {greeting}, {profile.myNickname || profile.name}!
+              </h1>
             </div>
 
-            {/* Account Page Trigger (Dual Household Avatars) */}
-            <Link 
-              href="/profile"
-              title={
-                partnerMember
-                  ? `${currentMember?.nickname || currentMember?.full_name || 'Me'} & ${partnerMember.nickname || partnerMember.full_name || 'Partner'}`
-                  : (language === 'th' ? 'บัญชีและการตั้งค่า' : 'Account & Settings')
-              }
-              className="flex flex-row items-center p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all active:scale-95 cursor-pointer"
-            >
-              {/* Member 1 (Current User) */}
-              <div 
-                title={currentMember?.nickname || currentMember?.full_name || 'Me'}
-                className="relative w-[38px] h-[38px] rounded-full bg-[#D7CCC8] dark:bg-[#5D4037] border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-sm z-10 overflow-hidden flex items-center justify-center shrink-0 text-[#5D4037] dark:text-[#DDD7D2]"
-              >
-                {currentMember?.avatar_url ? (
-                  <img 
-                    src={currentMember.avatar_url} 
-                    alt={currentMember.nickname || 'Avatar'} 
-                    className="w-full h-full object-cover" 
-                  />
-                ) : (
-                  <span className="font-outfit font-bold text-[13px]">
-                    {(currentMember?.nickname || currentMember?.full_name || 'M').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
+            {/* Top Right Header Action: Notification Bell & Dual Avatars */}
+            <div className="flex items-center gap-2.5">
+              <NotificationBell />
 
-              {/* Member 2 (Partner in Household) */}
-              {partnerMember ? (
-                <div 
-                  title={partnerMember.nickname || partnerMember.full_name || 'Partner'}
-                  className="relative w-[38px] h-[38px] -ml-[12px] rounded-full bg-[#E8DFD8] dark:bg-[#3E322A] border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-sm z-20 overflow-hidden flex items-center justify-center shrink-0 text-[#8D6E63] dark:text-[#DDD7D2]"
-                >
-                  {partnerMember.avatar_url ? (
+              <Link
+                href="/profile"
+                className="group flex items-center p-1 rounded-full bg-[#F4EFEA] dark:bg-[#25201D] border border-[#D7CCC8]/80 dark:border-[#3E322A] hover:border-[#8D6E63] transition-all shadow-xs"
+                title={language === 'th' ? 'ข้อมูลบัญชี & สมาชิกในบ้าน' : 'Account & Household'}
+              >
+                {/* User Avatar */}
+                <div className="relative w-[36px] h-[36px] rounded-full bg-[#5D4037] text-white border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-xs z-10 overflow-hidden flex items-center justify-center shrink-0">
+                  {activeUserAvatar ? (
                     <img 
-                      src={partnerMember.avatar_url} 
-                      alt={partnerMember.nickname || 'Partner'} 
+                      src={activeUserAvatar} 
+                      alt={profile.myNickname || profile.name} 
                       className="w-full h-full object-cover" 
                     />
                   ) : (
                     <span className="font-outfit font-bold text-[13px]">
-                      {(partnerMember.nickname || partnerMember.full_name || 'P').charAt(0).toUpperCase()}
+                      {(profile.myNickname || profile.name || 'M').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
-              ) : (
-                <div 
-                  title={language === 'th' ? 'เพิ่มสมาชิกในบ้าน' : 'Add member'}
-                  className="w-[28px] h-[28px] -ml-[8px] rounded-full bg-[#F4EFEA] dark:bg-[#25201D] border-2 border-[#FDFBF7] dark:border-[#1A1816] flex items-center justify-center shadow-xs z-20 text-[#8D6E63] dark:text-[#948D87]"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </div>
-              )}
-            </Link>
+
+                {/* Partner Avatar */}
+                {partnerMember ? (
+                  <div 
+                    title={partnerMember.nickname || partnerMember.full_name || 'Partner'}
+                    className="relative w-[36px] h-[36px] -ml-[12px] rounded-full bg-[#E8DFD8] dark:bg-[#3E322A] border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-sm z-20 overflow-hidden flex items-center justify-center shrink-0 text-[#8D6E63] dark:text-[#DDD7D2]"
+                  >
+                    {partnerMember.avatar_url ? (
+                      <img 
+                        src={partnerMember.avatar_url} 
+                        alt={partnerMember.nickname || 'Partner'} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <span className="font-outfit font-bold text-[13px]">
+                        {(partnerMember.nickname || partnerMember.full_name || 'P').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div 
+                    title={language === 'th' ? 'เพิ่มสมาชิกในบ้าน' : 'Add member'}
+                    className="w-[28px] h-[28px] -ml-[8px] rounded-full bg-[#F4EFEA] dark:bg-[#25201D] border-2 border-[#FDFBF7] dark:border-[#1A1816] flex items-center justify-center shadow-xs z-20 text-[#8D6E63] dark:text-[#948D87]"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                )}
+              </Link>
+            </div>
           </div>
 
           {/* Quick Nudge Action Button */}
@@ -372,137 +481,208 @@ export default function DashboardPage() {
         </header>
 
         {/* dashboard-body */}
-        <main className="dashboard-body flex flex-col items-start px-6 p-0 gap-5 w-full flex-none order-2 self-stretch flex-grow-0">
+        <main className="dashboard-body flex flex-col items-start px-6 p-0 gap-4 w-full flex-none order-2 self-stretch flex-grow-0">
           
-          {/* chore-progress-card */}
-          <section className="chore-progress-card box-border flex flex-col items-start p-5 gap-3.5 w-full bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-0 self-stretch flex-grow-0 transition-colors">
-            {/* Card top banner with link to /chores and points score */}
-            <div className="flex items-center justify-between w-full">
+          {/* ======================================================== */}
+          {/* 1. CHORE CARD: กล่องยาวแต่ไม่สูง (ตามคำขอ)                 */}
+          {/* ======================================================== */}
+          <section className="w-full p-4 rounded-[22px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] transition-colors">
+            {/* Top row */}
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <h2 className="font-outfit font-bold text-[18px] leading-[23px] text-[#5D4037] dark:text-[#DDD7D2]">
+                <div className="w-7 h-7 rounded-[10px] bg-[#2E7D32]/15 dark:bg-[#1B5E20]/40 flex items-center justify-center text-[#2E7D32] dark:text-[#81C784]">
+                  <CheckSquare className="w-4 h-4 stroke-[2.2]" />
+                </div>
+                <h2 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.dashboard.todayChores}
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs">
-                  <Coins className="w-3 h-3 text-[#F2C94C]" />
-                  <span>{myChorePoints}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-[#C8E6C9] dark:bg-[#1B5E20]/40 text-[#2E7D32] dark:text-[#81C784] text-[11px] font-bold">
+                  {choreStats.completed}/{choreStats.total} ({choreStats.percent}%)
                 </span>
-              </div>
-
-              <Link
-                href="/chores"
-                className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] hover:underline flex items-center gap-0.5"
-              >
-                <span>{language === 'th' ? 'ร้านค้า & จัดการ' : 'Shop & Manage'}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="card-split flex flex-row items-center p-0 gap-4 w-full min-h-[85px] flex-none order-0 self-stretch flex-grow-0">
-              {/* progress-left */}
-              <div className="progress-left flex flex-col items-start p-0 gap-1.5 flex-1 min-h-[85px] flex-none order-0 flex-grow-1">
-                <p className="font-dm-sans font-normal text-[13px] leading-[17px] text-[#8D6E63] dark:text-[#948D87]">
-                  {choreStats.total > 0
-                    ? t.dashboard.choresSubtitle
-                    : t.dashboard.noChoresToday}
-                </p>
-
-                {choreStats.total > 0 ? (
-                  <div className="badge-completed flex flex-row items-center px-2.5 py-1 h-[24px] bg-[#C8E6C9] dark:bg-[#1B5E20]/40 rounded-[12px] mt-1">
-                    <span className="font-dm-sans font-bold text-[12px] leading-[16px] text-[#2E7D32] dark:text-[#81C784]">
-                      {choreStats.completed} / {choreStats.total} {t.dashboard.choresDone}
-                    </span>
-                  </div>
-                ) : (
-                  <Link
-                    href="/chores"
-                    className="inline-flex items-center text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline mt-1"
-                  >
-                    + {t.dashboard.addChorePrompt}
-                  </Link>
-                )}
-              </div>
-
-              {/* progress-ring-container */}
-              <div className="progress-ring-container flex flex-col justify-center items-center p-0 isolate relative w-[76px] h-[76px] flex-none order-1 flex-grow-0 shrink-0">
-                <svg className="w-[76px] h-[76px] -rotate-90" viewBox="0 0 80 80">
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r={radius}
-                    fill="#FFFFFF"
-                    stroke="#FFFFFF"
-                    className="dark:fill-[#141312] dark:stroke-[#141312]"
-                    strokeWidth="7"
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r={radius}
-                    fill="none"
-                    stroke="#E8DFD8"
-                    className="dark:stroke-[#2E2A27]"
-                    strokeWidth="6"
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r={radius}
-                    fill="none"
-                    stroke="#2E7D32"
-                    strokeWidth="6"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                    className="transition-all duration-700 ease-out"
-                  />
-                </svg>
-
-                <div className="center-label flex flex-col items-center p-0 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                  <span className="font-outfit font-bold text-[16px] leading-[20px] text-[#5D4037] dark:text-[#DDD7D2]">
-                    {choreStats.percent}%
-                  </span>
-                </div>
+                <Link
+                  href="/chores"
+                  className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] hover:underline flex items-center gap-0.5 ml-1"
+                >
+                  <span>จัดการ</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
 
-            {/* Quick Chores Checklist Preview */}
-            {chores.length > 0 && (
-              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5">
-                {chores.slice(0, 3).map((chore) => (
-                  <div
-                    key={chore.id}
-                    onClick={() => handleQuickToggleChore(chore.id, chore.isCompleted)}
-                    className="flex items-center justify-between p-2 rounded-[14px] bg-white/70 dark:bg-[#141312]/60 hover:bg-white dark:hover:bg-[#141312] border border-[#D7CCC8]/50 dark:border-[#2E2A27]/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div
-                        className={`w-5 h-5 rounded-[7px] flex items-center justify-center border transition-all shrink-0 ${
-                          chore.isCompleted
-                            ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
-                            : 'border-[#D7CCC8] dark:border-[#5D4037]'
-                        }`}
-                      >
-                        {chore.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+            {/* Slim Horizontal Progress Bar */}
+            <div className="w-full h-2 rounded-full bg-[#E8DFD8] dark:bg-[#2E2A27] overflow-hidden mb-2.5">
+              <div
+                className="h-full bg-[#2E7D32] rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${choreStats.percent}%` }}
+              />
+            </div>
+
+            {/* Compact Chore Checklist */}
+            {chores.length === 0 ? (
+              <div className="text-center py-1">
+                <Link href="/chores" className="text-[12px] text-[#2E7D32] font-semibold hover:underline">
+                  + {t.dashboard.addChorePrompt}
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {chores.slice(0, 2).map((chore) => {
+                  const hasBonus = activeGachaSpin && chore.title.toLowerCase().includes(activeGachaSpin.chore_title.toLowerCase());
+                  return (
+                    <div
+                      key={chore.id}
+                      onClick={() => handleQuickToggleChore(chore.id, chore.isCompleted)}
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-[12px] bg-white/70 dark:bg-[#141312]/60 hover:bg-white dark:hover:bg-[#141312] border border-[#D7CCC8]/50 dark:border-[#2E2A27]/60 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div
+                          className={`w-4 h-4 rounded-[6px] flex items-center justify-center border transition-all shrink-0 ${
+                            chore.isCompleted
+                              ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
+                              : 'border-[#D7CCC8] dark:border-[#5D4037]'
+                          }`}
+                        >
+                          {chore.isCompleted && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <span
+                          className={`text-[12px] font-semibold truncate ${
+                            chore.isCompleted
+                              ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
+                              : 'text-[#5D4037] dark:text-[#DDD7D2]'
+                          }`}
+                        >
+                          {chore.title}
+                        </span>
                       </div>
 
-                      <span
-                        className={`text-[13px] font-semibold truncate ${
-                          chore.isCompleted
-                            ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
-                            : 'text-[#5D4037] dark:text-[#DDD7D2]'
-                        }`}
-                      >
-                        {chore.title}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {hasBonus && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100] text-[9px] font-extrabold animate-pulse">
+                            x{activeGachaSpin.multiplier} 🔥
+                          </span>
+                        )}
+                        <span className="text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                          +{hasBonus ? Math.round(chore.points * activeGachaSpin.multiplier) : chore.points} ⭐
+                        </span>
+                      </div>
                     </div>
-
-                    <span className="text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784] shrink-0 ml-2">
-                      +{chore.points} ⭐
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+          </section>
+
+          {/* ======================================================== */}
+          {/* 2. REWARD SHOP BANNER (แยกขาดจากงานบ้านตามคำขอ)             */}
+          {/* ======================================================== */}
+          <section className="w-full p-3.5 rounded-[22px] bg-gradient-to-r from-[#F4EFEA] to-[#ECE5DC] dark:from-[#24211E] dark:to-[#1C1A18] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xs flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Gift className="w-5 h-5 text-[#F2C94C]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                    {language === 'th' ? 'ร้านค้าแลกรางวัล' : 'Reward Shop'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[10px] font-extrabold flex items-center gap-1">
+                    <Coins className="w-2.5 h-2.5 text-[#F2C94C]" />
+                    <span>{myChorePoints} คะแนน</span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
+                  {partnerMember
+                    ? `${partnerMember.nickname || partnerMember.full_name} มี ${partnerMember.chore_points || 0} คะแนน`
+                    : 'ใช้คะแนนสะสมแลกของรางวัลในบ้าน'}
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/chores?tab=rewards"
+              className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold hover:opacity-90 shadow-2xs flex items-center gap-1"
+            >
+              <span>{language === 'th' ? 'ไปร้านค้า' : 'Shop'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </section>
+
+          {/* ======================================================== */}
+          {/* 3. WEEKLY MYSTERY BOX / GACHA CARD (กล่องสุ่มงานบ้าน x ตัวคูณ)*/}
+          {/* ======================================================== */}
+          <section className="w-full p-3.5 rounded-[22px] bg-gradient-to-br from-[#FFF9E6] to-[#FDF3D8] dark:from-[#292218] dark:to-[#1E1912] border-2 border-[#F2C94C]/70 dark:border-[#F2C94C]/40 shadow-xs relative overflow-hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-[14px] bg-gradient-to-tr from-[#E65100] to-[#F2C94C] text-white flex items-center justify-center shrink-0 shadow-sm animate-pulse">
+                  <Dice5 className="w-5 h-5 text-white" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-outfit font-extrabold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                      {language === 'th' ? 'กล่องสุ่มงานบ้าน x ตัวคูณ' : 'Weekly Mystery Box'}
+                    </span>
+                    {activeGachaSpin && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-[#2E7D32] text-white text-[9px] font-extrabold">
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
+
+                  {activeGachaSpin ? (
+                    <div className="mt-0.5">
+                      <p className="text-[11px] font-bold text-[#E65100] dark:text-[#FFB74D] truncate">
+                        🌟 สัปดาห์นี้: {activeGachaSpin.chore_title} (คูณ x{activeGachaSpin.multiplier})
+                      </p>
+                      <p className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
+                        ทำงานนี้จะได้รับคะแนนคูณทันที! (ใช้แล้ว {activeGachaSpin.times_used} ครั้ง)
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
+                      สุ่มได้ 1 ครั้ง/สัปดาห์ (ใช้ 10 คะแนน) ลุ้นคูณ x1.5 ถึง x5! 🎁
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsGachaHistoryModalOpen(true)}
+                  title="ดูประวัติการสุ่ม"
+                  className="p-2 rounded-[12px] bg-white/80 dark:bg-[#1A1816]/80 text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8]/60 dark:border-[#2E2A27] hover:bg-white transition-colors cursor-pointer"
+                >
+                  <History className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGachaModalOpen(true)}
+                  className={`px-3 py-2 rounded-[12px] text-[12px] font-extrabold flex items-center gap-1 shadow-xs transition-transform active:scale-95 cursor-pointer ${
+                    activeGachaSpin
+                      ? 'bg-[#E8F5E9] dark:bg-[#1B5E20]/40 text-[#2E7D32] dark:text-[#81C784] border border-[#2E7D32]/30'
+                      : 'bg-gradient-to-r from-[#E65100] to-[#F2C94C] text-white hover:opacity-95'
+                  }`}
+                >
+                  {activeGachaSpin ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>สุ่มแล้ว</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>เปิดกล่อง</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </section>
 
           {/* summaries-grid */}
@@ -583,9 +763,224 @@ export default function DashboardPage() {
             </div>
           </Link>
 
-
         </main>
       </div>
+
+      {/* ======================================================== */}
+      {/* MODAL: MYSTERY BOX SPIN MODAL                            */}
+      {/* ======================================================== */}
+      {isGachaModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-[370px] bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border-2 border-[#F2C94C] p-5 shadow-2xl animate-in zoom-in-95 duration-200 text-center relative overflow-hidden">
+            <button
+              onClick={() => setIsGachaModalOpen(false)}
+              className="absolute top-3.5 right-3.5 p-1 rounded-full text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {spinResult ? (
+              /* REVEAL RESULT */
+              <div className="py-2 space-y-3">
+                <div className="w-16 h-16 rounded-[22px] bg-gradient-to-tr from-[#E65100] to-[#F2C94C] text-white flex items-center justify-center mx-auto shadow-md animate-bounce">
+                  <Sparkles className="w-8 h-8" />
+                </div>
+
+                <div>
+                  <span className="text-[12px] font-bold text-[#E65100] uppercase tracking-wider block">
+                    ยินดีด้วย! คุณได้รับโบนัส
+                  </span>
+                  <h3 className="text-[20px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2] mt-1">
+                    {spinResult.chore_title}
+                  </h3>
+                </div>
+
+                <div className="p-4 rounded-[18px] bg-[#FFF8E7] dark:bg-[#2A231A] border border-[#F2C94C]/60 text-center">
+                  <span className="text-[12px] text-[#8D6E63] dark:text-[#948D87] block">
+                    ตัวคูณคะแนนที่ได้รับ
+                  </span>
+                  <span className="font-outfit font-black text-[36px] leading-[40px] text-[#E65100] dark:text-[#FFB74D]">
+                    x{spinResult.multiplier}
+                  </span>
+                  <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87] block mt-1">
+                    ทำงานบ้านนี้ในสัปดาห์นี้เพื่อรับคะแนนคูณพิเศษทันที!
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGachaModalOpen(false)}
+                  className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-bold hover:opacity-90 shadow-xs cursor-pointer"
+                >
+                  รับทราบ & ลุยเลย!
+                </button>
+              </div>
+            ) : activeGachaSpin ? (
+              /* ALREADY SPUN THIS WEEK */
+              <div className="py-2 space-y-3">
+                <div className="w-14 h-14 rounded-[20px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+
+                <div>
+                  <h3 className="text-[18px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                    สุ่มประจำสัปดาห์แล้ว!
+                  </h3>
+                  <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                    คุณใช้สิทธิ์สุ่ม 1 ครั้ง/สัปดาห์ไปแล้ว สามารถสุ่มใหม่อีกครั้งในสัปดาห์หน้า
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-[16px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8] dark:border-[#2E2A27] text-left">
+                  <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87] block">
+                    โบนัสที่กำลังใช้งานอยู่:
+                  </span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                      {activeGachaSpin.chore_title}
+                    </span>
+                    <span className="font-outfit font-extrabold text-[16px] text-[#E65100]">
+                      x{activeGachaSpin.multiplier}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#8D6E63] mt-1 block">
+                    ใช้งานไปแล้ว {activeGachaSpin.times_used} ครั้ง
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGachaModalOpen(false)}
+                  className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-bold hover:opacity-90 cursor-pointer"
+                >
+                  ปิด
+                </button>
+              </div>
+            ) : (
+              /* READY TO SPIN */
+              <div className="py-2 space-y-3">
+                <div className={`w-16 h-16 rounded-[22px] bg-gradient-to-tr from-[#E65100] to-[#F2C94C] text-white flex items-center justify-center mx-auto shadow-md ${isSpinning ? 'animate-spin' : 'animate-bounce'}`}>
+                  <Gift className="w-8 h-8" />
+                </div>
+
+                <div>
+                  <h3 className="text-[18px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                    กล่องสุ่มงานบ้าน x คะแนนคูณ
+                  </h3>
+                  <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                    สุ่มเลือกงานบ้านที่จะได้รับโบนัสคูณคะแนนประจำสัปดาห์นี้
+                  </p>
+                </div>
+
+                <div className="p-3 bg-[#FFF8E7] dark:bg-[#282421] rounded-[16px] text-[12px] text-[#8D6E63] dark:text-[#948D87] space-y-1 text-left">
+                  <div className="flex items-center justify-between">
+                    <span>ใช้คะแนนสุ่ม:</span>
+                    <span className="font-bold text-[#E65100]">10 คะแนน</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>สิทธิ์การสุ่ม:</span>
+                    <span className="font-bold text-[#2E7D32]">1 ครั้ง / สัปดาห์</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>โอกาสได้รับตัวคูณ:</span>
+                    <span className="font-bold text-[#5D4037] dark:text-[#DDD7D2]">x1.5 ถึง x5 ⭐</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isSpinning || myChorePoints < 10}
+                  onClick={handleSpinGacha}
+                  className="w-full py-2.5 rounded-[14px] bg-gradient-to-r from-[#E65100] to-[#F2C94C] text-white text-[13px] font-extrabold shadow-md hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSpinning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>กำลังสุ่มรางวัล...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>เปิดกล่องปริศนา (10 คะแนน)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: GACHA HISTORY MODAL (ประวัติการสุ่ม)              */}
+      {/* ======================================================== */}
+      {isGachaHistoryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-[390px] max-h-[80vh] bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] p-5 shadow-2xl flex flex-col relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
+                <h3 className="text-[17px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                  ประวัติการสุ่มกล่องปริศนา
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsGachaHistoryModalOpen(false)}
+                className="p-1 rounded-full text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto no-scrollbar space-y-2.5 flex-1 pr-1">
+              {gachaHistory.length === 0 ? (
+                <div className="py-10 text-center text-[#8D6E63]">
+                  <p className="text-[13px]">ยังไม่มีประวัติการสุ่มกล่องปริศนา</p>
+                </div>
+              ) : (
+                gachaHistory.map((spin) => {
+                  const spinUser = spin.user?.nickname || spin.user?.full_name || (spin.user_id === currentUserId ? 'ฉัน' : 'เพื่อนร่วมบ้าน');
+                  return (
+                    <div
+                      key={spin.id}
+                      className="p-3 rounded-[16px] bg-white dark:bg-[#141312] border border-[#D7CCC8]/70 dark:border-[#2E2A27] flex items-center justify-between gap-3 shadow-2xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 mb-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                          <span className="font-bold">{spinUser}</span>
+                          <span>•</span>
+                          <span>{spin.week_identifier}</span>
+                        </div>
+                        <h4 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                          {spin.chore_title}
+                        </h4>
+                        <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87] block mt-0.5">
+                          ใช้งานแล้ว {spin.times_used} ครั้ง {spin.is_active && '• กำลังใช้งานอยู่'}
+                        </span>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-outfit font-black text-[18px] text-[#E65100]">
+                          x{spin.multiplier}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsGachaHistoryModalOpen(false)}
+              className="mt-3.5 w-full py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#282421] text-[#8D6E63] dark:text-[#948D87] text-[12px] font-bold hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

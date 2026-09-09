@@ -9,13 +9,15 @@ import {
   fetchShoppingLists,
   fetchPetLogs,
   fetchPets,
+  fetchChoreGachaSpins,
   fetchProfile,
   type DbCalendarEvent,
   type DbFinance,
   type DbChore,
   type DbShoppingItem,
   type DbPetLog,
-  type DbPet
+  type DbPet,
+  type DbChoreGachaSpin
 } from '@/lib/services/db';
 import { useNotificationStore } from '@/features/shared/stores/use-notification-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -41,13 +43,14 @@ export function useNotifications() {
       const householdId = profile.household_id;
 
       // Fetch all required resources in parallel
-      const [events, finances, chores, shoppingLists, petLogs, pets] = await Promise.all([
+      const [events, finances, chores, shoppingLists, petLogs, pets, gachaSpins] = await Promise.all([
         fetchCalendarEvents(householdId).catch(() => [] as DbCalendarEvent[]),
         fetchFinances(householdId).catch(() => [] as DbFinance[]),
         fetchChores(householdId).catch(() => [] as DbChore[]),
         fetchShoppingLists(householdId).catch(() => []),
         fetchPetLogs(householdId).catch(() => [] as DbPetLog[]),
         fetchPets(householdId).catch(() => [] as DbPet[]),
+        fetchChoreGachaSpins(householdId).catch(() => [] as DbChoreGachaSpin[]),
       ]);
 
       const now = new Date();
@@ -299,6 +302,30 @@ export function useNotifications() {
               badge: language === 'th' ? 'เลยกำหนด' : 'Overdue',
               category: 'chore',
               created_at: c.due_date,
+            });
+          }
+        }
+      });
+
+      // 9. 🎁 สุ่มกล่องปริศนา (< 48 ชม.)
+      gachaSpins.forEach((gs) => {
+        if (gs.created_at) {
+          const createdTime = new Date(gs.created_at).getTime();
+          const isRecent = now.getTime() - createdTime < 48 * 60 * 60 * 1000;
+          if (isRecent) {
+            const userName = gs.user?.nickname || gs.user?.full_name || (language === 'th' ? 'คนในบ้าน' : 'Homie');
+            newNotifications.push({
+              id: `gacha-spin-${gs.id}`,
+              type: 'chore_gacha_spin',
+              icon: '🎁',
+              title: language === 'th' ? `กล่องสุ่มงานบ้าน (x${gs.multiplier})` : `Mystery Box (x${gs.multiplier})`,
+              message: language === 'th'
+                ? `${userName} สุ่มได้งานบ้าน "${gs.chore_title}" โบนัสคูณ x${gs.multiplier}! 🌟`
+                : `${userName} got "${gs.chore_title}" with x${gs.multiplier} multiplier! 🌟`,
+              link: '/dashboard',
+              badge: `x${gs.multiplier}`,
+              category: 'chore',
+              created_at: gs.created_at,
             });
           }
         }

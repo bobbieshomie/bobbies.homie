@@ -8,6 +8,7 @@ export type NotificationType =
   | 'shopping_pending'
   | 'shopping_new_list'
   | 'chore_overdue'
+  | 'chore_gacha_spin'
   | 'pet_care_reminder';
 
 export interface InAppNotification {

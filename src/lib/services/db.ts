@@ -112,6 +112,21 @@ export interface DbChorePointLog {
   user?: DbProfile;
 }
 
+export interface DbChoreGachaSpin {
+  id: string;
+  household_id: string;
+  user_id: string;
+  chore_id: string | null;
+  chore_title: string;
+  multiplier: number;
+  points_cost: number;
+  week_identifier: string;
+  is_active: boolean;
+  times_used: number;
+  created_at: string;
+  user?: DbProfile;
+}
+
 export interface DbCalendarEvent {
   id: string;
   household_id: string;
@@ -589,7 +604,14 @@ export async function deleteChore(choreId: string): Promise<void> {
 export async function toggleChoreWithPoints(
   choreId: string,
   isCompleted: boolean
-): Promise<{ success: boolean; new_balance: number; points_delta: number }> {
+): Promise<{
+  success: boolean;
+  new_balance: number;
+  points_delta: number;
+  multiplier?: number;
+  chore_id?: string;
+  is_completed?: boolean;
+}> {
   const supabase = createClient();
   const { data, error } = await (supabase.rpc as any)('toggle_chore_with_points', {
     p_chore_id: choreId,
@@ -923,6 +945,79 @@ export async function fetchUserChorePoints(userId: string): Promise<number> {
 
   if (error || !data) return 0;
   return ((data as any).chore_points as number) || 0;
+}
+
+// ---------------------------------------------------------------------------
+// Chore Mystery Box / Gacha
+// ---------------------------------------------------------------------------
+
+export function getWeekIdentifier(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+export async function fetchChoreGachaSpins(householdId: string): Promise<DbChoreGachaSpin[]> {
+  const supabase = createClient();
+  const { data, error } = await (supabase as any)
+    .from('chore_gacha_spins')
+    .select('*, user:profiles(*)')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data || []) as DbChoreGachaSpin[];
+}
+
+export async function fetchMyActiveGachaSpin(userId: string): Promise<DbChoreGachaSpin | null> {
+  const supabase = createClient();
+  const currentWeek = getWeekIdentifier();
+  const { data, error } = await (supabase as any)
+    .from('chore_gacha_spins')
+    .select('*, user:profiles(*)')
+    .eq('user_id', userId)
+    .eq('week_identifier', currentWeek)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return null;
+  return data as DbChoreGachaSpin | null;
+}
+
+export async function spinChoreGacha(params: {
+  householdId: string;
+  userId: string;
+  choreId?: string | null;
+  choreTitle: string;
+  multiplier: number;
+  pointsCost: number;
+}): Promise<{
+  success: boolean;
+  spin_id?: string;
+  new_balance?: number;
+  multiplier?: number;
+  chore_title?: string;
+  error?: string;
+}> {
+  const supabase = createClient();
+  const currentWeek = getWeekIdentifier();
+  const { data, error } = await (supabase.rpc as any)('spin_chore_gacha', {
+    p_household_id: params.householdId,
+    p_user_id: params.userId,
+    p_chore_id: params.choreId || null,
+    p_chore_title: params.choreTitle,
+    p_multiplier: params.multiplier,
+    p_points_cost: params.pointsCost,
+    p_week: currentWeek,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
 }
 
 // ---------------------------------------------------------------------------
