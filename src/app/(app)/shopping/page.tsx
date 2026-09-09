@@ -270,7 +270,7 @@ export default function ShoppingPage() {
   }, [lists]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] select-none max-w-[402px] mx-auto pb-40 no-scrollbar transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-40 no-scrollbar transition-colors duration-200">
       {/* Top Utility Row */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>

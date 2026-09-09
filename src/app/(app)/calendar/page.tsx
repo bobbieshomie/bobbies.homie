@@ -594,7 +594,7 @@ export default function CalendarPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 no-scrollbar transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 no-scrollbar transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>

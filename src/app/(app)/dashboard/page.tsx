@@ -191,7 +191,7 @@ export default function DashboardPage() {
   const strokeDashoffset = circumference - (choreStats.percent / 100) * circumference;
 
   return (
-    <div className="home-dashboard flex flex-col justify-between items-start p-0 relative w-full max-w-[402px] min-h-[874px] bg-[#FDFBF7] dark:bg-[#141312] mx-auto select-none transition-colors duration-200">
+    <div className="home-dashboard flex flex-col justify-between items-start p-0 relative w-full max-w-md sm:max-w-[448px] min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] mx-auto select-none transition-colors duration-200">
       {/* scrollable-content */}
       <div className="scrollable-content flex flex-col items-start p-0 w-full flex-none order-0 self-stretch flex-grow-0">
         
