@@ -23,9 +23,9 @@ export function AppSplash() {
         setIsFading(true);
         const hideTimer = setTimeout(() => {
           setShowSplash(false);
-        }, 400); // match transition duration
+        }, 450); // match transition duration
         return () => clearTimeout(hideTimer);
-      }, 750);
+      }, 1350);
 
       return () => clearTimeout(timer);
     } catch {
