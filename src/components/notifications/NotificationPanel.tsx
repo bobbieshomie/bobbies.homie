@@ -82,11 +82,15 @@ export function NotificationPanel() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center items-start pt-14 px-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div 
+      onClick={() => setOpen(false)}
+      className="fixed inset-0 z-50 flex justify-center items-start pt-14 px-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+    >
       <div 
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-[390px] max-h-[80vh] flex flex-col bg-[#FDFBF7] dark:bg-[#1A1816] rounded-3xl border border-[#D7CCC8]/70 dark:border-[#3E322A]/70 shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-300"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[390px] max-h-[80vh] flex flex-col bg-[#FDFBF7] dark:bg-[#1A1816] rounded-3xl border border-[#D7CCC8]/70 dark:border-[#3E322A]/70 shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-300 cursor-default"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#EFEBE9] dark:border-[#2D2622]">
