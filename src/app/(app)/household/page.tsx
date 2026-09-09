@@ -18,7 +18,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Plus,
-  LogOut
+  LogOut,
+  Dices
 } from 'lucide-react';
 import { Crown as IconoirCrown } from 'iconoir-react';
 import { AppLoading } from '@/components/ui/app-loading';
@@ -468,7 +469,32 @@ export default function HouseholdSettingsPage() {
         </section>
 
         {/* ======================================================== */}
-        {/* 3. LINK TO PROFILE PAGE                                  */}
+        {/* 3. LINK TO GACHA & REWARD SETTINGS                       */}
+        {/* ======================================================== */}
+        <div className="pt-1">
+          <Link
+            href="/rewards?tab=manage"
+            className="w-full p-4 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] hover:border-[#E0533C] rounded-[20px] flex items-center justify-between transition-all group shadow-xs cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[14px] bg-[#FFEBEE] dark:bg-[#361E1E] border border-[#FFCDD2]/60 dark:border-[#4E2727] text-[#E0533C] dark:text-[#FF8A80] flex items-center justify-center shadow-xs">
+                <Dices className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                  {language === 'th' ? 'ตั้งค่าวงล้อสุ่มของรางวัล' : 'Reward Gacha Settings'}
+                </h4>
+                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                  {language === 'th' ? 'กำหนดของรางวัล เรทโอกาสสุ่ม และแต้มต่อครั้ง' : 'Configure prize tiers, winning rates, and spin cost'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#8D6E63] group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+
+        {/* ======================================================== */}
+        {/* 4. LINK TO PROFILE PAGE                                  */}
         {/* ======================================================== */}
         <div className="pt-1">
           <Link

@@ -6,7 +6,7 @@ import {
   Home, 
   ShoppingCart, 
   Calendar, 
-  PawPrint, 
+  Sparkles, 
   Wallet 
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -19,7 +19,7 @@ export function BottomNav() {
     { name: t.nav.home, href: '/dashboard', icon: Home },
     { name: t.nav.list, href: '/shopping', icon: ShoppingCart },
     { name: t.nav.calendar, href: '/calendar', icon: Calendar },
-    { name: t.nav.pets, href: '/pets', icon: PawPrint },
+    { name: t.nav.chores, href: '/chores', icon: Sparkles },
     { name: t.nav.finance, href: '/finances', icon: Wallet },
   ];
 

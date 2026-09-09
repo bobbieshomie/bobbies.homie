@@ -125,9 +125,10 @@ export function NotificationPanel() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-full text-[#8D6E63] hover:text-[#5D4037] dark:text-[#9E9087] dark:hover:text-[#E6DFDA] hover:bg-[#F4EFEA] dark:hover:bg-[#2A2421] transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+              aria-label="Close"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

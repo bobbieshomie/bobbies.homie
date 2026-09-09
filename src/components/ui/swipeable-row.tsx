@@ -119,10 +119,14 @@ export function SwipeableRow({
 
   return (
     <div className={`relative overflow-hidden rounded-[18px] select-none ${className}`}>
-      {/* Background action buttons revealed when swiped */}
+      {/* Background action buttons revealed only when swiped */}
       {actionCount > 0 && (
         <div 
-          className="absolute inset-y-0 right-0 flex items-stretch z-0"
+          className={`absolute inset-y-0 right-0 flex items-stretch z-0 transition-opacity duration-150 ${
+            isOpen || Math.abs(offsetX) > 0
+              ? 'opacity-100 visible pointer-events-auto'
+              : 'opacity-0 invisible pointer-events-none'
+          }`}
           style={{ width: `${MAX_SWIPE}px` }}
         >
           {onEdit && (

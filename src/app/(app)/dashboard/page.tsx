@@ -31,10 +31,10 @@ import {
   fetchFinances,
   fetchUserChorePoints,
   toggleChoreWithPoints,
-  fetchMyActiveGachaSpin,
   type DbProfile,
-  type DbChoreGachaSpin
+  type DbPet
 } from '@/lib/services/db';
+import { parseChoreSchedule } from '@/app/(app)/chores/page';
 
 export default function DashboardPage() {
   const { t, formatCurrentDate, language } = useLanguage();
@@ -48,8 +48,10 @@ export default function DashboardPage() {
   const profile = useAppStore((state) => state.profile);
   const updateProfile = useAppStore((state) => state.updateProfile);
 
-  // Dynamic household members
+  // Dynamic household members & real data
   const [members, setMembers] = useState<DbProfile[]>([]);
+  const [pets, setPets] = useState<DbPet[]>([]);
+  const [realShoppingCount, setRealShoppingCount] = useState<number | null>(null);
   const [activeUserAvatar, setActiveUserAvatar] = useState<string | null>(profile.myAvatarUrl || null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [householdId, setHouseholdId] = useState<string | null>(null);
@@ -58,9 +60,6 @@ export default function DashboardPage() {
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeCooldown, setNudgeCooldown] = useState(0);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
-
-  // Active Mystery Box Perk (multiplier bonus on chores)
-  const [activeGachaSpin, setActiveGachaSpin] = useState<DbChoreGachaSpin | null>(null);
 
   // Household dual member avatars
   const currentMember = useMemo(() => {
@@ -106,9 +105,6 @@ export default function DashboardPage() {
             const pts = await fetchUserChorePoints(user.id);
             setMyChorePoints(pts);
 
-            const activeSpin = await fetchMyActiveGachaSpin(user.id);
-            setActiveGachaSpin(activeSpin);
-
             if (p.household_id) {
               setHouseholdId(p.household_id);
               const h = await fetchHousehold(p.household_id);
@@ -118,20 +114,61 @@ export default function DashboardPage() {
                   inviteCode: h.invite_code,
                 });
               }
-              const mems = await fetchHouseholdMembers(p.household_id);
+              const [mems, chs, dbPets, dbLists] = await Promise.all([
+                fetchHouseholdMembers(p.household_id),
+                fetchChores(p.household_id),
+                fetchPets(p.household_id),
+                fetchShoppingLists(p.household_id),
+              ]);
               setMembers(mems);
+              setPets(dbPets);
+              const unpurchasedCount = dbLists.reduce(
+                (sum, l) => sum + (l.items?.filter((i) => !i.is_purchased).length || 0),
+                0
+              );
+              setRealShoppingCount(unpurchasedCount);
 
-              const chs = await fetchChores(p.household_id);
+              const nowTime = new Date();
+              const todayStr = nowTime.toLocaleDateString('en-CA');
+              const todayMidnight = new Date(
+                nowTime.getFullYear(),
+                nowTime.getMonth(),
+                nowTime.getDate()
+              ).getTime();
+
               setStoreChores(
-                chs.map((c) => ({
-                  id: c.id,
-                  title: c.title,
-                  frequency: (c.frequency as any) || 'weekly',
-                  assignedTo: c.assigned_to || 'All',
-                  points: c.points || 10,
-                  isCompleted: c.is_completed,
-                  dueDate: c.due_date || undefined,
-                }))
+                chs.map((c) => {
+                  let isDone = c.is_completed;
+                  if (isDone && c.completed_at) {
+                    const schedule = parseChoreSchedule(c);
+                    const compDate = new Date(c.completed_at);
+                    const compDayStr = compDate.toLocaleDateString('en-CA');
+                    const compMidnight = new Date(
+                      compDate.getFullYear(),
+                      compDate.getMonth(),
+                      compDate.getDate()
+                    ).getTime();
+                    const elapsedDays = Math.floor(
+                      (todayMidnight - compMidnight) / (1000 * 60 * 60 * 24)
+                    );
+
+                    if (schedule.isDaily && compDayStr < todayStr) {
+                      isDone = false;
+                    } else if (!schedule.isDaily && elapsedDays >= schedule.intervalDays) {
+                      isDone = false;
+                    }
+                  }
+
+                  return {
+                    id: c.id,
+                    title: c.title,
+                    frequency: (c.frequency as any) || 'daily',
+                    assignedTo: c.assigned_to || 'All',
+                    points: c.points || 10,
+                    isCompleted: isDone,
+                    dueDate: c.due_date || undefined,
+                  };
+                })
               );
             }
           }
@@ -161,13 +198,6 @@ export default function DashboardPage() {
       const res = await toggleChoreWithPoints(choreId, nextCompleted);
       if (res.success) {
         setMyChorePoints(res.new_balance);
-
-        // Refresh active spin if bonus was used
-        if (nextCompleted && res.multiplier && res.multiplier > 1 && currentUserId) {
-          fetchMyActiveGachaSpin(currentUserId).then((updated) => {
-            if (updated) setActiveGachaSpin(updated);
-          });
-        }
       }
     } catch (err) {
       console.error('Failed to toggle chore from dashboard:', err);
@@ -262,8 +292,9 @@ export default function DashboardPage() {
 
   // Real unpurchased shopping items count
   const shoppingCount = useMemo(() => {
+    if (realShoppingCount !== null) return realShoppingCount;
     return shoppingItems.filter((i) => !i.isPurchased).length;
-  }, [shoppingItems]);
+  }, [realShoppingCount, shoppingItems]);
 
   // Real next pet event
   const nextPetEvent = useMemo(() => {
@@ -489,7 +520,6 @@ export default function DashboardPage() {
             ) : (
               <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5 font-dm-sans">
                 {chores.slice(0, 3).map((chore) => {
-                  const hasBonus = activeGachaSpin && chore.title.toLowerCase().includes(activeGachaSpin.chore_title.toLowerCase());
                   return (
                     <div
                       key={chore.id}
@@ -518,13 +548,8 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        {hasBonus && (
-                          <span className="px-1.5 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100] text-[9px] font-outfit font-extrabold animate-pulse">
-                            x{activeGachaSpin.multiplier} 🔥
-                          </span>
-                        )}
                         <span className="font-outfit text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784]">
-                          +{hasBonus ? Math.round(chore.points * activeGachaSpin.multiplier) : chore.points} pt
+                          +{chore.points} pt
                         </span>
                       </div>
                     </div>
@@ -569,50 +594,138 @@ export default function DashboardPage() {
 
 
 
-          {/* summaries-grid */}
-          <section className="summaries-grid flex flex-row items-start p-0 gap-3 w-full flex-none order-1 self-stretch flex-grow-0">
-            {/* shopping-summary */}
-            <Link
-              href="/shopping"
-              className="shopping-summary box-border flex flex-col items-start p-4 gap-3 flex-1 h-[123px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-0 self-stretch flex-grow-1 transition-transform active:scale-[0.98]"
-            >
-              <div className="card-header flex flex-row justify-between items-center p-0 w-full h-[32px]">
-                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#E8F5E9] dark:bg-[#1B3E22]/60 border border-[#C8E6C9] dark:border-[#2E7D32]/40 rounded-[16px]">
-                  <ShoppingCart className="w-4 h-4 stroke-[#2E7D32] dark:stroke-[#81C784]" strokeWidth={2.2} />
+          {/* ======================================================== */}
+          {/* 3. PETS SHOWCASE SECTION (ขึ้นรูปน้องด้วย)                  */}
+          {/* ======================================================== */}
+          <section className="pets-section w-full flex flex-col gap-2.5">
+            <div className="flex justify-between items-center px-1">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-[10px] bg-[#FFF3E0] dark:bg-[#3E2512]/60 border border-[#FFE0B2] dark:border-[#E65100]/40 flex items-center justify-center text-[#E65100] dark:text-[#FFB74D]">
+                  <PawPrint className="w-4 h-4 stroke-current" strokeWidth={2.2} />
                 </div>
+                <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
+                  {language === 'th' ? 'สัตว์เลี้ยงของเรา' : 'Our Pets'}
+                </h3>
+                {pets.length > 0 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#25201D] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8]/60 dark:border-[#2E2A27]">
+                    {pets.length}
+                  </span>
+                )}
               </div>
 
-              <div className="flex flex-col items-start p-0 gap-0.5 w-full">
-                <span className="font-outfit font-bold text-[20px] leading-[26px] text-[#5D4037] dark:text-[#DDD7D2]">
-                  {shoppingCount} {t.common.items}
-                </span>
-                <span className="font-dm-sans font-normal text-[12px] leading-[16px] text-[#8D6E63] dark:text-[#948D87] truncate w-full">
-                  {shoppingCount > 0 ? t.dashboard.inSharedList : t.dashboard.noShoppingItems}
-                </span>
-              </div>
-            </Link>
+              <Link
+                href="/pets"
+                className="text-[12px] font-bold text-[#E65100] dark:text-[#FFB74D] hover:underline flex items-center gap-0.5"
+              >
+                <span>{language === 'th' ? 'ดูบันทึก & ดูแลน้อง' : 'View all'}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
 
-            {/* pet-summary */}
-            <Link
-              href="/pets"
-              className="pet-summary box-border flex flex-col items-start p-4 gap-3 flex-1 h-[123px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-1 self-stretch flex-grow-1 transition-transform active:scale-[0.98]"
-            >
-              <div className="card-header flex flex-row justify-between items-center p-0 w-full h-[32px]">
-                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#FFF3E0] dark:bg-[#3E2512]/60 border border-[#FFE0B2] dark:border-[#E65100]/40 rounded-[16px]">
-                  <PawPrint className="w-4 h-4 stroke-[#E65100] dark:stroke-[#FFB74D]" strokeWidth={2.2} />
+            {pets.length === 0 ? (
+              <Link
+                href="/pets"
+                className="box-border flex items-center gap-3.5 p-4 w-full bg-[#F4EFEA]/70 dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[22px] hover:opacity-90 transition-transform active:scale-[0.99] cursor-pointer"
+              >
+                <div className="w-13 h-13 rounded-[16px] bg-[#FFF3E0] dark:bg-[#3E2512]/60 border border-[#FFE0B2] dark:border-[#E65100]/40 flex items-center justify-center text-[#E65100] dark:text-[#FFB74D] shrink-0">
+                  <PawPrint className="w-6 h-6 stroke-current" strokeWidth={2} />
                 </div>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                    {language === 'th' ? 'ยังไม่มีสัตว์เลี้ยงในบ้าน' : 'No pets added yet'}
+                  </div>
+                  <div className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+                    {language === 'th' ? 'แตะที่นี่เพื่อเพิ่มน้องและใส่รูปน่ารักๆ' : 'Tap to add your companion with photo'}
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] flex items-center justify-center shrink-0">
+                  <Plus className="w-4 h-4 stroke-current" strokeWidth={2.5} />
+                </div>
+              </Link>
+            ) : (
+              <div className="space-y-2.5">
+                {pets.map((pet) => (
+                  <Link
+                    key={pet.id}
+                    href="/pets"
+                    className="box-border flex items-center gap-3.5 p-3.5 w-full bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] hover:shadow-[0px_6px_20px_rgba(93,64,55,0.06)] transition-all active:scale-[0.99] cursor-pointer"
+                  >
+                    {/* Pet Photo Container */}
+                    <div className="relative w-[68px] h-[68px] sm:w-[74px] sm:h-[74px] rounded-[18px] overflow-hidden bg-[#FFF3E0] dark:bg-[#3E2512]/60 border border-[#FFE0B2] dark:border-[#E65100]/30 shrink-0 shadow-2xs">
+                      {pet.photo_url ? (
+                        <img
+                          src={pet.photo_url}
+                          alt={pet.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-[#E65100] dark:text-[#FFB74D]">
+                          <PawPrint className="w-6 h-6 stroke-current" strokeWidth={2.2} />
+                          <span className="text-[9px] font-bold mt-0.5">
+                            {language === 'th' ? 'รูปน้อง' : 'Photo'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-              <div className="flex flex-col items-start p-0 gap-0.5 w-full">
-                <span className="font-outfit font-bold text-[16px] leading-[22px] text-[#5D4037] dark:text-[#DDD7D2] truncate w-full">
-                  {nextPetEvent ? nextPetEvent.title : t.dashboard.petSummaryTitle}
-                </span>
-                <span className="font-dm-sans font-normal text-[12px] leading-[16px] text-[#8D6E63] dark:text-[#948D87] truncate w-full">
-                  {nextPetEvent ? nextPetEvent.dateText : t.dashboard.noPetEvents}
-                </span>
+                    {/* Pet Information */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-outfit font-extrabold text-[16px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                          {pet.name}
+                        </h4>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            pet.gender === 'male'
+                              ? 'bg-[#E3F2FD] text-[#1976D2] dark:bg-[#0D47A1]/40 dark:text-[#90CAF9]'
+                              : 'bg-[#FCE4EC] text-[#C2185B] dark:bg-[#880E4F]/40 dark:text-[#F48FB1]'
+                          }`}
+                        >
+                          {pet.gender === 'male' ? '♂ ผู้' : '♀ เมีย'}
+                        </span>
+                      </div>
+
+                      <div className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-0.5 truncate">
+                        {pet.breed || (language === 'th' ? 'เพื่อนร่วมบ้านแสนรัก' : 'Companion')}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8]/40 dark:border-[#2E2A27]/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E65100]" />
+                          {language === 'th' ? 'วัคซีน & กรูมมิ่ง' : 'Care Logs'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <ChevronRight className="w-5 h-5 text-[#8D6E63] dark:text-[#948D87] shrink-0 opacity-60" />
+                  </Link>
+                ))}
               </div>
-            </Link>
+            )}
           </section>
+
+          {/* ======================================================== */}
+          {/* 4. SHOPPING LIST SUMMARY                                 */}
+          {/* ======================================================== */}
+          <Link
+            href="/shopping"
+            className="box-border flex flex-row items-center justify-between p-4 w-full bg-[#FFFFFF] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] transition-transform active:scale-[0.99] cursor-pointer"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-11 h-11 rounded-[16px] bg-[#E8F5E9] dark:bg-[#1B3E22]/60 border border-[#C8E6C9] dark:border-[#2E7D32]/40 flex items-center justify-center text-[#2E7D32] dark:text-[#81C784] shrink-0">
+                <ShoppingCart className="w-5 h-5 stroke-current" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                  {shoppingCount} {t.common.items} {language === 'th' ? 'ในลิสต์ซื้อของ' : 'in shopping list'}
+                </div>
+                <div className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
+                  {shoppingCount > 0 ? t.dashboard.inSharedList : t.dashboard.noShoppingItems}
+                </div>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#8D6E63] dark:text-[#948D87] shrink-0 opacity-60" />
+          </Link>
 
           {/* finance-balance-card */}
           <Link

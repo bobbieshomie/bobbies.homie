@@ -15,6 +15,7 @@ import {
 import { useLanguage } from '@/lib/i18n/language-context';
 import { createClient } from '@/lib/supabase/client';
 import { SwipeableRow } from '@/components/ui/swipeable-row';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { 
   fetchShoppingLists, 
   createBatchShoppingList, 
@@ -22,6 +23,7 @@ import {
   deleteShoppingItem,
   updateShoppingItem,
   deleteShoppingList,
+  updateShoppingList,
   type DbShoppingList,
   type DbShoppingItem
 } from '@/lib/services/db';
@@ -33,6 +35,17 @@ export default function ShoppingPage() {
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>('guest');
   const [loading, setLoading] = useState(true);
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
 
   // Modal: Create Grouped Shopping List with multiple items in 1 batch
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -201,34 +214,92 @@ export default function ShoppingPage() {
     }
   };
 
-  // Delete item from list
-  const handleDeleteItem = async (listId: string, itemId: string) => {
-    // Optimistic removal
-    setLists((prev) =>
-      prev.map((l) => {
-        if (l.id !== listId) return l;
-        return {
-          ...l,
-          items: l.items?.filter((it) => it.id !== itemId),
-        };
-      })
-    );
-    try {
-      await deleteShoppingItem(itemId);
-    } catch (err) {
-      console.error('Delete item error:', err);
-      loadData();
-    }
+  // Delete item from list with confirmation
+  const handleRequestDeleteItem = (listId: string, itemId: string, itemTitle?: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบรายการ' : 'Delete Item?',
+      description: language === 'th'
+        ? `ต้องการลบ "${itemTitle || 'รายการนี้'}" ใช่หรือไม่?`
+        : `Are you sure you want to delete "${itemTitle || 'this item'}"?`,
+      onConfirm: async () => {
+        setLists((prev) =>
+          prev.map((l) => {
+            if (l.id !== listId) return l;
+            return {
+              ...l,
+              items: l.items?.filter((it) => it.id !== itemId),
+            };
+          })
+        );
+        try {
+          await deleteShoppingItem(itemId);
+        } catch (err) {
+          console.error('Delete item error:', err);
+          loadData();
+        }
+      },
+    });
   };
 
-  // Delete entire shopping list
-  const handleDeleteList = async (listId: string) => {
-    if (!confirm(language === 'th' ? 'ต้องการลบลิสต์นี้และรายการทั้งหมดใช่หรือไม่?' : 'Delete this list and all its items?')) return;
-    setLists((prev) => prev.filter((l) => l.id !== listId));
+  // Delete entire shopping list with confirmation
+  const handleRequestDeleteList = (listId: string, listTitle?: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบลิสต์' : 'Delete Shopping List?',
+      description: language === 'th'
+        ? `ต้องการลบลิสต์ "${listTitle || ''}" และรายการทั้งหมดในลิสต์ใช่หรือไม่?`
+        : `Are you sure you want to delete "${listTitle || 'this list'}" and all its items?`,
+      onConfirm: async () => {
+        setLists((prev) => prev.filter((l) => l.id !== listId));
+        try {
+          await deleteShoppingList(listId);
+        } catch (err) {
+          console.error('Delete list error:', err);
+          loadData();
+        }
+      },
+    });
+  };
+
+  // Edit list modal state & handlers
+  const [editingList, setEditingList] = useState<DbShoppingList | null>(null);
+  const [editListTitle, setEditListTitle] = useState('');
+  const [editListDate, setEditListDate] = useState('');
+  const [editListLocation, setEditListLocation] = useState('');
+
+  const handleOpenEditList = (list: DbShoppingList) => {
+    setEditingList(list);
+    setEditListTitle(list.title || '');
+    setEditListDate(list.date || '');
+    setEditListLocation(list.location || '');
+  };
+
+  const handleSaveEditList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingList || !editListTitle.trim()) return;
+    const listId = editingList.id;
+    const nextTitle = editListTitle.trim();
+    const nextDate = editListDate.trim() || null;
+    const nextLocation = editListLocation.trim() || null;
+
+    setLists((prev) =>
+      prev.map((l) =>
+        l.id === listId
+          ? { ...l, title: nextTitle, date: nextDate, location: nextLocation }
+          : l
+      )
+    );
+    setEditingList(null);
+
     try {
-      await deleteShoppingList(listId);
+      await updateShoppingList(listId, {
+        title: nextTitle,
+        date: nextDate || undefined,
+        location: nextLocation || undefined,
+      });
     } catch (err) {
-      console.error('Delete list error:', err);
+      console.error('Update list error:', err);
       loadData();
     }
   };
@@ -349,8 +420,8 @@ export default function ShoppingPage() {
                     : 'bg-white dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.03)]'
                 }`}
               >
-                {/* List Header: Title, Date, Location */}
-                <div className="border-b border-[#D7CCC8]/40 dark:border-[#2E2A27]/40 pb-2.5 mb-3">
+                {/* List Header with Direct Edit Button */}
+                <div className="p-3 bg-[#F4EFEA]/60 dark:bg-[#141312]/60 rounded-[16px] border border-[#D7CCC8]/40 dark:border-[#2E2A27]/40 mb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
@@ -373,17 +444,17 @@ export default function ShoppingPage() {
                     </div>
                     
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] whitespace-nowrap">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] whitespace-nowrap">
                         {purchasedInList}/{items.length} {language === 'th' ? 'ซื้อแล้ว' : 'Done'}
                       </span>
                       {list.id !== 'quick-list' && (
                         <button
                           type="button"
-                          onClick={() => handleDeleteList(list.id)}
-                          title={language === 'th' ? 'ลบลิสต์นี้' : 'Delete list'}
-                          className="p-1 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                          onClick={() => handleOpenEditList(list)}
+                          title={language === 'th' ? 'แก้ไขลิสต์' : 'Edit list'}
+                          className="p-1.5 rounded-[10px] bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8]/80 dark:border-[#2E2A27] text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] transition-colors cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5 stroke-current" />
+                          <Pencil className="w-3.5 h-3.5 stroke-current" />
                         </button>
                       )}
                     </div>
@@ -396,7 +467,7 @@ export default function ShoppingPage() {
                     <SwipeableRow
                       key={item.id}
                       onEdit={() => handleOpenEditItem(list.id, item)}
-                      onDelete={() => handleDeleteItem(list.id, item.id)}
+                      onDelete={() => handleRequestDeleteItem(list.id, item.id, item.title)}
                       editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
                       deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
                       className="rounded-[14px]"
@@ -457,8 +528,14 @@ export default function ShoppingPage() {
 
       {/* Batch Create Shopping List Modal */}
       {isBatchModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] max-h-[85vh] rounded-[24px] p-5 shadow-2xl flex flex-col no-scrollbar">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsBatchModalOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] max-h-[85vh] rounded-[24px] p-5 shadow-2xl flex flex-col no-scrollbar animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
@@ -470,9 +547,10 @@ export default function ShoppingPage() {
               <button
                 type="button"
                 onClick={() => setIsBatchModalOpen(false)}
-                className="p-1 text-[#8D6E63] hover:text-[#5D4037] dark:text-[#948D87] dark:hover:text-[#FDFBF7]"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -591,8 +669,14 @@ export default function ShoppingPage() {
 
       {/* Edit Single Item Modal */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-2xl flex flex-col">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setEditingItem(null)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-2xl flex flex-col animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-outfit font-bold text-[18px]">
                 {language === 'th' ? 'แก้ไขรายการของ' : 'Edit Shopping Item'}
@@ -600,9 +684,10 @@ export default function ShoppingPage() {
               <button
                 type="button"
                 onClick={() => setEditingItem(null)}
-                className="p-1 text-[#8D6E63] hover:text-[#5D4037] dark:text-[#948D87] dark:hover:text-[#FDFBF7] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -652,6 +737,114 @@ export default function ShoppingPage() {
           </div>
         </div>
       )}
+
+      {/* Edit List Modal */}
+      {editingList && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setEditingList(null)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-2xl flex flex-col animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-outfit font-bold text-[18px]">
+                {language === 'th' ? 'แก้ไขลิสต์ซื้อของ' : 'Edit Shopping List'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingList(null)}
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditList} className="space-y-3.5">
+              <div>
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  {language === 'th' ? 'หัวข้อลิสต์' : 'List Title'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editListTitle}
+                  onChange={(e) => setEditListTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  {language === 'th' ? 'วันที่' : 'Date'}
+                </label>
+                <input
+                  type="date"
+                  value={editListDate}
+                  onChange={(e) => setEditListDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  {language === 'th' ? 'สถานที่ / ร้านค้า' : 'Store / Location'}
+                </label>
+                <input
+                  type="text"
+                  value={editListLocation}
+                  onChange={(e) => setEditListLocation(e.target.value)}
+                  placeholder={language === 'th' ? 'สถานที่ / ร้านค้า' : 'Store / Location'}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingList(null)}
+                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87] cursor-pointer hover:bg-[#E8DFD8] transition-colors"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] text-white rounded-[14px] text-[13px] font-semibold cursor-pointer transition-colors"
+                >
+                  {language === 'th' ? 'บันทึก' : 'Save'}
+                </button>
+              </div>
+
+              {/* Delete entire big box button inside the edit modal */}
+              <div className="pt-3 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27]/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const listToDelete = editingList;
+                    setEditingList(null);
+                    handleRequestDeleteList(listToDelete.id, listToDelete.title);
+                  }}
+                  className="w-full py-2.5 rounded-[14px] border border-red-200 dark:border-red-950/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50 text-[13px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 stroke-current" />
+                  <span>{language === 'th' ? 'ลบทั้งกล่องรายการนี้' : 'Delete Entire List'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog for Deletions */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+      />
     </div>
   );
 }

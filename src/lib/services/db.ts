@@ -52,6 +52,7 @@ export interface DbChore {
   id: string;
   household_id: string;
   title: string;
+  description?: string | null;
   assigned_to: string | null;
   frequency: string;
   points: number;
@@ -77,6 +78,8 @@ export interface DbChoreReward {
     description?: string | null;
     points_cost?: number;
     icon?: string | null;
+    gacha_cost?: number;
+    gacha_prizes?: any[];
   } | null;
   approvals?: Record<string, { approved: boolean; updated_at?: string }>;
   created_at?: string;
@@ -544,21 +547,24 @@ export async function createChore(
   userId: string,
   chore: {
     title: string;
+    description?: string | null;
     assigned_to?: string | null;
     frequency?: string;
     points?: number;
+    due_date?: string | null;
   }
 ): Promise<DbChore> {
   const supabase = createClient();
   const assignedTo = chore.assigned_to && chore.assigned_to !== 'All' ? chore.assigned_to : null;
-  const { data, error } = await supabase
-    .from('chores')
+  const { data, error } = await (supabase.from('chores') as any)
     .insert({
       household_id: householdId,
       title: chore.title,
+      description: chore.description || null,
       assigned_to: assignedTo,
-      frequency: (chore.frequency as Database['public']['Enums']['chore_frequency']) || 'weekly',
+      frequency: (chore.frequency as Database['public']['Enums']['chore_frequency']) || 'daily',
       points: chore.points ?? 10,
+      due_date: chore.due_date || null,
       created_by: userId,
     })
     .select()
@@ -607,6 +613,29 @@ export async function deleteChore(choreId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function completeChoreWithAssignees(
+  choreId: string,
+  isCompleted: boolean,
+  assigneeIds?: string[] | null
+): Promise<{
+  success: boolean;
+  new_balance: number;
+  points_delta: number;
+  multiplier?: number;
+  chore_id?: string;
+  is_completed?: boolean;
+}> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.rpc as any)('complete_chore_with_assignees', {
+    p_chore_id: choreId,
+    p_completed: isCompleted,
+    p_assignee_ids: assigneeIds && assigneeIds.length > 0 ? assigneeIds : null,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function toggleChoreWithPoints(
   choreId: string,
   isCompleted: boolean
@@ -618,14 +647,7 @@ export async function toggleChoreWithPoints(
   chore_id?: string;
   is_completed?: boolean;
 }> {
-  const supabase = createClient();
-  const { data, error } = await (supabase.rpc as any)('toggle_chore_with_points', {
-    p_chore_id: choreId,
-    p_completed: isCompleted,
-  });
-
-  if (error) throw new Error(error.message);
-  return data;
+  return completeChoreWithAssignees(choreId, isCompleted, null);
 }
 
 // ---------------------------------------------------------------------------
@@ -641,7 +663,7 @@ export async function fetchChoreRewards(householdId: string): Promise<DbChoreRew
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data || []) as DbChoreReward[];
+  return ((data || []) as DbChoreReward[]).filter((r) => r.title !== '__GACHA_CONFIG__');
 }
 
 export async function createChoreReward(
@@ -872,6 +894,146 @@ export async function respondChoreRewardProposal(
     }
   }
   return { success: false, action: 'unknown' };
+}
+
+// ---------------------------------------------------------------------------
+// Reward Gacha Configuration (Dual Approval)
+// ---------------------------------------------------------------------------
+
+export async function fetchGachaConfig(householdId: string): Promise<DbChoreReward | null> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .select('*')
+    .eq('household_id', householdId)
+    .eq('title', '__GACHA_CONFIG__')
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as DbChoreReward;
+}
+
+export async function proposeGachaConfig(
+  householdId: string,
+  userId: string,
+  payload: {
+    cost: number;
+    prizes: any[];
+  },
+  needsApproval: boolean
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const existing = await fetchGachaConfig(householdId);
+  const jsonPrizes = JSON.stringify(payload.prizes);
+
+  if (!existing) {
+    const { data, error } = await (supabase
+      .from('chore_rewards') as any)
+      .insert({
+        household_id: householdId,
+        title: '__GACHA_CONFIG__',
+        description: needsApproval ? jsonPrizes : jsonPrizes,
+        points_cost: payload.cost,
+        icon: 'Dices',
+        created_by: userId,
+        proposed_by: needsApproval ? userId : null,
+        status: needsApproval ? 'pending_edit' : 'active',
+        pending_payload: needsApproval
+          ? {
+              points_cost: payload.cost,
+              description: jsonPrizes,
+              gacha_cost: payload.cost,
+              gacha_prizes: payload.prizes,
+            }
+          : null,
+        approvals: { [userId]: { approved: true, updated_at: new Date().toISOString() } },
+      })
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to propose gacha config');
+    return data as DbChoreReward;
+  } else {
+    const { data, error } = await (supabase
+      .from('chore_rewards') as any)
+      .update(
+        needsApproval
+          ? {
+              status: 'pending_edit',
+              proposed_by: userId,
+              pending_payload: {
+                points_cost: payload.cost,
+                description: jsonPrizes,
+                gacha_cost: payload.cost,
+                gacha_prizes: payload.prizes,
+              },
+              approvals: { [userId]: { approved: true, updated_at: new Date().toISOString() } },
+              updated_at: new Date().toISOString(),
+            }
+          : {
+              status: 'active',
+              points_cost: payload.cost,
+              description: jsonPrizes,
+              proposed_by: null,
+              pending_payload: null,
+              approvals: {},
+              updated_at: new Date().toISOString(),
+            }
+      )
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(error?.message || 'Failed to update gacha config');
+    return data as DbChoreReward;
+  }
+}
+
+export async function respondGachaConfigProposal(
+  reward: DbChoreReward,
+  approved: boolean
+): Promise<{ success: boolean; action: string }> {
+  const supabase = createClient();
+  if (approved && reward.pending_payload) {
+    const payload = reward.pending_payload;
+    const { error } = await (supabase.from('chore_rewards') as any)
+      .update({
+        points_cost: payload.points_cost ?? payload.gacha_cost ?? reward.points_cost,
+        description: payload.description || (payload.gacha_prizes ? JSON.stringify(payload.gacha_prizes) : reward.description),
+        status: 'active',
+        proposed_by: null,
+        pending_payload: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', reward.id);
+    if (error) throw new Error(error.message);
+    return { success: true, action: 'gacha_approved' };
+  } else {
+    const { error } = await (supabase.from('chore_rewards') as any)
+      .update({
+        status: 'active',
+        proposed_by: null,
+        pending_payload: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', reward.id);
+    if (error) throw new Error(error.message);
+    return { success: true, action: 'gacha_rejected' };
+  }
+}
+
+export async function cancelGachaConfigProposal(reward: DbChoreReward): Promise<void> {
+  const supabase = createClient();
+  const { error } = await (supabase.from('chore_rewards') as any)
+    .update({
+      status: 'active',
+      proposed_by: null,
+      pending_payload: null,
+      approvals: {},
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', reward.id);
+  if (error) throw new Error(error.message);
 }
 
 // ---------------------------------------------------------------------------

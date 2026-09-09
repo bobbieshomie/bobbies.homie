@@ -10,7 +10,6 @@ import {
   PawPrint, 
   Wallet, 
   Sparkles, 
-  Trash2,
   Calendar as CalendarIcon,
   User,
   Users,
@@ -19,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   StickyNote,
-  Pencil,
   Briefcase,
   Plane,
   MoreHorizontal
@@ -37,6 +35,7 @@ import {
 } from '@/lib/services/db';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { SwipeableRow } from '@/components/ui/swipeable-row';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Thai Bank Holidays 2025-2026 (วันหยุดตามธนาคารแห่งประเทศไทย)
 const THAI_BANK_HOLIDAYS: Set<string> = new Set([
@@ -181,6 +180,17 @@ export default function CalendarPage() {
   const [editLocation, setEditLocation] = useState('');
   const [editAssignedTo, setEditAssignedTo] = useState('All');
   const [editShowTime, setEditShowTime] = useState(false);
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
 
   // Load Data
   const loadData = async () => {
@@ -358,14 +368,23 @@ export default function CalendarPage() {
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
-    try {
-      await deleteCalendarEvent(id);
-      setEvents((prev) => prev.filter((ev) => ev.id !== id));
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'ลบไม่สำเร็จ';
-      alert(msg);
-    }
+  const handleRequestDeleteEvent = (id: string, title?: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบกิจกรรม' : 'Delete Event?',
+      description: language === 'th'
+        ? `ต้องการลบกิจกรรม "${title || ''}" ใช่หรือไม่?`
+        : `Are you sure you want to delete "${title || 'this event'}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteCalendarEvent(id);
+          setEvents((prev) => prev.filter((ev) => ev.id !== id));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'ลบไม่สำเร็จ';
+          alert(msg);
+        }
+      },
+    });
   };
 
   const openEditModal = (act: DbCalendarEvent) => {
@@ -807,7 +826,7 @@ export default function CalendarPage() {
               <SwipeableRow
                 key={act.id}
                 onEdit={() => openEditModal(act)}
-                onDelete={() => handleDeleteEvent(act.id)}
+                onDelete={() => handleRequestDeleteEvent(act.id, act.title)}
                 editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
                 deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
                 className="rounded-[18px]"
@@ -854,25 +873,6 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-1 ml-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(act)}
-                      title={t.common.edit}
-                      className="p-1.5 text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Pencil className="w-3.5 h-3.5 stroke-current" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteEvent(act.id)}
-                      title={t.common.delete}
-                      className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4 stroke-current" />
-                    </button>
-                  </div>
                 </div>
               </SwipeableRow>
             );
@@ -882,8 +882,14 @@ export default function CalendarPage() {
 
       {/* Add Event Modal */}
       {isAddEventOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsAddEventOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh] animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.calendar.addEvent}
@@ -891,9 +897,10 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={() => setIsAddEventOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -932,8 +939,14 @@ export default function CalendarPage() {
 
       {/* Edit Event Modal */}
       {isEditOpen && editingEvent && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => { setIsEditOpen(false); setEditingEvent(null); }}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh] animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'แก้ไขกิจกรรม' : 'Edit Event'}
@@ -941,9 +954,10 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={() => { setIsEditOpen(false); setEditingEvent(null); }}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -979,6 +993,15 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Deletions */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+      />
     </div>
   );
 }

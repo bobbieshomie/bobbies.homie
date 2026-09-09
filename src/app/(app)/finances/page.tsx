@@ -29,6 +29,7 @@ import {
 import { uploadTransferSlip } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { SwipeableRow } from '@/components/ui/swipeable-row';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function FinancesPage() {
   const { t, language } = useLanguage();
@@ -40,6 +41,17 @@ export default function FinancesPage() {
   const [currentUser, setCurrentUser] = useState<DbProfile | null>(null);
   const [householdMembers, setHouseholdMembers] = useState<DbProfile[]>([]);
   const [expenses, setExpenses] = useState<DbFinance[]>([]);
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
 
   // Add modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -323,45 +335,62 @@ export default function FinancesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase.from('shared_finances').delete().eq('id', id);
-      if (!error) {
-        setExpenses((prev) => prev.filter((e) => e.id !== id));
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleRequestDelete = (expense: DbFinance) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบรายจ่าย' : 'Delete Expense?',
+      description: language === 'th'
+        ? `ต้องการลบรายการ "${expense.title}" (฿${expense.amount.toFixed(2)}) ใช่หรือไม่?`
+        : `Are you sure you want to delete "${expense.title}" (฿${expense.amount.toFixed(2)})?`,
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('shared_finances').delete().eq('id', expense.id);
+          if (!error) {
+            setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      },
+    });
   };
 
-  const handleSettleAll = async () => {
-    if (!confirm(language === 'th' ? 'ต้องการเคลียร์ยอดค่าใช้จ่ายทั้งหมดใช่หรือไม่?' : 'Settle all pending expenses?')) return;
-    try {
-      if (!currentUser?.household_id) return;
-      await supabase
-        .from('shared_finances')
-        .update({ is_reimbursed: true })
-        .eq('household_id', currentUser.household_id);
+  const handleRequestSettleAll = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการเคลียร์ยอด' : 'Settle All Expenses?',
+      description: language === 'th'
+        ? 'ต้องการเคลียร์ยอดค่าใช้จ่ายทั้งหมดใช่หรือไม่?'
+        : 'Are you sure you want to settle all pending expenses?',
+      onConfirm: async () => {
+        try {
+          if (!currentUser?.household_id) return;
+          await supabase
+            .from('shared_finances')
+            .update({ is_reimbursed: true })
+            .eq('household_id', currentUser.household_id);
 
-      setExpenses((prev) => prev.map((e) => ({ ...e, is_reimbursed: true })));
+          setExpenses((prev) => prev.map((e) => ({ ...e, is_reimbursed: true })));
 
-      const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
-      fetch('/api/notifications/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          householdId: currentUser.household_id,
-          excludeUserId: currentUser.id,
-          title: '💵 Bobbies Homie',
-          body: language === 'th'
-            ? `${senderName} เคลียร์ยอดค่าใช้จ่ายทั้งหมดในบ้านเรียบร้อยแล้ว! ✨`
-            : `${senderName} settled all household expenses! ✨`,
-          link: '/finances',
-        }),
-      }).catch(() => {});
-    } catch (err) {
-      console.error(err);
-    }
+          const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              householdId: currentUser.household_id,
+              excludeUserId: currentUser.id,
+              title: '💵 Bobbies Homie',
+              body: language === 'th'
+                ? `${senderName} เคลียร์ยอดค่าใช้จ่ายทั้งหมดในบ้านเรียบร้อยแล้ว! ✨`
+                : `${senderName} settled all household expenses! ✨`,
+              link: '/finances',
+            }),
+          }).catch(() => {});
+        } catch (err) {
+          console.error(err);
+        }
+      },
+    });
   };
 
   // Slip upload handler
@@ -578,7 +607,7 @@ export default function FinancesPage() {
                 {!balanceSummary.isSettled && (
                   <button
                     type="button"
-                    onClick={handleSettleAll}
+                    onClick={handleRequestSettleAll}
                     className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[12px] font-semibold text-[#5D4037] dark:text-[#DDD7D2] hover:opacity-90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 stroke-[#2E7D32]" />
@@ -634,7 +663,7 @@ export default function FinancesPage() {
                   <SwipeableRow
                     key={expense.id}
                     onEdit={() => openEditModal(expense)}
-                    onDelete={() => handleDelete(expense.id)}
+                    onDelete={() => handleRequestDelete(expense)}
                     editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
                     deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
                     className="rounded-[18px]"
@@ -695,7 +724,7 @@ export default function FinancesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(expense.id)}
+                            onClick={() => handleRequestDelete(expense)}
                             title={t.common.delete}
                             className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                           >
@@ -772,8 +801,14 @@ export default function FinancesPage() {
 
       {/* Add Expense Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsAddModalOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.finances.addExpense}
@@ -781,9 +816,10 @@ export default function FinancesPage() {
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -855,8 +891,14 @@ export default function FinancesPage() {
 
       {/* Edit Expense Modal */}
       {isEditModalOpen && editingExpense && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => { setIsEditModalOpen(false); setEditingExpense(null); }}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'แก้ไขรายการ' : 'Edit Expense'}
@@ -864,9 +906,10 @@ export default function FinancesPage() {
               <button
                 type="button"
                 onClick={() => { setIsEditModalOpen(false); setEditingExpense(null); }}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -936,8 +979,14 @@ export default function FinancesPage() {
 
       {/* Record Transfer Modal */}
       {isTransferModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsTransferModalOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? '💸 บันทึกการโอนเงิน' : '💸 Record Transfer'}
@@ -945,9 +994,10 @@ export default function FinancesPage() {
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -1028,6 +1078,15 @@ export default function FinancesPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Deletions */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+      />
     </div>
   );
 }

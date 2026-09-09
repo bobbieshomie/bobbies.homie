@@ -15,11 +15,13 @@ import {
   CheckSquare,
   History,
   User,
+  Users,
   Loader2,
   Calendar as CalendarIcon,
   Sparkles,
   ArrowRight,
   Filter,
+  X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -27,7 +29,7 @@ import {
   createChore,
   updateChore,
   deleteChore,
-  toggleChoreWithPoints,
+  completeChoreWithAssignees,
   fetchChorePointLogs,
   fetchHouseholdMembers,
   fetchMyActiveGachaSpin,
@@ -39,11 +41,41 @@ import {
 import { useLanguage } from '@/lib/i18n/language-context';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { SwipeableRow } from '@/components/ui/swipeable-row';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 type ActiveTab = 'tasks' | 'logs';
 type ChoreFilter = 'all' | 'today' | 'pending' | 'done';
+
+export interface ChoreSchedule {
+  isDaily: boolean;
+  intervalDays: number;
+  time: string;
+}
+
+export function parseChoreSchedule(chore: DbChore): ChoreSchedule {
+  if (chore.description) {
+    try {
+      const parsed = JSON.parse(chore.description);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return {
+          isDaily: Boolean(parsed.isDaily ?? (chore.frequency === 'daily')),
+          intervalDays: Math.max(1, Number(parsed.intervalDays) || (chore.frequency === 'weekly' ? 7 : 3)),
+          time: typeof parsed.time === 'string' ? parsed.time : '',
+        };
+      }
+    } catch {
+      // Not JSON, continue to fallback
+    }
+  }
+
+  return {
+    isDaily: chore.frequency === 'daily',
+    intervalDays: chore.frequency === 'weekly' ? 7 : chore.frequency === 'monthly' ? 30 : 3,
+    time: chore.due_date && chore.due_date.includes('T') ? chore.due_date.split('T')[1]?.slice(0, 5) : '',
+  };
+}
 
 export default function ChoresPage() {
   const router = useRouter();
@@ -67,14 +99,30 @@ export default function ChoresPage() {
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modals for Chore
+  // Modals for Create / Edit Chore
   const [isChoreModalOpen, setIsChoreModalOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<DbChore | null>(null);
   const [choreTitle, setChoreTitle] = useState('');
-  const [choreFrequency, setChoreFrequency] = useState('weekly');
-  const [choreAssignedTo, setChoreAssignedTo] = useState('All');
+  const [choreIsDaily, setChoreIsDaily] = useState(true);
+  const [choreIntervalDays, setChoreIntervalDays] = useState(3);
+  const [choreTime, setChoreTime] = useState('');
   const [chorePoints, setChorePoints] = useState(10);
   const [savingChore, setSavingChore] = useState(false);
+
+  // Modal for Who Completed The Chore
+  const [completingChore, setCompletingChore] = useState<DbChore | null>(null);
+  const [completingLoading, setCompletingLoading] = useState(false);
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
 
   // Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -84,7 +132,7 @@ export default function ChoresPage() {
     }, 3500);
   }, []);
 
-  // Load all chores and chore logs
+  // Load all chores and chore logs, auto-reset daily/recurring chores if due
   const loadData = useCallback(async () => {
     try {
       const supabase = createClient();
@@ -113,10 +161,82 @@ export default function ChoresPage() {
           fetchMyActiveGachaSpin(user.id),
         ]);
 
-        setChores(choresRes);
+        // ========================================================
+        // AUTO RESET LOGIC (ทุกวันขึ้นวันใหม่จะรีเซ็ต / N วันจะมาทุก N วัน)
+        // ========================================================
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+        const resetIds: string[] = [];
+        const processedChores = choresRes.map((chore) => {
+          if (!chore.is_completed || !chore.completed_at) return chore;
+
+          const schedule = parseChoreSchedule(chore);
+          const completedDate = new Date(chore.completed_at);
+          const completedDayStr = completedDate.toLocaleDateString('en-CA');
+          const compMidnight = new Date(
+            completedDate.getFullYear(),
+            completedDate.getMonth(),
+            completedDate.getDate()
+          ).getTime();
+          const elapsedDays = Math.floor((todayMidnight - compMidnight) / (1000 * 60 * 60 * 24));
+
+          let shouldReset = false;
+          if (schedule.isDaily) {
+            // New day arrived -> auto reset
+            if (completedDayStr < todayStr) {
+              shouldReset = true;
+            }
+          } else {
+            // N-day recurring chore -> reset after intervalDays have passed
+            if (elapsedDays >= schedule.intervalDays) {
+              shouldReset = true;
+            }
+          }
+
+          if (shouldReset) {
+            resetIds.push(chore.id);
+            return {
+              ...chore,
+              is_completed: false,
+              completed_at: null,
+              assigned_to: null,
+            };
+          }
+
+          return chore;
+        });
+
+        // Asynchronously update reset status in Supabase
+        if (resetIds.length > 0) {
+          Promise.all(
+            resetIds.map((id) =>
+              updateChore(id, {
+                is_completed: false,
+                completed_at: null,
+                assigned_to: null,
+              }).catch((e) => console.error('Failed to auto-reset chore:', e))
+            )
+          ).catch(() => {});
+        }
+
+        setChores(processedChores);
         setPointLogs(pointLogsRes);
         setMembers(membersRes);
         setActiveGachaSpin(activeSpinRes);
+
+        setStoreChores(
+          processedChores.map((c) => ({
+            id: c.id,
+            title: c.title,
+            frequency: (c.frequency as any) || 'daily',
+            assignedTo: c.assigned_to || 'All',
+            points: c.points || 10,
+            isCompleted: c.is_completed,
+            dueDate: c.due_date || undefined,
+          }))
+        );
       }
     } catch (err) {
       console.error('Failed to load chores data:', err);
@@ -134,21 +254,22 @@ export default function ChoresPage() {
     return members.find((m) => m.id === currentUserId);
   }, [members, currentUserId]);
 
-  // Partner member
-  const partnerMember = useMemo(() => {
-    return members.find((m) => m.id !== currentUserId);
-  }, [members, currentUserId]);
-
   // Filtered Chores
   const filteredChores = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toLocaleDateString('en-CA');
 
     return chores.filter((chore) => {
       if (choreFilter === 'pending') return !chore.is_completed;
       if (choreFilter === 'done') return chore.is_completed;
       if (choreFilter === 'today') {
-        if (!chore.due_date) return true;
-        return chore.due_date.split('T')[0] === todayStr;
+        const schedule = parseChoreSchedule(chore);
+        // Daily chores always show in today's tab
+        if (schedule.isDaily) return true;
+        // Chores completed today show in today's tab
+        if (chore.completed_at && chore.completed_at.startsWith(todayStr)) return true;
+        // Non-completed chores due today
+        if (chore.due_date && chore.due_date.startsWith(todayStr)) return true;
+        return !chore.is_completed;
       }
       return true;
     });
@@ -162,29 +283,79 @@ export default function ChoresPage() {
     return { total, completed, percent };
   }, [chores]);
 
-  // Separate Chore Completion Log (ชื่องานบ้าน, วันที่, คะแนนที่ได้)
+  // Separate Chore Completion Log
   const choreLogs = useMemo(() => {
     return pointLogs.filter(
       (log) => log.type === 'chore_complete' || log.points_delta > 0
     );
   }, [pointLogs]);
 
-  // Toggle Chore Checkmark
-  const handleToggleChore = async (chore: DbChore) => {
-    if (!currentUserId || !householdId) return;
+  // Handle Clicking Chore Checkbox
+  const handleChoreCheckboxClick = (chore: DbChore) => {
+    if (chore.is_completed) {
+      // Uncompleting an already finished chore -> Ask confirmation
+      setConfirmDialog({
+        isOpen: true,
+        title: language === 'th' ? 'ยกเลิกการทำงานบ้าน?' : 'Uncomplete Chore?',
+        description:
+          language === 'th'
+            ? `ต้องการยกเลิก "${chore.title}" ใช่หรือไม่? คะแนนจะถูกหักคืน`
+            : `Do you want to unmark "${chore.title}"? Points will be deducted.`,
+        onConfirm: async () => {
+          try {
+            // Optimistic update
+            setChores((prev) =>
+              prev.map((c) =>
+                c.id === chore.id
+                  ? {
+                      ...c,
+                      is_completed: false,
+                      completed_at: null,
+                      assigned_to: null,
+                    }
+                  : c
+              )
+            );
+
+            const res = await completeChoreWithAssignees(chore.id, false);
+            if (res.success) {
+              setMyPoints(res.new_balance);
+              showToast(
+                language === 'th'
+                  ? 'ยกเลิกการทำงานบ้านแล้ว'
+                  : 'Chore uncompleted'
+              );
+              if (householdId) {
+                fetchChorePointLogs(householdId).then(setPointLogs).catch(() => {});
+                fetchHouseholdMembers(householdId).then(setMembers).catch(() => {});
+              }
+            }
+          } catch (err) {
+            console.error('Failed to uncomplete chore:', err);
+            loadData();
+          }
+        },
+      });
+    } else {
+      // Incomplete chore -> Open completion selector modal
+      setCompletingChore(chore);
+    }
+  };
+
+  // Confirm Completion with Specific Member(s) or All
+  const handleConfirmComplete = async (chore: DbChore, assigneeIds: string[]) => {
+    if (!householdId) return;
+    const isAll = assigneeIds.length > 1;
+    const selectedMember = !isAll ? members.find((m) => m.id === assigneeIds[0]) : null;
+    const personLabel = isAll
+      ? language === 'th'
+        ? 'ทุกคน'
+        : 'Everyone'
+      : selectedMember?.nickname || selectedMember?.full_name || 'Homie';
 
     try {
-      const nextCompleted = !chore.is_completed;
-      const basePoints = chore.points || 10;
-      const hasMultiplier =
-        activeGachaSpin &&
-        activeGachaSpin.is_active &&
-        (activeGachaSpin.chore_id === chore.id ||
-          activeGachaSpin.chore_title.trim().toLowerCase() === chore.title.trim().toLowerCase());
-
-      const pointsDelta = hasMultiplier
-        ? basePoints * activeGachaSpin.multiplier
-        : basePoints;
+      setCompletingLoading(true);
+      setCompletingChore(null);
 
       // Optimistic update
       setChores((prev) =>
@@ -192,56 +363,57 @@ export default function ChoresPage() {
           c.id === chore.id
             ? {
                 ...c,
-                is_completed: nextCompleted,
-                completed_at: nextCompleted ? new Date().toISOString() : null,
+                is_completed: true,
+                completed_at: new Date().toISOString(),
+                assigned_to: isAll ? null : assigneeIds[0],
               }
             : c
         )
       );
 
-      const res = await toggleChoreWithPoints(chore.id, nextCompleted);
+      const res = await completeChoreWithAssignees(chore.id, true, assigneeIds);
 
       if (res.success) {
         setMyPoints(res.new_balance);
         showToast(
-          nextCompleted
+          isAll
             ? language === 'th'
-              ? `ทำงานบ้านเสร็จแล้ว (+${pointsDelta} pt)`
-              : `Chore completed (+${pointsDelta} pt)`
+              ? `🎉 ช่วยกันทำทุกคน! (+${chore.points || 10} pt ให้ทุกคน)`
+              : `🎉 Everyone helped! (+${chore.points || 10} pt to all)`
             : language === 'th'
-            ? 'ยกเลิกการทำงานบ้าน'
-            : 'Chore uncompleted'
+            ? `🎉 ${personLabel} ทำเสร็จแล้ว (+${res.points_delta} pt)`
+            : `🎉 ${personLabel} completed (+${res.points_delta} pt)`
         );
 
-        if (nextCompleted) {
-          const senderName =
-            currentMember?.nickname ||
-            currentMember?.full_name ||
-            (language === 'th' ? 'คนในบ้าน' : 'Homie');
-          fetch('/api/notifications/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              householdId,
-              excludeUserId: currentUserId,
-              title: '🧹 Bobbies Homie',
-              body:
-                language === 'th'
-                  ? `${senderName} ทำงานบ้าน '${chore.title}' เสร็จแล้ว!`
-                  : `${senderName} completed '${chore.title}'!`,
-              link: '/chores',
-            }),
-          }).catch(() => {});
-        }
+        // Broadcast push notification to partner
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId,
+            excludeUserId: currentUserId,
+            title: '🧹 Bobbies Homie',
+            body:
+              isAll
+                ? language === 'th'
+                  ? `ทุกคนช่วยกันทำงานบ้าน '${chore.title}' เสร็จแล้ว! ✨`
+                  : `Everyone helped complete '${chore.title}'! ✨`
+                : language === 'th'
+                ? `${personLabel} ทำงานบ้าน '${chore.title}' เสร็จแล้ว! ✨`
+                : `${personLabel} completed '${chore.title}'! ✨`,
+            link: '/chores',
+          }),
+        }).catch(() => {});
 
-        // Refresh point logs in background
-        if (householdId) {
-          fetchChorePointLogs(householdId).then(setPointLogs).catch(() => {});
-        }
+        // Refresh point logs and members in background
+        fetchChorePointLogs(householdId).then(setPointLogs).catch(() => {});
+        fetchHouseholdMembers(householdId).then(setMembers).catch(() => {});
       }
     } catch (err) {
-      console.error('Failed to toggle chore:', err);
+      console.error('Failed to complete chore:', err);
       loadData();
+    } finally {
+      setCompletingLoading(false);
     }
   };
 
@@ -249,8 +421,9 @@ export default function ChoresPage() {
   const openCreateChoreModal = () => {
     setEditingChore(null);
     setChoreTitle('');
-    setChoreFrequency('weekly');
-    setChoreAssignedTo('All');
+    setChoreIsDaily(true);
+    setChoreIntervalDays(3);
+    setChoreTime('');
     setChorePoints(10);
     setIsChoreModalOpen(true);
   };
@@ -259,36 +432,60 @@ export default function ChoresPage() {
   const openEditChoreModal = (c: DbChore) => {
     setEditingChore(c);
     setChoreTitle(c.title);
-    setChoreFrequency(c.frequency);
-    setChoreAssignedTo(c.assigned_to || 'All');
+    const sched = parseChoreSchedule(c);
+    setChoreIsDaily(sched.isDaily);
+    setChoreIntervalDays(sched.intervalDays);
+    setChoreTime(sched.time);
     setChorePoints(c.points || 10);
     setIsChoreModalOpen(true);
   };
 
-  // Handle Save Chore
+  // Handle Save Chore (No assignedTo lock, store schedule JSON in description)
   const handleSaveChore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!householdId || !currentUserId || !choreTitle.trim()) return;
 
     try {
       setSavingChore(true);
-      const sanitizedAssignedTo =
-        choreAssignedTo === 'All' || !choreAssignedTo ? null : choreAssignedTo;
+
+      const scheduleData: ChoreSchedule = {
+        isDaily: choreIsDaily,
+        intervalDays: choreIsDaily ? 1 : Math.max(1, Number(choreIntervalDays) || 3),
+        time: choreTime.trim(),
+      };
+      const descriptionJson = JSON.stringify(scheduleData);
+
+      const pgFrequency = choreIsDaily
+        ? 'daily'
+        : choreIntervalDays === 7
+        ? 'weekly'
+        : choreIntervalDays === 14
+        ? 'biweekly'
+        : choreIntervalDays === 30
+        ? 'monthly'
+        : 'once';
+
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      const dueDate = choreTime.trim() ? `${todayStr}T${choreTime.trim()}:00` : null;
 
       if (!editingChore) {
         await createChore(householdId, currentUserId, {
           title: choreTitle.trim(),
-          frequency: choreFrequency,
-          assigned_to: sanitizedAssignedTo,
+          description: descriptionJson,
+          assigned_to: null,
+          frequency: pgFrequency,
           points: chorePoints,
+          due_date: dueDate,
         });
         showToast(language === 'th' ? 'เพิ่มงานบ้านสำเร็จ' : 'Chore added');
       } else {
         await updateChore(editingChore.id, {
           title: choreTitle.trim(),
-          frequency: choreFrequency,
-          assigned_to: sanitizedAssignedTo,
+          description: descriptionJson,
+          assigned_to: editingChore.assigned_to,
+          frequency: pgFrequency,
           points: chorePoints,
+          due_date: dueDate,
         });
         showToast(language === 'th' ? 'แก้ไขงานบ้านสำเร็จ' : 'Chore updated');
       }
@@ -302,16 +499,25 @@ export default function ChoresPage() {
     }
   };
 
-  // Handle Delete Chore
-  const handleDeleteChore = async (choreId: string) => {
-    if (!confirm(language === 'th' ? 'ยืนยันที่จะลบงานบ้านนี้?' : 'Delete this chore?')) return;
-    try {
-      await deleteChore(choreId);
-      showToast(language === 'th' ? 'ลบงานบ้านเรียบร้อย' : 'Chore deleted');
-      await loadData();
-    } catch (err: any) {
-      alert(err?.message || 'Failed to delete chore');
-    }
+  // Handle Delete Chore with Confirmation
+  const handleDeleteChore = (chore: DbChore) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบงานบ้าน' : 'Delete Chore?',
+      description:
+        language === 'th'
+          ? `ต้องการลบงานบ้าน "${chore.title}" ใช่หรือไม่?`
+          : `Are you sure you want to delete "${chore.title}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteChore(chore.id);
+          showToast(language === 'th' ? 'ลบงานบ้านเรียบร้อย' : 'Chore deleted');
+          await loadData();
+        } catch (err: any) {
+          alert(err?.message || 'Failed to delete chore');
+        }
+      },
+    });
   };
 
   return (
@@ -363,7 +569,7 @@ export default function ChoresPage() {
         </div>
 
         {/* ======================================================== */}
-        {/* CHORES PROGRESS CARD (EMPHASIZES TASKS, NOT FLASHY POINTS) */}
+        {/* CHORES PROGRESS CARD                                     */}
         {/* ======================================================== */}
         <div className="px-6 mb-3">
           <div className="p-4 bg-gradient-to-br from-[#FFFDF9] to-[#F7F3ED] dark:from-[#23201D] dark:to-[#1B1917] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.05)]">
@@ -377,7 +583,7 @@ export default function ChoresPage() {
                 </div>
               </div>
 
-              {/* Minimal Progress Ring or Badge */}
+              {/* Progress Percentage Badge */}
               <div className="flex items-center gap-2">
                 <span className="font-outfit text-[14px] font-bold text-[#2E7D32] dark:text-[#81C784] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 px-2.5 py-1 rounded-[10px]">
                   {choreStats.percent}%
@@ -393,7 +599,7 @@ export default function ChoresPage() {
               />
             </div>
 
-            {/* Subtle Footnote: Unobtrusive Points Mention & Link */}
+            {/* Points Footnote */}
             <div className="mt-3 pt-2.5 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center justify-between text-[11px] text-[#8D6E63] dark:text-[#948D87] font-dm-sans">
               <span>
                 {language === 'th' ? 'คะแนนสะสมของคุณ:' : 'Your Points:'}{' '}
@@ -505,72 +711,128 @@ export default function ChoresPage() {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {filteredChores.map((chore) => (
-                  <SwipeableRow
-                    key={chore.id}
-                    onEdit={() => openEditChoreModal(chore)}
-                    onDelete={() => handleDeleteChore(chore.id)}
-                    className="rounded-[18px]"
-                  >
-                    <div className="w-full p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3 transition-colors">
-                      {/* Left: Checkbox & Chore Details */}
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <button
-                          onClick={() => handleToggleChore(chore)}
-                          aria-label={chore.is_completed ? 'Mark undone' : 'Mark done'}
-                          className={`w-7 h-7 rounded-[10px] flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
-                            chore.is_completed
-                              ? 'bg-[#2E7D32] border-[#2E7D32] text-white shadow-xs'
-                              : 'border-[#8D6E63]/40 hover:border-[#5D4037] dark:hover:border-[#DDD7D2]'
-                          }`}
-                        >
-                          {chore.is_completed && <Check className="w-4 h-4 stroke-[3]" />}
-                        </button>
+                {filteredChores.map((chore) => {
+                  const schedule = parseChoreSchedule(chore);
 
-                        <div className="min-w-0 flex-1">
-                          <span
-                            className={`font-dm-sans text-[14px] font-bold block truncate transition-all ${
+                  // Calculate days left for N-day chores
+                  let daysLeft = 0;
+                  if (chore.is_completed && !schedule.isDaily && chore.completed_at) {
+                    const compDate = new Date(chore.completed_at);
+                    const now = new Date();
+                    const compMid = new Date(compDate.getFullYear(), compDate.getMonth(), compDate.getDate()).getTime();
+                    const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    const elapsed = Math.floor((todayMid - compMid) / (1000 * 60 * 60 * 24));
+                    daysLeft = Math.max(0, schedule.intervalDays - elapsed);
+                  }
+
+                  const assignedMember = chore.assigned_to
+                    ? members.find((m) => m.id === chore.assigned_to)
+                    : null;
+
+                  return (
+                    <SwipeableRow
+                      key={chore.id}
+                      onEdit={() => openEditChoreModal(chore)}
+                      onDelete={() => handleDeleteChore(chore)}
+                      className="rounded-[18px]"
+                    >
+                      <div className="w-full p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3 transition-colors">
+                        {/* Left: Checkbox & Chore Details */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button
+                            onClick={() => handleChoreCheckboxClick(chore)}
+                            aria-label={chore.is_completed ? 'Mark undone' : 'Mark done'}
+                            className={`w-7 h-7 rounded-[10px] flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
                               chore.is_completed
-                                ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
-                                : 'text-[#5D4037] dark:text-[#DDD7D2]'
+                                ? 'bg-[#2E7D32] border-[#2E7D32] text-white shadow-xs'
+                                : 'border-[#8D6E63]/40 hover:border-[#5D4037] dark:hover:border-[#DDD7D2]'
                             }`}
                           >
-                            {chore.title}
-                          </span>
+                            {chore.is_completed && <Check className="w-4 h-4 stroke-[3]" />}
+                          </button>
 
-                          <div className="font-dm-sans flex items-center gap-2 mt-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                            <span className="capitalize">
-                              {chore.frequency === 'daily' && t.create.daily}
-                              {chore.frequency === 'weekly' && t.create.weekly}
-                              {chore.frequency === 'monthly' && t.create.monthly}
-                              {chore.frequency === 'once' && 'ครั้งเดียว'}
-                            </span>
-                            {chore.assigned_to && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-0.5">
-                                  <User className="w-3 h-3" />
-                                  <span>
-                                    {members.find((m) => m.id === chore.assigned_to)?.nickname ||
-                                      members.find((m) => m.id === chore.assigned_to)?.full_name ||
-                                      'ทุกคน'}
-                                  </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`font-dm-sans text-[14px] font-bold block truncate transition-all ${
+                                  chore.is_completed
+                                    ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
+                                    : 'text-[#5D4037] dark:text-[#DDD7D2]'
+                                }`}
+                              >
+                                {chore.title}
+                              </span>
+
+                              {/* Time badge if specified */}
+                              {schedule.time && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[6px] text-[10px] font-bold bg-[#8D6E63]/10 text-[#8D6E63] dark:text-[#948D87] shrink-0">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{schedule.time} น.</span>
                                 </span>
-                              </>
-                            )}
+                              )}
+                            </div>
+
+                            {/* Frequency and status info */}
+                            <div className="font-dm-sans flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              {/* Frequency badge */}
+                              <span className="font-semibold text-[#2E7D32] dark:text-[#81C784]">
+                                {schedule.isDaily
+                                  ? language === 'th'
+                                    ? 'ทำทุกวัน'
+                                    : 'Daily'
+                                  : language === 'th'
+                                  ? `ทุกๆ ${schedule.intervalDays} วัน`
+                                  : `Every ${schedule.intervalDays} days`}
+                              </span>
+
+                              {/* Completion info */}
+                              {chore.is_completed ? (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1 font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
+                                    <CheckCircle2 className="w-3 h-3 text-[#2E7D32]" />
+                                    <span>
+                                      {assignedMember
+                                        ? `${language === 'th' ? 'ทำโดย' : 'By'}: ${
+                                            assignedMember.nickname || assignedMember.full_name
+                                          }`
+                                        : language === 'th'
+                                        ? 'ช่วยกันทำทุกคน'
+                                        : 'All members'}
+                                    </span>
+                                  </span>
+
+                                  {/* Recurrence Countdown for N-day chores */}
+                                  {!schedule.isDaily && daysLeft > 0 && (
+                                    <span className="text-[10px] text-[#8D6E63]/80 dark:text-[#948D87]/80">
+                                      {language === 'th'
+                                        ? `(มาใหม่อีกใน ${daysLeft} วัน)`
+                                        : `(repeats in ${daysLeft}d)`}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-[#8D6E63]/70 dark:text-[#948D87]/70">
+                                    {language === 'th' ? 'พร้อมทำ' : 'Ready'}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right: SUBTLE / MUTED POINTS (NOT FLASHY) */}
-                      <div className="shrink-0 text-right">
-                        <span className="font-outfit text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] bg-[#F4EFEA] dark:bg-[#282421] px-2.5 py-1 rounded-[8px]">
-                          {chore.points || 10} pt
-                        </span>
+                        {/* Right: Points Badge */}
+                        <div className="shrink-0 text-right">
+                          <span className="font-outfit text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] bg-[#F4EFEA] dark:bg-[#282421] px-2.5 py-1 rounded-[8px]">
+                            {chore.points || 10} pt
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </SwipeableRow>
-                ))}
+                    </SwipeableRow>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -586,7 +848,9 @@ export default function ChoresPage() {
                 {language === 'th' ? 'ประวัติการทำงานบ้าน' : 'Chore Completion Log'}
               </h2>
               <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
-                {language === 'th' ? 'รายการงานบ้านที่ทำเสร็จแล้ว วันที่ และคะแนนที่ได้รับ' : 'Completed chores, date completed, and points earned'}
+                {language === 'th'
+                  ? 'รายการงานบ้านที่ทำเสร็จแล้ว วันที่ และคะแนนที่ได้รับ'
+                  : 'Completed chores, date completed, and points earned'}
               </p>
             </div>
 
@@ -594,7 +858,9 @@ export default function ChoresPage() {
               <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
                 <History className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
                 <p className="font-dm-sans text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
-                  {language === 'th' ? 'ยังไม่มีประวัติการทำงานบ้าน' : 'No chore completion history yet'}
+                  {language === 'th'
+                    ? 'ยังไม่มีประวัติการทำงานบ้าน'
+                    : 'No chore completion history yet'}
                 </p>
               </div>
             ) : (
@@ -642,7 +908,7 @@ export default function ChoresPage() {
                         </h4>
                       </div>
 
-                      {/* Right: Subtle points earned */}
+                      {/* Right: Points earned */}
                       <div className="text-right shrink-0">
                         <span className="font-outfit font-bold text-[15px] text-[#2E7D32] dark:text-[#81C784]">
                           +{log.points_delta} pt
@@ -660,22 +926,30 @@ export default function ChoresPage() {
         {/* MODAL: CREATE / EDIT CHORE                               */}
         {/* ======================================================== */}
         {isChoreModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
-            <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl overflow-hidden animate-scale-up">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans animate-fade-in"
+            onClick={() => setIsChoreModalOpen(false)}
+          >
+            <div 
+              className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl overflow-hidden animate-scale-up"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="px-6 py-4 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between">
                 <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {editingChore ? t.chores.editChore : t.chores.addChore}
                 </h3>
                 <button
+                  type="button"
                   onClick={() => setIsChoreModalOpen(false)}
-                  className="p-1 rounded-full text-[#8D6E63] hover:bg-[#D7CCC8]/30 cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                  aria-label="Close"
                 >
-                  <Check className="w-5 h-5 hidden" />
-                  <span className="text-[18px] text-[#8D6E63]">&times;</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               <form onSubmit={handleSaveChore} className="p-6 space-y-4">
+                {/* Chore Title */}
                 <div>
                   <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
                     {language === 'th' ? 'ชื่องานบ้าน' : 'Chore Title'}
@@ -685,61 +959,112 @@ export default function ChoresPage() {
                     required
                     value={choreTitle}
                     onChange={(e) => setChoreTitle(e.target.value)}
-                    placeholder={language === 'th' ? 'ชื่องานบ้าน' : 'Chore Title'}
+                    placeholder={
+                      language === 'th' ? 'เช่น ล้างจาน, ถูห้องนอน, ทิ้งขยะ' : 'e.g. Wash dishes, Mop floor'
+                    }
                     className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
-                      {t.chores.frequency}
-                    </label>
-                    <select
-                      value={choreFrequency}
-                      onChange={(e) => setChoreFrequency(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
-                    >
-                      <option value="daily">{t.create.daily}</option>
-                      <option value="weekly">{t.create.weekly}</option>
-                      <option value="monthly">{t.create.monthly}</option>
-                      <option value="once">ครั้งเดียว</option>
-                    </select>
-                  </div>
+                {/* Frequency: Daily Checkbox vs Interval Days */}
+                <div className="space-y-2">
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] font-dm-sans">
+                    {language === 'th' ? 'ความถี่ของงานบ้าน' : 'Frequency'}
+                  </label>
 
-                  <div>
-                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
-                      {language === 'th' ? 'คะแนนที่ได้รับ' : 'Points'}
-                    </label>
+                  {/* Daily Checkbox Card */}
+                  <label className="flex items-center gap-2.5 p-3 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] cursor-pointer hover:border-[#5D4037] transition-all">
                     <input
-                      type="number"
-                      min="1"
-                      value={chorePoints}
-                      onChange={(e) => setChorePoints(Number(e.target.value))}
-                      placeholder={language === 'th' ? 'คะแนนที่ได้รับ' : 'Points'}
-                      className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] font-outfit font-bold focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                      type="checkbox"
+                      checked={choreIsDaily}
+                      onChange={(e) => setChoreIsDaily(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#2E7D32] accent-[#2E7D32] focus:ring-0 cursor-pointer"
                     />
-                  </div>
+                    <div className="flex-1">
+                      <span className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] block">
+                        {language === 'th' ? 'ทำทุกวัน' : 'Every Day (Daily)'}
+                      </span>
+                      <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                        {language === 'th'
+                          ? 'เมื่อขึ้นวันใหม่ระบบจะรีเซ็ตให้อัตโนมัติ'
+                          : 'Resets automatically every new day'}
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* If NOT daily: Show Interval Days Number Input */}
+                  {!choreIsDaily && (
+                    <div className="p-3 rounded-[14px] bg-[#FAF6F0] dark:bg-[#25221F] border border-[#D7CCC8]/80 dark:border-[#38332E] animate-fade-in space-y-1">
+                      <label className="block text-[11.5px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                        {language === 'th' ? 'ทำซ้ำทุกๆ (วัน)' : 'Repeat every (days)'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87]">
+                          {language === 'th' ? 'ทุกๆ' : 'Every'}
+                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={choreIntervalDays}
+                          onChange={(e) =>
+                            setChoreIntervalDays(Math.max(1, Number(e.target.value)))
+                          }
+                          className="w-20 px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[14px] text-center font-outfit font-bold text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                        />
+                        <span className="text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87]">
+                          {language === 'th'
+                            ? 'วัน (เช่น 3 วัน คืองานจะมาทุก 3 วัน)'
+                            : 'days (repeats every N days)'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+                {/* Optional Time Input */}
                 <div>
                   <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
-                    {t.chores.assignedTo}
+                    {language === 'th' ? 'เวลาที่ต้องทำ (ไม่ระบุก็ได้)' : 'Time (Optional)'}
                   </label>
-                  <select
-                    value={choreAssignedTo}
-                    onChange={(e) => setChoreAssignedTo(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
-                  >
-                    <option value="All">{t.chores.allMembers}</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.nickname || m.full_name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Clock className="w-4 h-4 text-[#8D6E63] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="time"
+                        value={choreTime}
+                        onChange={(e) => setChoreTime(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                      />
+                    </div>
+                    {choreTime && (
+                      <button
+                        type="button"
+                        onClick={() => setChoreTime('')}
+                        className="px-3 py-2.5 rounded-[12px] text-[11px] font-bold text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#3D3835] cursor-pointer"
+                      >
+                        {language === 'th' ? 'ล้าง' : 'Clear'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Points */}
+                <div>
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
+                    {language === 'th' ? 'คะแนนที่ได้รับเมื่อทำเสร็จ (pt)' : 'Points on completion (pt)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={chorePoints}
+                    onChange={(e) => setChorePoints(Number(e.target.value))}
+                    placeholder="10"
+                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-outfit font-bold text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                  />
+                </div>
+
+                {/* Buttons */}
                 <div className="pt-2 flex items-center gap-2">
                   <button
                     type="button"
@@ -764,6 +1089,153 @@ export default function ChoresPage() {
             </div>
           </div>
         )}
+
+        {/* ======================================================== */}
+        {/* MODAL: CHOOSE WHO COMPLETED THE CHORE (เวลากดว่าทำแล้ว)     */}
+        {/* ======================================================== */}
+        {completingChore && (
+          <div 
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-3 sm:p-4 font-dm-sans animate-fade-in"
+            onClick={() => setCompletingChore(null)}
+          >
+            <div 
+              className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-t-[28px] sm:rounded-[28px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-2xl overflow-hidden animate-scale-up"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-5 text-center border-b border-[#D7CCC8]/50 dark:border-[#2E2A27] relative bg-gradient-to-b from-[#FAF4EC] to-[#FDFBF7] dark:from-[#26221E] dark:to-[#201D1A]">
+                <button
+                  type="button"
+                  onClick={() => setCompletingChore(null)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="w-12 h-12 rounded-full bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center mx-auto mb-2.5 shadow-xs">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                  {language === 'th' ? 'ใครเป็นคนทำงานนี้?' : 'Who completed this chore?'}
+                </h3>
+                <p className="font-dm-sans text-[12.5px] text-[#8D6E63] dark:text-[#948D87] mt-1 font-medium flex items-center justify-center gap-1.5">
+                  <span className="truncate max-w-[200px] text-[#5D4037] dark:text-[#DDD7D2] font-semibold">
+                    {completingChore.title}
+                  </span>
+                  <span className="bg-[#2E7D32]/10 text-[#2E7D32] dark:text-[#81C784] px-2 py-0.5 rounded-full text-[11px] font-bold">
+                    +{completingChore.points || 10} pt
+                  </span>
+                </p>
+              </div>
+
+              {/* Member Selection List */}
+              <div className="p-5 space-y-2.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#8D6E63] dark:text-[#948D87] px-1">
+                  {language === 'th' ? 'เลือกผู้รับคะแนน' : 'Select who receives points'}
+                </p>
+
+                {/* Individual Members */}
+                <div className="space-y-2">
+                  {members.map((m) => {
+                    const isMe = m.id === currentUserId;
+                    return (
+                      <button
+                        key={m.id}
+                        disabled={completingLoading}
+                        onClick={() => handleConfirmComplete(completingChore, [m.id])}
+                        className="w-full p-3 rounded-[16px] bg-white dark:bg-[#282421] border border-[#D7CCC8]/80 dark:border-[#38332E] hover:border-[#2E7D32] dark:hover:border-[#81C784] hover:shadow-xs transition-all flex items-center justify-between gap-3 cursor-pointer group text-left disabled:opacity-50"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-[#EADFD5] dark:bg-[#38332E] overflow-hidden flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2] font-bold text-[14px] shrink-0 border border-[#D7CCC8]/60">
+                            {m.avatar_url ? (
+                              <img
+                                src={m.avatar_url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              (m.nickname || m.full_name || 'U').charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-dm-sans text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                                {m.nickname || m.full_name}
+                              </span>
+                              {isMe && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-[#8D6E63]/15 text-[#8D6E63] dark:text-[#948D87]">
+                                  {language === 'th' ? 'ฉัน' : 'Me'}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              {m.chore_points || 0} pt
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 px-2.5 py-1 rounded-[10px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[12px] font-bold group-hover:scale-105 transition-transform">
+                          +{completingChore.points || 10} pt
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Option: Everyone / ช่วยกันทำทุกคน */}
+                <div className="pt-1">
+                  <button
+                    disabled={completingLoading}
+                    onClick={() =>
+                      handleConfirmComplete(
+                        completingChore,
+                        members.map((m) => m.id)
+                      )
+                    }
+                    className="w-full p-3.5 rounded-[18px] bg-gradient-to-r from-[#5D4037] to-[#795548] dark:from-[#3E2820] dark:to-[#4E342A] text-white hover:opacity-95 shadow-md transition-all flex items-center justify-between gap-3 cursor-pointer group disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-[14px] bg-white/20 flex items-center justify-center text-white shrink-0">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <span className="font-dm-sans text-[14px] font-bold block leading-snug">
+                          {language === 'th' ? 'ช่วยกันทำทุกคน' : 'Done by Everyone'}
+                        </span>
+                        <span className="text-[11px] text-white/80 block">
+                          {language === 'th'
+                            ? `แบ่งคะแนนคนละ +${completingChore.points || 10} pt ให้ทุกคนในบ้าน`
+                            : `+${completingChore.points || 10} pt for all members`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="px-2.5 py-1 rounded-[10px] bg-white/25 text-white text-[12px] font-bold shrink-0">
+                      {language === 'th' ? 'ทุกคน' : 'All'}
+                    </div>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCompletingChore(null)}
+                  className="w-full py-2.5 rounded-[14px] text-[#8D6E63] dark:text-[#948D87] text-[12.5px] font-semibold hover:bg-[#D7CCC8]/20 transition-colors mt-2 cursor-pointer"
+                >
+                  {language === 'th' ? 'ยกเลิก' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Dialog for Deletions & Uncompletes */}
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+        />
       </div>
     </PullToRefresh>
   );

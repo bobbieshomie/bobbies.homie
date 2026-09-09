@@ -32,12 +32,24 @@ import {
 import { uploadPetPhoto } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { SwipeableRow } from '@/components/ui/swipeable-row';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function PetsPage() {
   const { t, language } = useLanguage();
   const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
+
+  // Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
   const [currentUser, setCurrentUser] = useState<DbProfile | null>(null);
   const [pets, setPets] = useState<DbPet[]>([]);
   const [petLogs, setPetLogs] = useState<DbPetLog[]>([]);
@@ -176,19 +188,27 @@ export default function PetsPage() {
     }
   };
 
-  const handleDeletePet = async (petId: string) => {
-    if (!confirm(language === 'th' ? 'ต้องการลบสัตว์เลี้ยงนี้หรือไม่?' : 'Delete this pet?')) return;
-    try {
-      await deletePet(petId);
-      const updated = pets.filter((p) => p.id !== petId);
-      setPets(updated);
-      if (selectedPetId === petId) {
-        setSelectedPetId(updated.length > 0 ? updated[0].id : null);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'ลบสัตว์เลี้ยงไม่สำเร็จ';
-      alert(msg);
-    }
+  const handleRequestDeletePet = (pet: DbPet) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบสัตว์เลี้ยง' : 'Delete Pet?',
+      description: language === 'th'
+        ? `ต้องการลบข้อมูลสัตว์เลี้ยง "${pet.name}" ใช่หรือไม่?`
+        : `Are you sure you want to delete "${pet.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deletePet(pet.id);
+          const updated = pets.filter((p) => p.id !== pet.id);
+          setPets(updated);
+          if (selectedPetId === pet.id) {
+            setSelectedPetId(updated.length > 0 ? updated[0].id : null);
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'ลบสัตว์เลี้ยงไม่สำเร็จ';
+          alert(msg);
+        }
+      },
+    });
   };
 
   const handleCreateLog = async (e: React.FormEvent) => {
@@ -248,13 +268,22 @@ export default function PetsPage() {
     }
   };
 
-  const handleDeleteLog = async (logId: string) => {
-    setPetLogs((prev) => prev.filter((l) => l.id !== logId));
-    try {
-      await deletePetLog(logId);
-    } catch (err: unknown) {
-      console.error(err);
-    }
+  const handleRequestDeleteLog = (log: DbPetLog) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: language === 'th' ? 'ยืนยันการลบบันทึก' : 'Delete Log?',
+      description: language === 'th'
+        ? `ต้องการลบบันทึก "${log.title}" ใช่หรือไม่?`
+        : `Are you sure you want to delete "${log.title}"?`,
+      onConfirm: async () => {
+        setPetLogs((prev) => prev.filter((l) => l.id !== log.id));
+        try {
+          await deletePetLog(log.id);
+        } catch (err: unknown) {
+          console.error(err);
+        }
+      },
+    });
   };
 
   return (
@@ -370,7 +399,7 @@ export default function PetsPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleDeletePet(currentPet.id)}
+                  onClick={() => handleRequestDeletePet(currentPet)}
                   title={t.common.delete}
                   className="p-2 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0"
                 >
@@ -438,7 +467,7 @@ export default function PetsPage() {
                   currentPetLogs.map((log) => (
                     <SwipeableRow
                       key={log.id}
-                      onDelete={() => handleDeleteLog(log.id)}
+                      onDelete={() => handleRequestDeleteLog(log)}
                       deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
                       className="rounded-[18px]"
                     >
@@ -484,8 +513,14 @@ export default function PetsPage() {
 
       {/* Add Pet Modal with Photo Upload */}
       {isAddPetModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsAddPetModalOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addPet}
@@ -493,9 +528,10 @@ export default function PetsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddPetModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -607,8 +643,14 @@ export default function PetsPage() {
 
       {/* Add Log Modal */}
       {isAddLogModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsAddLogModalOpen(false)}
+        >
+          <div 
+            className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addLog}
@@ -616,9 +658,10 @@ export default function PetsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddLogModalOpen(false)}
-                className="p-1 text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#EFE9E2] dark:bg-[#2E2A27] flex items-center justify-center text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -672,6 +715,15 @@ export default function PetsPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Deletions */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+      />
     </div>
   );
 }
