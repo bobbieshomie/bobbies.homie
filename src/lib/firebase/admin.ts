@@ -3,12 +3,14 @@ import { getMessaging } from 'firebase-admin/messaging';
 import path from 'path';
 import fs from 'fs';
 
+let initErrorReason: string = '';
+
 // Parse private key ensuring correct newline formatting and strip extra quotes
 const getFormattedPrivateKey = () => {
   let key = process.env.FIREBASE_PRIVATE_KEY;
   if (!key) return undefined;
   key = key.trim();
-  if (key.startsWith('"') && key.endsWith('"')) {
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
     key = key.slice(1, -1);
   }
   return key.replace(/\\n/g, '\n');
@@ -42,22 +44,31 @@ function getServiceAccountCredential() {
       if (json.project_id && json.private_key) {
         return cert(json);
       }
-    } catch (e) {
-      console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      initErrorReason = `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY: ${msg}`;
+      console.warn(initErrorReason);
     }
   }
 
-  // 3. Try individual environment variables
-  if (
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY
-  ) {
-    return cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: getFormattedPrivateKey(),
-    });
+  // 3. Try private key with automatic fallbacks for project_id and client_email
+  const privateKey = getFormattedPrivateKey();
+  if (privateKey) {
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'bobbies-homie';
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || 'firebase-adminsdk-fbsvc@bobbies-homie.iam.gserviceaccount.com';
+    try {
+      return cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      initErrorReason = `Invalid FIREBASE_PRIVATE_KEY: ${msg}`;
+      console.error(initErrorReason);
+    }
+  } else {
+    initErrorReason = `FIREBASE_PRIVATE_KEY is empty or missing in environment variables.`;
   }
 
   return null;
@@ -81,8 +92,10 @@ export function getFirebaseAdminApp(): App | null {
       credential,
     });
     return adminApp;
-  } catch (err) {
-    console.error('Error initializing Firebase Admin:', err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    initErrorReason = `Failed to initialize Firebase Admin app: ${msg}`;
+    console.error(initErrorReason);
     return null;
   }
 }
@@ -123,7 +136,7 @@ export async function sendPushNotification({
       success: false,
       successCount: 0,
       failureCount: validTokens.length,
-      error: 'Firebase Admin is not configured. Add service account JSON or environment variables.',
+      error: initErrorReason || 'Firebase Admin is not configured. Add FIREBASE_PRIVATE_KEY or FIREBASE_SERVICE_ACCOUNT_KEY on Vercel.',
     };
   }
 
