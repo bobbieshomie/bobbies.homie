@@ -529,7 +529,7 @@ export default function FinancesPage() {
                 <span className="font-outfit font-semibold text-[13px] text-[#8D6E63] dark:text-[#948D87] tracking-wide">
                   {t.finances.currentBalance}
                 </span>
-                <div className="w-9 h-9 rounded-full bg-[#BBDEFB] dark:bg-[#1565C0]/30 flex items-center justify-center text-[#1565C0] dark:text-[#90CAF9]">
+                <div className="w-9 h-9 rounded-full bg-[#E3F2FD] dark:bg-[#102A45]/60 border border-[#BBDEFB] dark:border-[#1565C0]/40 flex items-center justify-center text-[#1565C0] dark:text-[#90CAF9] shadow-2xs">
                   <Wallet className="w-4 h-4 stroke-current" />
                 </div>
               </div>

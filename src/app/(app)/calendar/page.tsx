@@ -635,7 +635,7 @@ export default function CalendarPage() {
       <div className="px-6 py-2.5">
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px] gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-7 h-7 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#5D4037] dark:bg-[#3D2C22] border border-[#5D4037]/20 dark:border-[#FFD54F]/30 text-[#FFD54F] flex items-center justify-center shrink-0 shadow-2xs">
               <Users className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0 flex-1">

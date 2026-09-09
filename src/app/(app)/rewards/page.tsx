@@ -918,7 +918,7 @@ function RewardsPageContent() {
             <div className="flex items-center justify-between gap-2">
               {/* My Points - Clean Single line layout */}
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-[#FFD54F] dark:text-[#5D4037] flex items-center justify-center shrink-0 shadow-2xs">
+                <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] dark:bg-[#3D2C22] border border-[#5D4037]/20 dark:border-[#FFD54F]/30 text-[#FFD54F] flex items-center justify-center shrink-0 shadow-xs">
                   <Coins className="w-5 h-5" />
                 </div>
                 <div className="flex items-baseline gap-1.5 flex-wrap min-w-0">
@@ -1822,7 +1822,7 @@ function RewardsPageContent() {
               {/* Top Header */}
               <div className="px-5 py-3.5 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between bg-[#F4EFEA]/80 dark:bg-[#25221F]">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-[10px] bg-[#5D4037] text-[#FFD54F] flex items-center justify-center shadow-xs">
+                  <div className="w-7 h-7 rounded-[10px] bg-[#5D4037] dark:bg-[#3D2C22] border border-[#5D4037]/20 dark:border-[#FFD54F]/30 text-[#FFD54F] flex items-center justify-center shadow-xs">
                     <Dice5 className="w-4 h-4 animate-pulse" />
                   </div>
                   <div>

@@ -213,7 +213,7 @@ export default function HouseholdSettingsPage() {
         <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-[10px] bg-[#5D4037] text-[#FFD54F] flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-[10px] bg-[#5D4037] dark:bg-[#3D2C22] border border-[#5D4037]/20 dark:border-[#FFD54F]/30 text-[#FFD54F] flex items-center justify-center shadow-xs">
                 <Home className="w-4 h-4" />
               </div>
               <div>
@@ -357,7 +357,7 @@ export default function HouseholdSettingsPage() {
         {/* ======================================================== */}
         <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors space-y-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[10px] bg-[#E0533C] text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-[10px] bg-[#E0533C] dark:bg-[#4A2018] border border-[#E0533C]/30 dark:border-[#E0533C]/40 text-white dark:text-[#FF8A65] flex items-center justify-center shadow-xs">
               <Users className="w-4 h-4" />
             </div>
             <div>
@@ -476,7 +476,7 @@ export default function HouseholdSettingsPage() {
             className="w-full p-4 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] hover:border-[#5D4037] rounded-[20px] flex items-center justify-between transition-all group shadow-xs cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] text-white flex items-center justify-center shadow-xs">
+              <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] dark:bg-[#2E2824] border border-[#5D4037]/20 dark:border-[#423730] text-white dark:text-[#DDD7D2] flex items-center justify-center shadow-xs">
                 <User className="w-5 h-5" />
               </div>
               <div>

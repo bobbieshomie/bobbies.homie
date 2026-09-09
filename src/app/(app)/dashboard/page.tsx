@@ -539,8 +539,8 @@ export default function DashboardPage() {
           {/* ======================================================== */}
           <section className="w-full p-3.5 rounded-[22px] bg-gradient-to-r from-[#F4EFEA] to-[#ECE5DC] dark:from-[#24211E] dark:to-[#1C1A18] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xs flex items-center justify-between gap-3 font-dm-sans">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Gift className="w-5 h-5 text-[#F2C94C]" />
+              <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] dark:bg-[#3D2C22] border border-[#5D4037]/20 dark:border-[#FFD54F]/30 text-[#FFD54F] flex items-center justify-center shrink-0 shadow-xs">
+                <Gift className="w-5 h-5 text-[#FFD54F]" />
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2] leading-snug">
@@ -577,7 +577,7 @@ export default function DashboardPage() {
               className="shopping-summary box-border flex flex-col items-start p-4 gap-3 flex-1 h-[123px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-0 self-stretch flex-grow-1 transition-transform active:scale-[0.98]"
             >
               <div className="card-header flex flex-row justify-between items-center p-0 w-full h-[32px]">
-                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#C8E6C9] dark:bg-[#1B5E20]/40 rounded-[16px]">
+                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#E8F5E9] dark:bg-[#1B3E22]/60 border border-[#C8E6C9] dark:border-[#2E7D32]/40 rounded-[16px]">
                   <ShoppingCart className="w-4 h-4 stroke-[#2E7D32] dark:stroke-[#81C784]" strokeWidth={2.2} />
                 </div>
               </div>
@@ -598,7 +598,7 @@ export default function DashboardPage() {
               className="pet-summary box-border flex flex-col items-start p-4 gap-3 flex-1 h-[123px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-1 self-stretch flex-grow-1 transition-transform active:scale-[0.98]"
             >
               <div className="card-header flex flex-row justify-between items-center p-0 w-full h-[32px]">
-                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#FFE0B2] dark:bg-[#E65100]/30 rounded-[16px]">
+                <div className="icon-wrap flex flex-row justify-center items-center w-[32px] h-[32px] bg-[#FFF3E0] dark:bg-[#3E2512]/60 border border-[#FFE0B2] dark:border-[#E65100]/40 rounded-[16px]">
                   <PawPrint className="w-4 h-4 stroke-[#E65100] dark:stroke-[#FFB74D]" strokeWidth={2.2} />
                 </div>
               </div>
@@ -629,7 +629,7 @@ export default function DashboardPage() {
                 </h3>
               </div>
 
-              <div className="icon-circle flex flex-row justify-center items-center w-[40px] h-[40px] bg-[#BBDEFB] dark:bg-[#1565C0]/30 rounded-[20px]">
+              <div className="icon-circle flex flex-row justify-center items-center w-[40px] h-[40px] bg-[#E3F2FD] dark:bg-[#102A45]/60 border border-[#BBDEFB] dark:border-[#1565C0]/40 rounded-[20px]">
                 <Wallet className="w-5 h-5 stroke-[#1565C0] dark:stroke-[#90CAF9]" strokeWidth={2.2} />
               </div>
             </div>
