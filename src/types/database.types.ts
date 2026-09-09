@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -410,6 +408,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           email: string | null
+          fcm_token?: string | null
           full_name: string
           household_id: string | null
           id: string
@@ -426,6 +425,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email?: string | null
+          fcm_token?: string | null
           full_name: string
           household_id?: string | null
           id: string
@@ -442,6 +442,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email?: string | null
+          fcm_token?: string | null
           full_name?: string
           household_id?: string | null
           id?: string
@@ -473,6 +474,8 @@ export type Database = {
           paid_by: string
           receipt_url: string | null
           reimbursed_at: string | null
+          slip_uploaded_at: string | null
+          slip_url: string | null
           split_ratio: number | null
           title: string
           updated_at: string
@@ -488,6 +491,8 @@ export type Database = {
           paid_by: string
           receipt_url?: string | null
           reimbursed_at?: string | null
+          slip_uploaded_at?: string | null
+          slip_url?: string | null
           split_ratio?: number | null
           title: string
           updated_at?: string
@@ -503,6 +508,8 @@ export type Database = {
           paid_by?: string
           receipt_url?: string | null
           reimbursed_at?: string | null
+          slip_uploaded_at?: string | null
+          slip_url?: string | null
           split_ratio?: number | null
           title?: string
           updated_at?: string
@@ -642,7 +649,7 @@ export type Database = {
     }
     Functions: {
       create_household_and_join: {
-        Args: { household_name: string }
+        Args: { household_name?: string }
         Returns: Json
       }
       get_auth_household_id: { Args: never; Returns: string }

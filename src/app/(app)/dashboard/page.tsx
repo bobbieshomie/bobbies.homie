@@ -16,6 +16,7 @@ import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { RiBearSmileFill } from '@remixicon/react';
 import { createClient } from '@/lib/supabase/client';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { 
   fetchProfile, 
   fetchHousehold, 
@@ -128,7 +129,7 @@ export default function DashboardPage() {
       {/* scrollable-content */}
       <div className="scrollable-content flex flex-col items-start p-0 w-full flex-none order-0 self-stretch flex-grow-0">
         
-        {/* Top utility row with household name */}
+        {/* Top utility row with household name and notification bell */}
         <div className="flex flex-row justify-between items-center px-6 pt-4 pb-1 w-full flex-none order-0 self-stretch flex-grow-0">
           <div className="flex items-center gap-1.5">
             <RiBearSmileFill className="w-4 h-4 fill-[#5D4037] dark:fill-[#DDD7D2]" />
@@ -136,6 +137,8 @@ export default function DashboardPage() {
               {profile.name || 'Bobbies Homie'}
             </span>
           </div>
+
+          <NotificationBell />
         </div>
 
         {/* dashboard-header */}
@@ -351,44 +354,6 @@ export default function DashboardPage() {
             </div>
           </Link>
 
-          {/* quick-actions-section */}
-          <section className="quick-actions-section flex flex-col items-start p-0 gap-3 w-full flex-none order-3 self-stretch flex-grow-0 pb-6">
-            <h4 className="font-outfit font-bold text-[16px] leading-[20px] text-[#5D4037] dark:text-[#DDD7D2]">
-              {t.dashboard.quickActions}
-            </h4>
-
-            <div className="action-buttons flex flex-row items-start p-0 gap-2 w-full h-[42px]">
-              <Link
-                href="/create?tab=chores"
-                className="box-border flex flex-row justify-center items-center py-2 px-2.5 gap-1.5 flex-1 h-[42px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px] cursor-pointer transition-transform active:scale-95 text-[#5D4037] dark:text-[#DDD7D2]"
-              >
-                <Sparkles className="w-3.5 h-3.5 stroke-current" strokeWidth={2.2} />
-                <span className="font-dm-sans font-semibold text-[12px]">
-                  {t.dashboard.addChore}
-                </span>
-              </Link>
-
-              <Link
-                href="/create?tab=finance"
-                className="box-border flex flex-row justify-center items-center py-2 px-2.5 gap-1.5 flex-1 h-[42px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px] cursor-pointer transition-transform active:scale-95 text-[#5D4037] dark:text-[#DDD7D2]"
-              >
-                <Wallet className="w-3.5 h-3.5 stroke-current" strokeWidth={2.2} />
-                <span className="font-dm-sans font-semibold text-[12px]">
-                  {t.dashboard.splitBill}
-                </span>
-              </Link>
-
-              <Link
-                href="/create"
-                className="box-border flex flex-row justify-center items-center py-2 px-2.5 gap-1.5 flex-1 h-[42px] bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] cursor-pointer transition-transform active:scale-95 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-white" strokeWidth={2.5} />
-                <span className="font-dm-sans font-bold text-[12px] text-white">
-                  {t.dashboard.createPost}
-                </span>
-              </Link>
-            </div>
-          </section>
 
         </main>
       </div>

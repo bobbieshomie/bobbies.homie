@@ -48,3 +48,27 @@ export async function uploadPetPhoto(file: File, petId?: string): Promise<string
   const { data } = supabase.storage.from('pet-photos').getPublicUrl(fileName);
   return data.publicUrl;
 }
+
+/**
+ * Upload transfer slip to Supabase Storage ('transfer-slips' bucket)
+ */
+export async function uploadTransferSlip(file: File, financeId: string): Promise<string> {
+  const supabase = createClient();
+  const fileExt = file.name.split('.').pop() || 'jpg';
+  const fileName = `${financeId}/slip-${Date.now()}.${fileExt}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('transfer-slips')
+    .upload(fileName, file, {
+      cacheControl: '86400',
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error('Slip upload error:', uploadError);
+    throw new Error(uploadError.message);
+  }
+
+  const { data } = supabase.storage.from('transfer-slips').getPublicUrl(fileName);
+  return data.publicUrl;
+}

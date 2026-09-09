@@ -9,6 +9,7 @@ export interface DbProfile {
   nickname: string | null;
   avatar_url: string | null;
   bio: string | null;
+  fcm_token?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -54,6 +55,7 @@ export interface DbChore {
   points: number;
   is_completed: boolean;
   completed_at?: string | null;
+  due_date?: string | null;
   created_by?: string | null;
   created_at?: string;
 }
@@ -102,6 +104,8 @@ export interface DbFinance {
   paid_by: string;
   is_reimbursed: boolean;
   date: string;
+  slip_url?: string | null;
+  slip_uploaded_at?: string | null;
   created_at?: string;
 }
 
@@ -152,13 +156,31 @@ export async function updateProfile(
   const supabase = createClient();
   const { data, error } = await supabase
     .from('profiles')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update({ 
+      ...updates, 
+      updated_at: new Date().toISOString() 
+    } as Database['public']['Tables']['profiles']['Update'])
     .eq('id', userId)
     .select()
     .single();
 
   if (error) throw new Error(error.message);
   return data as DbProfile;
+}
+
+export async function updateUserFcmToken(userId: string, token: string | null): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      fcm_token: token, 
+      updated_at: new Date().toISOString() 
+    } as Database['public']['Tables']['profiles']['Update'])
+    .eq('id', userId);
+
+  if (error) {
+    console.warn('Failed to save FCM token:', error.message);
+  }
 }
 
 export async function fetchHousehold(householdId: string): Promise<DbHousehold | null> {
@@ -515,6 +537,30 @@ export async function deleteCalendarEvent(eventId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function updateCalendarEvent(
+  eventId: string,
+  updates: {
+    title?: string;
+    start_time?: string;
+    end_time?: string;
+    location?: string | null;
+    category?: string;
+    assigned_to?: string;
+    color_tag?: string;
+  }
+): Promise<DbCalendarEvent> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('calendar_events')
+    .update(updates)
+    .eq('id', eventId)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to update event');
+  return data as unknown as DbCalendarEvent;
+}
+
 // ---------------------------------------------------------------------------
 // Pets & Logs
 // ---------------------------------------------------------------------------
@@ -652,6 +698,72 @@ export async function createFinance(
 
   if (error || !data) throw new Error(error?.message || 'Failed to create finance record');
   return data as unknown as DbFinance;
+}
+
+export async function updateFinance(
+  financeId: string,
+  updates: {
+    title?: string;
+    amount?: number;
+    category?: string;
+    paid_by?: string;
+    is_reimbursed?: boolean;
+    slip_url?: string | null;
+    slip_uploaded_at?: string | null;
+  }
+): Promise<DbFinance> {
+  const supabase = createClient();
+  const dbUpdates: Record<string, unknown> = {
+    ...updates,
+    ...(updates.category ? { category: updates.category as Database['public']['Enums']['finance_category'] } : {}),
+  };
+  const { data, error } = await supabase
+    .from('shared_finances')
+    .update(dbUpdates as Database['public']['Tables']['shared_finances']['Update'])
+    .eq('id', financeId)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to update finance record');
+  return data as unknown as DbFinance;
+}
+
+export async function deleteOldSlips(householdId: string): Promise<void> {
+  const supabase = createClient();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Find records with old slips
+  const { data: oldSlips } = await supabase
+    .from('shared_finances')
+    .select('id, slip_url')
+    .eq('household_id', householdId)
+    .not('slip_url', 'is', null)
+    .lt('slip_uploaded_at', sevenDaysAgo.toISOString()) as { data: Array<{ id: string; slip_url: string | null }> | null };
+
+  if (!oldSlips || oldSlips.length === 0) return;
+
+  // Delete the actual files from storage
+  for (const record of oldSlips) {
+    if (record.slip_url) {
+      try {
+        const url = new URL(record.slip_url);
+        const pathParts = url.pathname.split('/transfer-slips/');
+        if (pathParts.length > 1) {
+          await supabase.storage.from('transfer-slips').remove([pathParts[1]]);
+        }
+      } catch {
+        // ignore individual file deletion errors
+      }
+    }
+  }
+
+  // Clear slip_url from records (keep history)
+  const ids = oldSlips.map((r) => r.id);
+  await supabase
+    .from('shared_finances')
+    .update({ slip_url: null, slip_uploaded_at: null })
+    .in('id', ids);
 }
 
 // ---------------------------------------------------------------------------

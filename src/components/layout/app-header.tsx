@@ -2,6 +2,7 @@
 
 import { RiBearSmileFill } from '@remixicon/react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AppHeaderProps {
   householdName?: string;
@@ -37,6 +38,7 @@ export function AppHeader({
 
       {/* Partner Actions */}
       <div className="flex items-center space-x-2.5">
+        <NotificationBell />
 
         {/* Partner Avatar / Status */}
         <div className="relative flex items-center space-x-1.5 px-2 py-1 bg-[#F4EFEA] dark:bg-[#38241D] border border-[#D7CCC8] dark:border-[#5D4037] rounded-full text-xs text-[#5D4037] dark:text-[#FDFBF7]">
