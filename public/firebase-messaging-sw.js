@@ -22,19 +22,18 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-  messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'Bobbies Homie';
-    const notificationOptions = {
-      body: payload.notification?.body || payload.data?.body || 'คุณมีการแจ้งเตือนใหม่ในบ้าน',
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
-      data: payload.data || {},
-    };
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message:', payload);
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'Bobbies Homie';
+  const notificationOptions = {
+    body: payload.notification?.body || payload.data?.body || 'คุณมีการแจ้งเตือนใหม่ในบ้าน',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    data: payload.data || {},
+  };
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-}
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
