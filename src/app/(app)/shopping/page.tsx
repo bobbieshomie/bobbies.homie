@@ -9,15 +9,21 @@ import {
   X,
   Calendar as CalendarIcon,
   MapPin,
-  ListPlus
+  ListPlus,
+  Pencil
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { createClient } from '@/lib/supabase/client';
+import { SwipeableRow } from '@/components/ui/swipeable-row';
 import { 
   fetchShoppingLists, 
   createBatchShoppingList, 
   toggleShoppingItem,
-  type DbShoppingList
+  deleteShoppingItem,
+  updateShoppingItem,
+  deleteShoppingList,
+  type DbShoppingList,
+  type DbShoppingItem
 } from '@/lib/services/db';
 
 export default function ShoppingPage() {
@@ -180,6 +186,77 @@ export default function ShoppingPage() {
     }
   };
 
+  // Delete item from list
+  const handleDeleteItem = async (listId: string, itemId: string) => {
+    // Optimistic removal
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== listId) return l;
+        return {
+          ...l,
+          items: l.items?.filter((it) => it.id !== itemId),
+        };
+      })
+    );
+    try {
+      await deleteShoppingItem(itemId);
+    } catch (err) {
+      console.error('Delete item error:', err);
+      loadData();
+    }
+  };
+
+  // Delete entire shopping list
+  const handleDeleteList = async (listId: string) => {
+    if (!confirm(language === 'th' ? 'ต้องการลบลิสต์นี้และรายการทั้งหมดใช่หรือไม่?' : 'Delete this list and all its items?')) return;
+    setLists((prev) => prev.filter((l) => l.id !== listId));
+    try {
+      await deleteShoppingList(listId);
+    } catch (err) {
+      console.error('Delete list error:', err);
+      loadData();
+    }
+  };
+
+  // Edit item modal state
+  const [editingItem, setEditingItem] = useState<{ listId: string; item: DbShoppingItem } | null>(null);
+  const [editItemTitle, setEditItemTitle] = useState('');
+  const [editItemQty, setEditItemQty] = useState('');
+
+  const handleOpenEditItem = (listId: string, item: DbShoppingItem) => {
+    setEditingItem({ listId, item });
+    setEditItemTitle(item.title);
+    setEditItemQty(item.quantity || '1');
+  };
+
+  const handleSaveEditItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem || !editItemTitle.trim()) return;
+    const { listId, item } = editingItem;
+    const nextTitle = editItemTitle.trim();
+    const nextQty = editItemQty.trim() || '1';
+
+    setLists((prev) =>
+      prev.map((l) => {
+        if (l.id !== listId) return l;
+        return {
+          ...l,
+          items: l.items?.map((it) =>
+            it.id === item.id ? { ...it, title: nextTitle, quantity: nextQty } : it
+          ),
+        };
+      })
+    );
+    setEditingItem(null);
+
+    try {
+      await updateShoppingItem(item.id, { title: nextTitle, quantity: nextQty });
+    } catch (err) {
+      console.error('Update item error:', err);
+      loadData();
+    }
+  };
+
   // Total items calculation
   const totalItemsCount = useMemo(() => {
     return lists.reduce((sum, l) => sum + (l.items?.length || 0), 0);
@@ -280,49 +357,69 @@ export default function ShoppingPage() {
                       </div>
                     </div>
                     
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27]">
-                      {purchasedInList}/{items.length} {language === 'th' ? 'ซื้อแล้ว' : 'Done'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27]">
+                        {purchasedInList}/{items.length} {language === 'th' ? 'ซื้อแล้ว' : 'Done'}
+                      </span>
+                      {list.id !== 'quick-list' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteList(list.id)}
+                          title={language === 'th' ? 'ลบลิสต์นี้' : 'Delete list'}
+                          className="p-1 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 stroke-current" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Items in this list */}
+                {/* Items in this list with Swipe-to-Edit & Delete */}
                 <div className="space-y-2">
                   {items.map((item) => (
-                    <button
+                    <SwipeableRow
                       key={item.id}
-                      type="button"
-                      onClick={() => handleToggleItem(list.id, item.id, item.is_purchased)}
-                      className="w-full flex items-center justify-between p-2.5 rounded-[14px] bg-[#FDFBF7] dark:bg-[#141312] hover:bg-[#F4EFEA] dark:hover:bg-[#2E2A27]/50 border border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 transition-all text-left cursor-pointer"
+                      onEdit={() => handleOpenEditItem(list.id, item)}
+                      onDelete={() => handleDeleteItem(list.id, item.id)}
+                      editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
+                      deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
+                      className="rounded-[14px]"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
-                            item.is_purchased
-                              ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
-                              : 'border-[#8D6E63] dark:border-[#D7CCC8]'
-                          }`}
-                        >
-                          {item.is_purchased && <Check className="w-3.5 h-3.5 stroke-white" strokeWidth={3} />}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleItem(list.id, item.id, item.is_purchased)}
+                        className="w-full flex items-center justify-between p-2.5 rounded-[14px] bg-[#FDFBF7] dark:bg-[#141312] hover:bg-[#F4EFEA] dark:hover:bg-[#2E2A27]/50 border border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 transition-all text-left cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div
+                            className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
+                              item.is_purchased
+                                ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
+                                : 'border-[#8D6E63] dark:border-[#D7CCC8]'
+                            }`}
+                          >
+                            {item.is_purchased && <Check className="w-3.5 h-3.5 stroke-white" strokeWidth={3} />}
+                          </div>
+
+                          <span
+                            className={`font-dm-sans text-[13px] truncate ${
+                              item.is_purchased
+                                ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60'
+                                : 'font-medium text-[#5D4037] dark:text-[#DDD7D2]'
+                            }`}
+                          >
+                            {item.title}
+                          </span>
                         </div>
 
-                        <span
-                          className={`font-dm-sans text-[13px] truncate ${
-                            item.is_purchased
-                              ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60'
-                              : 'font-medium text-[#5D4037] dark:text-[#DDD7D2]'
-                          }`}
-                        >
-                          {item.title}
-                        </span>
-                      </div>
-
-                      {item.quantity && (
-                        <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] shrink-0 ml-2 px-2 py-0.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] rounded-md border border-[#D7CCC8]/40 dark:border-[#2E2A27]/40">
-                          {item.quantity}
-                        </span>
-                      )}
-                    </button>
+                        {item.quantity && (
+                          <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] shrink-0 ml-2 px-2 py-0.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] rounded-md border border-[#D7CCC8]/40 dark:border-[#2E2A27]/40">
+                            {item.quantity}
+                          </span>
+                        )}
+                      </button>
+                    </SwipeableRow>
                   ))}
                 </div>
               </div>
@@ -332,7 +429,7 @@ export default function ShoppingPage() {
       </div>
 
       {/* Floating Add Button - lifted safely above BottomNav */}
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+100px)] left-0 right-0 max-w-[402px] mx-auto px-6 pointer-events-none flex justify-end z-40">
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+100px)] left-0 right-0 max-w-md sm:max-w-[448px] mx-auto px-6 pointer-events-none flex justify-end z-40">
         <button
           type="button"
           onClick={() => setIsBatchModalOpen(true)}
@@ -346,7 +443,7 @@ export default function ShoppingPage() {
       {/* Batch Create Shopping List Modal */}
       {isBatchModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[370px] max-h-[85vh] rounded-[24px] p-5 shadow-2xl flex flex-col no-scrollbar">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] max-h-[85vh] rounded-[24px] p-5 shadow-2xl flex flex-col no-scrollbar">
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
@@ -375,13 +472,13 @@ export default function ShoppingPage() {
                   required
                   value={listTitle}
                   onChange={(e) => setListTitle(e.target.value)}
-                  placeholder={language === 'th' ? 'เช่น ของสดทำอาหารเย็น, ของใช้ Lotus' : 'e.g. Weekly Groceries'}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                  placeholder={language === 'th' ? 'เช่น ซื้อของสดเข้าตู้เย็น' : 'e.g. Weekly Groceries'}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2.5">
+                <div className="min-w-0">
                   <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'วันที่' : 'Date'}
                   </label>
@@ -389,11 +486,11 @@ export default function ShoppingPage() {
                     type="date"
                     value={listDate}
                     onChange={(e) => setListDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full max-w-full box-border px-3 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037] block appearance-none"
                   />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                     {language === 'th' ? 'สถานที่ / ร้านค้า' : 'Store / Location'}
                   </label>
@@ -402,7 +499,7 @@ export default function ShoppingPage() {
                     value={listLocation}
                     onChange={(e) => setListLocation(e.target.value)}
                     placeholder={language === 'th' ? 'เช่น Lotus, ตลาด' : 'e.g. Supermarket'}
-                    className="w-full px-3 py-2 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                    className="w-full max-w-full box-border px-3 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037] block"
                   />
                 </div>
               </div>
@@ -470,6 +567,70 @@ export default function ShoppingPage() {
                   className="w-full py-3 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[16px] text-[14px] font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
                 >
                   {language === 'th' ? 'บันทึกรายการซื้อของ' : 'Save Shopping List'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Single Item Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] text-[#5D4037] dark:text-[#DDD7D2] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-2xl flex flex-col">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-outfit font-bold text-[18px]">
+                {language === 'th' ? 'แก้ไขรายการของ' : 'Edit Shopping Item'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="p-1 text-[#8D6E63] hover:text-[#5D4037] dark:text-[#948D87] dark:hover:text-[#FDFBF7] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditItem} className="space-y-3.5">
+              <div>
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  {language === 'th' ? 'ชื่อของ' : 'Item Name'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editItemTitle}
+                  onChange={(e) => setEditItemTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  {language === 'th' ? 'จำนวน' : 'Quantity'}
+                </label>
+                <input
+                  type="text"
+                  value={editItemQty}
+                  onChange={(e) => setEditItemQty(e.target.value)}
+                  placeholder="1"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="flex-1 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] font-medium text-[#8D6E63] dark:text-[#948D87] cursor-pointer"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] text-white rounded-[14px] text-[13px] font-semibold cursor-pointer transition-colors"
+                >
+                  {language === 'th' ? 'บันทึก' : 'Save'}
                 </button>
               </div>
             </form>

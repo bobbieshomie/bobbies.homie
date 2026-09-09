@@ -28,6 +28,7 @@ import {
 } from '@/lib/services/db';
 import { uploadTransferSlip } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { SwipeableRow } from '@/components/ui/swipeable-row';
 
 export default function FinancesPage() {
   const { t, language } = useLanguage();
@@ -430,7 +431,7 @@ export default function FinancesPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
@@ -558,130 +559,138 @@ export default function FinancesPage() {
                 const isUploadingThis = uploadingSlipId === expense.id;
 
                 return (
-                  <div
+                  <SwipeableRow
                     key={expense.id}
-                    className={`p-3.5 rounded-[18px] border transition-all ${
-                      isResolved
-                        ? 'bg-[#F4EFEA]/60 dark:bg-[#1F1D1B]/60 border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 opacity-70'
-                        : 'bg-white dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]'
-                    }`}
+                    onEdit={() => openEditModal(expense)}
+                    onDelete={() => handleDelete(expense.id)}
+                    editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
+                    deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
+                    className="rounded-[18px]"
                   >
-                    {/* Main row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(expense.id, expense.is_reimbursed)}
-                          className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors shrink-0 cursor-pointer ${
-                            isResolved
-                              ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
-                              : 'border-[#8D6E63] dark:border-[#D7CCC8] hover:border-[#5D4037]'
-                          }`}
-                        >
-                          {isResolved && <CheckCircle2 className="w-4 h-4 stroke-white" />}
-                        </button>
-
-                        <div className="flex flex-col min-w-0">
-                          <span
-                            className={`font-dm-sans text-[14px] leading-[19px] truncate ${
-                              isResolved ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'font-medium text-[#5D4037] dark:text-[#DDD7D2]'
+                    <div
+                      className={`p-3.5 rounded-[18px] border transition-all ${
+                        isResolved
+                          ? 'bg-[#F4EFEA]/60 dark:bg-[#1F1D1B]/60 border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 opacity-70'
+                          : 'bg-white dark:bg-[#1F1D1B] border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]'
+                      }`}
+                    >
+                      {/* Main row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(expense.id, expense.is_reimbursed)}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border transition-colors shrink-0 cursor-pointer ${
+                              isResolved
+                                ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
+                                : 'border-[#8D6E63] dark:border-[#D7CCC8] hover:border-[#5D4037]'
                             }`}
                           >
-                            {expense.title}
-                          </span>
-                          <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                            {getCategoryLabel(expense.category)} • {getPayerName(expense.paid_by)}{language === 'th' ? ' จ่าย' : ' paid'}
-                          </span>
-                        </div>
-                      </div>
+                            {isResolved && <CheckCircle2 className="w-4 h-4 stroke-white" />}
+                          </button>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
-                          <div className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2]">
-                            ฿{Number(expense.amount).toFixed(2)}
-                          </div>
-                          <div className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
-                            {isResolved ? t.finances.resolved : t.finances.pendingPay}
+                          <div className="flex flex-col min-w-0">
+                            <span
+                              className={`font-dm-sans text-[14px] leading-[19px] truncate ${
+                                isResolved ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'font-medium text-[#5D4037] dark:text-[#DDD7D2]'
+                              }`}
+                            >
+                              {expense.title}
+                            </span>
+                            <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              {getCategoryLabel(expense.category)} • {getPayerName(expense.paid_by)}{language === 'th' ? ' จ่าย' : ' paid'}
+                            </span>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(expense)}
-                          title={t.common.edit}
-                          className="p-1.5 text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Pencil className="w-3.5 h-3.5 stroke-current" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(expense.id)}
-                          title={t.common.delete}
-                          className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4 stroke-current" />
-                        </button>
-                      </div>
-                    </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <div className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2]">
+                              ฿{Number(expense.amount).toFixed(2)}
+                            </div>
+                            <div className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
+                              {isResolved ? t.finances.resolved : t.finances.pendingPay}
+                            </div>
+                          </div>
 
-                    {/* Slip section */}
-                    <div className="mt-2.5 pt-2.5 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27]/40">
-                      {expense.slip_url ? (
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={expense.slip_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-[11px] font-medium text-[#1565C0] dark:text-[#90CAF9] hover:underline"
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(expense)}
+                            title={t.common.edit}
+                            className="p-1.5 text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] rounded-lg transition-colors cursor-pointer"
                           >
-                            <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-                            {language === 'th' ? 'ดูสลิป' : 'View Slip'}
-                          </a>
-                          {slipDaysLeft !== null && slipDaysLeft <= 3 && (
-                            <span className="flex items-center gap-1 text-[10px] text-[#E65100] dark:text-[#FFB74D]">
-                              <AlertCircle className="w-3 h-3" />
-                              {language === 'th' ? `ลบใน ${slipDaysLeft} วัน` : `Deleted in ${slipDaysLeft}d`}
-                            </span>
-                          )}
-                          {slipDaysLeft !== null && slipDaysLeft > 3 && (
-                            <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
-                              {language === 'th' ? `เก็บอีก ${slipDaysLeft} วัน` : `Kept ${slipDaysLeft}d`}
-                            </span>
-                          )}
+                            <Pencil className="w-3.5 h-3.5 stroke-current" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(expense.id)}
+                            title={t.common.delete}
+                            className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4 stroke-current" />
+                          </button>
                         </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            id={`slip-${expense.id}`}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleSlipUpload(expense.id, file);
-                            }}
-                          />
-                          <label
-                            htmlFor={`slip-${expense.id}`}
-                            className={`inline-flex items-center gap-1.5 text-[11px] font-medium cursor-pointer transition-colors ${
-                              isUploadingThis
-                                ? 'text-[#8D6E63] dark:text-[#948D87]'
-                                : 'text-[#5D4037] dark:text-[#948D87] hover:text-[#1565C0] dark:hover:text-[#90CAF9]'
-                            }`}
-                          >
-                            {isUploadingThis ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Upload className="w-3.5 h-3.5" />
+                      </div>
+
+                      {/* Slip section */}
+                      <div className="mt-2.5 pt-2.5 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27]/40">
+                        {expense.slip_url ? (
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={expense.slip_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-[11px] font-medium text-[#1565C0] dark:text-[#90CAF9] hover:underline"
+                            >
+                              <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+                              {language === 'th' ? 'ดูสลิป' : 'View Slip'}
+                            </a>
+                            {slipDaysLeft !== null && slipDaysLeft <= 3 && (
+                              <span className="flex items-center gap-1 text-[10px] text-[#E65100] dark:text-[#FFB74D]">
+                                <AlertCircle className="w-3 h-3" />
+                                {language === 'th' ? `ลบใน ${slipDaysLeft} วัน` : `Deleted in ${slipDaysLeft}d`}
+                              </span>
                             )}
-                            {isUploadingThis
-                              ? (language === 'th' ? 'กำลังอัปโหลด...' : 'Uploading...')
-                              : (language === 'th' ? 'แนบสลิป (เก็บ 7 วัน)' : 'Attach slip (kept 7 days)')}
-                          </label>
-                        </>
-                      )}
+                            {slipDaysLeft !== null && slipDaysLeft > 3 && (
+                              <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
+                                {language === 'th' ? `เก็บอีก ${slipDaysLeft} วัน` : `Kept ${slipDaysLeft}d`}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id={`slip-${expense.id}`}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleSlipUpload(expense.id, file);
+                              }}
+                            />
+                            <label
+                              htmlFor={`slip-${expense.id}`}
+                              className={`inline-flex items-center gap-1.5 text-[11px] font-medium cursor-pointer transition-colors ${
+                                isUploadingThis
+                                  ? 'text-[#8D6E63] dark:text-[#948D87]'
+                                  : 'text-[#5D4037] dark:text-[#948D87] hover:text-[#1565C0] dark:hover:text-[#90CAF9]'
+                              }`}
+                            >
+                              {isUploadingThis ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              {isUploadingThis
+                                ? (language === 'th' ? 'กำลังอัปโหลด...' : 'Uploading...')
+                                : (language === 'th' ? 'แนบสลิป (เก็บ 7 วัน)' : 'Attach slip (kept 7 days)')}
+                            </label>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </SwipeableRow>
                 );
               })
             )}
@@ -692,7 +701,7 @@ export default function FinancesPage() {
       {/* Add Expense Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.finances.addExpense}
@@ -775,7 +784,7 @@ export default function FinancesPage() {
       {/* Edit Expense Modal */}
       {isEditModalOpen && editingExpense && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'แก้ไขรายการ' : 'Edit Expense'}

@@ -47,7 +47,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#FDFBF7',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FDFBF7' },
+    { media: '(prefers-color-scheme: dark)', color: '#1A1816' },
+  ],
 };
 
 export default function RootLayout({
@@ -78,7 +81,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="safe-h-screen bg-[#FDFBF7] dark:bg-[#2A1B16] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
+      <body className="min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
         <ThemeProvider>
           <QueryProvider>
             <LanguageProvider>{children}</LanguageProvider>

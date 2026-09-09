@@ -36,6 +36,7 @@ import {
   type DbProfile
 } from '@/lib/services/db';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { SwipeableRow } from '@/components/ui/swipeable-row';
 
 // Thai Bank Holidays 2025-2026 (วันหยุดตามธนาคารแห่งประเทศไทย)
 const THAI_BANK_HOLIDAYS: Set<string> = new Set([
@@ -531,13 +532,13 @@ export default function CalendarPage() {
           </button>
         </div>
         {showT && (
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8D6E63] dark:text-[#948D87] pointer-events-none" />
+          <div className="relative w-full max-w-full overflow-hidden">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8D6E63] dark:text-[#948D87] pointer-events-none z-10" />
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
+              className="w-full max-w-full box-border pl-9 pr-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037] block appearance-none"
             />
           </div>
         )}
@@ -779,69 +780,77 @@ export default function CalendarPage() {
             const isAll = assigned.toLowerCase() === 'all' || assigned.toLowerCase() === 'both';
 
             return (
-              <div
+              <SwipeableRow
                 key={act.id}
-                className="flex items-center justify-between p-3.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]"
+                onEdit={() => openEditModal(act)}
+                onDelete={() => handleDeleteEvent(act.id)}
+                editLabel={language === 'th' ? 'แก้ไข' : 'Edit'}
+                deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
+                className="rounded-[18px]"
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div
-                    className="w-9 h-9 rounded-[14px] flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: meta.bgColor }}
-                  >
-                    {renderIcon(effCat, meta.color)}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="font-dm-sans font-medium text-[14px] leading-[18px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
-                      {act.title}
+                <div
+                  className="flex items-center justify-between p-3.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.03)]"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div
+                      className="w-9 h-9 rounded-[14px] flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: meta.bgColor }}
+                    >
+                      {renderIcon(effCat, meta.color)}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatEventTime(act.start_time)}
-                      </span>
-                      {act.location && (
-                        <span className="flex items-center gap-1 truncate max-w-[120px]">
-                          <MapPin className="w-3 h-3 shrink-0" />
-                          {act.location}
-                        </span>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-dm-sans font-medium text-[14px] leading-[18px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                        {act.title}
+                      </div>
 
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium border ${
-                        isAll
-                          ? 'bg-[#8D6E63]/10 dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] border-[#D7CCC8]/60 dark:border-[#2E2A27]'
-                          : 'bg-[#2E7D32]/10 dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#A5D6A7] border-[#2E7D32]/30'
-                      }`}>
-                        {isAll ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                        <span>
-                          {language === 'th' ? 'กำหนดให้: ' : 'For: '}
-                          <strong>{isAll ? (language === 'th' ? 'ทุกคนในบ้าน' : 'All') : assigned}</strong>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatEventTime(act.start_time)}
                         </span>
-                      </span>
+                        {act.location && (
+                          <span className="flex items-center gap-1 truncate max-w-[120px]">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            {act.location}
+                          </span>
+                        )}
+
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium border ${
+                          isAll
+                            ? 'bg-[#8D6E63]/10 dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] border-[#D7CCC8]/60 dark:border-[#2E2A27]'
+                            : 'bg-[#2E7D32]/10 dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#A5D6A7] border-[#2E7D32]/30'
+                        }`}>
+                          {isAll ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                          <span>
+                            {language === 'th' ? 'กำหนดให้: ' : 'For: '}
+                            <strong>{isAll ? (language === 'th' ? 'ทุกคนในบ้าน' : 'All') : assigned}</strong>
+                          </span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1 ml-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(act)}
-                    title={t.common.edit}
-                    className="p-1.5 text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Pencil className="w-3.5 h-3.5 stroke-current" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteEvent(act.id)}
-                    title={t.common.delete}
-                    className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4 stroke-current" />
-                  </button>
+                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(act)}
+                      title={t.common.edit}
+                      className="p-1.5 text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-[#DDD7D2] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5 stroke-current" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEvent(act.id)}
+                      title={t.common.delete}
+                      className="p-1.5 text-[#8D6E63] hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4 stroke-current" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </SwipeableRow>
             );
           })
         )}
@@ -850,7 +859,7 @@ export default function CalendarPage() {
       {/* Add Event Modal */}
       {isAddEventOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.calendar.addEvent}
@@ -900,7 +909,7 @@ export default function CalendarPage() {
       {/* Edit Event Modal */}
       {isEditOpen && editingEvent && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'แก้ไขกิจกรรม' : 'Edit Event'}

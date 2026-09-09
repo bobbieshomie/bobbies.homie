@@ -25,14 +25,14 @@
 
 html.dark,
 [data-theme="dark"] {
-  --background: #2A1B16;
+  --background: #1A1816;
   --foreground: #FDFBF7;
-  --card: #38241D;
+  --card: #25201D;
   --card-foreground: #FDFBF7;
-  --border: #5D4037;
+  --border: #3E322A;
   --muted: #D7CCC8;
-  --subtle: #4A332B;
-  --input-bg: #321F18;
+  --subtle: #2D2622;
+  --input-bg: #1F1D1B;
 }
 
 .font-outfit {
@@ -47,6 +47,7 @@ html.dark,
 html {
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
+  background-color: var(--background);
 }
 
 body {
@@ -56,7 +57,19 @@ body {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   overflow-x: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
   transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Input normalization for mobile Safari WebKit */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Hide scrollbar utility */
@@ -79,6 +92,6 @@ body {
 }
 
 .safe-h-screen {
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
 }

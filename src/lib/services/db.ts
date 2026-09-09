@@ -424,6 +424,37 @@ export async function toggleShoppingItem(itemId: string, isPurchased: boolean): 
   if (error) throw new Error(error.message);
 }
 
+export async function deleteShoppingItem(itemId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('shopping_items').delete().eq('id', itemId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateShoppingItem(
+  itemId: string,
+  updates: { title?: string; quantity?: string }
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('shopping_items').update(updates).eq('id', itemId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteShoppingList(listId: string): Promise<void> {
+  const supabase = createClient();
+  await supabase.from('shopping_items').delete().eq('list_id', listId);
+  const { error } = await supabase.from('shopping_lists').delete().eq('id', listId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateShoppingList(
+  listId: string,
+  updates: { title?: string; date?: string; location?: string }
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('shopping_lists').update(updates).eq('id', listId);
+  if (error) throw new Error(error.message);
+}
+
 // ---------------------------------------------------------------------------
 // Chores
 // ---------------------------------------------------------------------------
@@ -652,6 +683,12 @@ export async function togglePetLog(logId: string, isDone: boolean): Promise<void
     .from('pet_logs')
     .update({ is_done: isDone })
     .eq('id', logId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deletePetLog(logId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('pet_logs').delete().eq('id', logId);
   if (error) throw new Error(error.message);
 }
 

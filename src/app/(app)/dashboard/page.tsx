@@ -48,6 +48,20 @@ export default function DashboardPage() {
   const [nudgeCooldown, setNudgeCooldown] = useState(0);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
 
+  // Household dual member avatars
+  const currentMember = useMemo(() => {
+    return members.find((m) => m.id === currentUserId) || (currentUserId ? ({
+      id: currentUserId,
+      full_name: profile.name,
+      nickname: profile.myNickname,
+      avatar_url: activeUserAvatar,
+    } as DbProfile) : null);
+  }, [members, currentUserId, profile, activeUserAvatar]);
+
+  const partnerMember = useMemo(() => {
+    return members.find((m) => m.id !== currentUserId) || (members.length > 1 ? members[1] : null);
+  }, [members, currentUserId]);
+
   // Nudge cooldown countdown
   useEffect(() => {
     if (nudgeCooldown <= 0) return;
@@ -206,45 +220,58 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Account Page Trigger (Avatar) */}
+            {/* Account Page Trigger (Dual Household Avatars) */}
             <Link 
               href="/profile"
-              title={language === 'th' ? 'บัญชีและการตั้งค่า' : 'Account & Settings'}
-              className="flex flex-row items-center p-0 flex-none order-1 flex-grow-0 cursor-pointer transition-transform active:scale-95 hover:opacity-90"
+              title={
+                partnerMember
+                  ? `${currentMember?.nickname || currentMember?.full_name || 'Me'} & ${partnerMember.nickname || partnerMember.full_name || 'Partner'}`
+                  : (language === 'th' ? 'บัญชีและการตั้งค่า' : 'Account & Settings')
+              }
+              className="flex flex-row items-center p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-all active:scale-95 cursor-pointer"
             >
+              {/* Member 1 (Current User) */}
               <div 
-                title={profile.myNickname || 'Account'}
-                className="box-border flex flex-col justify-center items-center p-0 w-[40px] h-[40px] bg-[#D7CCC8] dark:bg-[#6E544A] border-2 border-white dark:border-[#2E2A27] rounded-[20px] flex-none order-0 flex-grow-0 shadow-sm z-10 text-[#5D4037] dark:text-[#DDD7D2] overflow-hidden"
+                title={currentMember?.nickname || currentMember?.full_name || 'Me'}
+                className="relative w-[38px] h-[38px] rounded-full bg-[#D7CCC8] dark:bg-[#5D4037] border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-sm z-10 overflow-hidden flex items-center justify-center shrink-0 text-[#5D4037] dark:text-[#DDD7D2]"
               >
-                {activeUserAvatar ? (
-                  <img src={activeUserAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                {currentMember?.avatar_url ? (
+                  <img 
+                    src={currentMember.avatar_url} 
+                    alt={currentMember.nickname || 'Avatar'} 
+                    className="w-full h-full object-cover" 
+                  />
                 ) : (
-                  <span className="font-outfit font-bold text-[14px]">
-                    {(profile.myNickname || 'M').charAt(0).toUpperCase()}
+                  <span className="font-outfit font-bold text-[13px]">
+                    {(currentMember?.nickname || currentMember?.full_name || 'M').charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
 
-              {/* Second member avatar if household has more members */}
-              {members.length > 1 ? (
+              {/* Member 2 (Partner in Household) */}
+              {partnerMember ? (
                 <div 
-                  title={members[1]?.nickname || 'Partner'}
-                  className="box-border flex flex-col justify-center items-center p-0 w-[40px] h-[40px] bg-[#EFEBE9] dark:bg-[#1F1D1B] border-2 border-white dark:border-[#2E2A27] rounded-[20px] flex-none order-1 flex-grow-0 -ml-[10px] shadow-sm z-0 text-[#8D6E63] dark:text-[#948D87] overflow-hidden"
+                  title={partnerMember.nickname || partnerMember.full_name || 'Partner'}
+                  className="relative w-[38px] h-[38px] -ml-[12px] rounded-full bg-[#E8DFD8] dark:bg-[#3E322A] border-2 border-[#FDFBF7] dark:border-[#1A1816] shadow-sm z-20 overflow-hidden flex items-center justify-center shrink-0 text-[#8D6E63] dark:text-[#DDD7D2]"
                 >
-                  {members[1]?.avatar_url ? (
-                    <img src={members[1].avatar_url} alt="Member" className="w-full h-full object-cover" />
+                  {partnerMember.avatar_url ? (
+                    <img 
+                      src={partnerMember.avatar_url} 
+                      alt={partnerMember.nickname || 'Partner'} 
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
-                    <span className="font-outfit font-bold text-[14px]">
-                      {(members[1]?.nickname || 'P').charAt(0).toUpperCase()}
+                    <span className="font-outfit font-bold text-[13px]">
+                      {(partnerMember.nickname || partnerMember.full_name || 'P').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
               ) : (
                 <div 
                   title={language === 'th' ? 'เพิ่มสมาชิกในบ้าน' : 'Add member'}
-                  className="box-border flex flex-col justify-center items-center p-0 w-[24px] h-[24px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-full flex-none order-1 flex-grow-0 -ml-[8px] shadow-xs z-0 text-[#8D6E63] dark:text-[#948D87]"
+                  className="w-[28px] h-[28px] -ml-[8px] rounded-full bg-[#F4EFEA] dark:bg-[#25201D] border-2 border-[#FDFBF7] dark:border-[#1A1816] flex items-center justify-center shadow-xs z-20 text-[#8D6E63] dark:text-[#948D87]"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus className="w-3.5 h-3.5" />
                 </div>
               )}
             </Link>

@@ -24,7 +24,7 @@ export function BottomNav() {
   ];
 
   return (
-    <footer className="w-full max-w-[402px] flex flex-col items-center select-none">
+    <footer className="w-full max-w-md sm:max-w-[448px] flex flex-col items-center select-none">
       {/* bottom-nav-container */}
       <div className="w-full px-6 pt-3 pb-2 flex justify-center">
         {/* bottom-nav-pill */}

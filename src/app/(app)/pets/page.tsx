@@ -24,12 +24,14 @@ import {
   fetchPetLogs, 
   createPetLog, 
   togglePetLog,
+  deletePetLog,
   type DbPet, 
   type DbPetLog,
   type DbProfile
 } from '@/lib/services/db';
 import { uploadPetPhoto } from '@/lib/services/storage';
 import { useLanguage } from '@/lib/i18n/language-context';
+import { SwipeableRow } from '@/components/ui/swipeable-row';
 
 export default function PetsPage() {
   const { t, language } = useLanguage();
@@ -226,8 +228,17 @@ export default function PetsPage() {
     }
   };
 
+  const handleDeleteLog = async (logId: string) => {
+    setPetLogs((prev) => prev.filter((l) => l.id !== logId));
+    try {
+      await deletePetLog(logId);
+    } catch (err: unknown) {
+      console.error(err);
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] select-none max-w-[420px] mx-auto pb-28 transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
@@ -405,38 +416,44 @@ export default function PetsPage() {
                   </div>
                 ) : (
                   currentPetLogs.map((log) => (
-                    <div
+                    <SwipeableRow
                       key={log.id}
-                      className="flex items-center justify-between p-3.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.02)]"
+                      onDelete={() => handleDeleteLog(log.id)}
+                      deleteLabel={language === 'th' ? 'ลบ' : 'Delete'}
+                      className="rounded-[18px]"
                     >
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLog(log.id, log.is_done)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-                            log.is_done 
-                              ? 'bg-[#2E7D32] text-white' 
-                              : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#948D87]'
-                          }`}
-                        >
-                          {log.is_done ? (
-                            <Check className="w-4 h-4 stroke-current stroke-[3]" />
-                          ) : (
-                            <CalendarIcon className="w-4 h-4 stroke-current" />
-                          )}
-                        </button>
-                        <div>
-                          <div className={`font-dm-sans font-medium text-[14px] ${
-                            log.is_done ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'text-[#5D4037] dark:text-[#DDD7D2]'
-                          }`}>
-                            {log.title}
-                          </div>
-                          <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                            {log.scheduled_date}
+                      <div
+                        className="flex items-center justify-between p-3.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px] shadow-[0px_2px_8px_rgba(93,64,55,0.02)]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLog(log.id, log.is_done)}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                              log.is_done 
+                                ? 'bg-[#2E7D32] text-white' 
+                                : 'bg-[#F4EFEA] dark:bg-[#141312] text-[#5D4037] dark:text-[#948D87]'
+                            }`}
+                          >
+                            {log.is_done ? (
+                              <Check className="w-4 h-4 stroke-current stroke-[3]" />
+                            ) : (
+                              <CalendarIcon className="w-4 h-4 stroke-current" />
+                            )}
+                          </button>
+                          <div>
+                            <div className={`font-dm-sans font-medium text-[14px] ${
+                              log.is_done ? 'line-through text-[#8D6E63] dark:text-[#948D87]/60' : 'text-[#5D4037] dark:text-[#DDD7D2]'
+                            }`}>
+                              {log.title}
+                            </div>
+                            <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                              {log.scheduled_date}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </SwipeableRow>
                   ))
                 )}
               </div>
@@ -448,7 +465,7 @@ export default function PetsPage() {
       {/* Add Pet Modal with Photo Upload */}
       {isAddPetModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addPet}
@@ -571,7 +588,7 @@ export default function PetsPage() {
       {/* Add Log Modal */}
       {isAddLogModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[360px] rounded-[24px] p-5 shadow-xl">
+          <div className="bg-[#FDFBF7] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] w-full max-w-[390px] rounded-[24px] p-5 shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
                 {t.pets.addLog}
@@ -604,13 +621,15 @@ export default function PetsPage() {
                 <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
                   {t.pets.datePlaceholder}
                 </label>
-                <input
-                  type="date"
-                  required
-                  value={newLogDate}
-                  onChange={(e) => setNewLogDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
-                />
+                <div className="relative w-full max-w-full overflow-hidden">
+                  <input
+                    type="date"
+                    required
+                    value={newLogDate}
+                    onChange={(e) => setNewLogDate(e.target.value)}
+                    className="w-full max-w-full box-border px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037] block appearance-none"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
