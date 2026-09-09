@@ -140,6 +140,7 @@ interface AppState {
   addPetRecord: (record: Omit<PetRecord, 'id'>) => void;
   deletePetRecord: (id: string) => void;
 
+  setChores: (chores: ChoreRecord[]) => void;
   addChore: (chore: Omit<ChoreRecord, 'id'>) => void;
   toggleChore: (id: string) => void;
   deleteChore: (id: string) => void;
@@ -356,6 +357,8 @@ export const useAppStore = create<AppState>()(
           })),
 
         // Chores
+        setChores: (chores) => set({ chores }),
+
         addChore: (chore) =>
           set((state) => ({
             chores: [{ ...chore, id: `ch-${Date.now()}` }, ...state.chores],

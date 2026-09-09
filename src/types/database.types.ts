@@ -148,6 +148,123 @@ export type Database = {
           },
         ]
       }
+      chore_point_logs: {
+        Row: {
+          balance_after: number
+          chore_id: string | null
+          created_at: string
+          household_id: string
+          id: string
+          points_delta: number
+          redemption_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          balance_after: number
+          chore_id?: string | null
+          created_at?: string
+          household_id: string
+          id?: string
+          points_delta: number
+          redemption_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          balance_after?: number
+          chore_id?: string | null
+          created_at?: string
+          household_id?: string
+          id?: string
+          points_delta?: number
+          redemption_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chore_rewards: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          household_id: string
+          icon: string | null
+          id: string
+          points_cost: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          household_id: string
+          icon?: string | null
+          id?: string
+          points_cost?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          household_id?: string
+          icon?: string | null
+          id?: string
+          points_cost?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reward_redemptions: {
+        Row: {
+          approvals: Json
+          created_at: string
+          household_id: string
+          id: string
+          points_spent: number
+          rejection_reason: string | null
+          reward_id: string | null
+          reward_title: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approvals?: Json
+          created_at?: string
+          household_id: string
+          id?: string
+          points_spent: number
+          rejection_reason?: string | null
+          reward_id?: string | null
+          reward_title: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approvals?: Json
+          created_at?: string
+          household_id?: string
+          id?: string
+          points_spent?: number
+          rejection_reason?: string | null
+          reward_id?: string | null
+          reward_title?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_moods: {
         Row: {
           created_at: string
@@ -405,6 +522,7 @@ export type Database = {
           anniversary_date: string | null
           avatar_url: string | null
           bio: string | null
+          chore_points: number
           cover_url: string | null
           created_at: string
           email: string | null
@@ -422,6 +540,7 @@ export type Database = {
           anniversary_date?: string | null
           avatar_url?: string | null
           bio?: string | null
+          chore_points?: number
           cover_url?: string | null
           created_at?: string
           email?: string | null
@@ -439,6 +558,7 @@ export type Database = {
           anniversary_date?: string | null
           avatar_url?: string | null
           bio?: string | null
+          chore_points?: number
           cover_url?: string | null
           created_at?: string
           email?: string | null

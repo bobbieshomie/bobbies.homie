@@ -9,6 +9,7 @@ export interface DbProfile {
   nickname: string | null;
   avatar_url: string | null;
   bio: string | null;
+  chore_points?: number;
   fcm_token?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -58,6 +59,47 @@ export interface DbChore {
   due_date?: string | null;
   created_by?: string | null;
   created_at?: string;
+}
+
+export interface DbChoreReward {
+  id: string;
+  household_id: string;
+  title: string;
+  description: string | null;
+  points_cost: number;
+  icon: string | null;
+  created_by: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DbRewardRedemption {
+  id: string;
+  household_id: string;
+  reward_id: string | null;
+  reward_title: string;
+  points_spent: number;
+  user_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  approvals: Record<string, { approved: boolean; timestamp: string }>;
+  rejection_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  user?: DbProfile;
+}
+
+export interface DbChorePointLog {
+  id: string;
+  household_id: string;
+  user_id: string;
+  chore_id: string | null;
+  redemption_id: string | null;
+  title: string;
+  points_delta: number;
+  balance_after: number;
+  type: 'chore_complete' | 'chore_uncheck' | 'reward_redeem' | 'reward_refund';
+  created_at?: string;
+  user?: DbProfile;
 }
 
 export interface DbCalendarEvent {
@@ -510,6 +552,193 @@ export async function toggleChore(choreId: string, isCompleted: boolean): Promis
     .eq('id', choreId);
 
   if (error) throw new Error(error.message);
+}
+
+export async function updateChore(
+  choreId: string,
+  updates: Partial<DbChore>
+): Promise<DbChore> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chores') as any)
+    .update(updates)
+    .eq('id', choreId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as DbChore;
+}
+
+export async function deleteChore(choreId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from('chores').delete().eq('id', choreId);
+  if (error) throw new Error(error.message);
+}
+
+export async function toggleChoreWithPoints(
+  choreId: string,
+  isCompleted: boolean
+): Promise<{ success: boolean; new_balance: number; points_delta: number }> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.rpc as any)('toggle_chore_with_points', {
+    p_chore_id: choreId,
+    p_completed: isCompleted,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Chore Rewards & Store
+// ---------------------------------------------------------------------------
+
+export async function fetchChoreRewards(householdId: string): Promise<DbChoreReward[]> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .select('*')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data || []) as DbChoreReward[];
+}
+
+export async function createChoreReward(
+  householdId: string,
+  userId: string,
+  reward: {
+    title: string;
+    description?: string;
+    points_cost: number;
+    icon?: string;
+  }
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .insert({
+      household_id: householdId,
+      title: reward.title,
+      description: reward.description || null,
+      points_cost: reward.points_cost,
+      icon: reward.icon || 'Gift',
+      created_by: userId,
+    })
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || 'Failed to create reward');
+  return data as DbChoreReward;
+}
+
+export async function updateChoreReward(
+  rewardId: string,
+  reward: Partial<DbChoreReward>
+): Promise<DbChoreReward> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('chore_rewards') as any)
+    .update({
+      title: reward.title,
+      description: reward.description,
+      points_cost: reward.points_cost,
+      icon: reward.icon,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', rewardId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as DbChoreReward;
+}
+
+export async function deleteChoreReward(rewardId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await (supabase.from('chore_rewards') as any).delete().eq('id', rewardId);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Reward Redemptions & Approvals
+// ---------------------------------------------------------------------------
+
+export async function fetchRewardRedemptions(householdId: string): Promise<DbRewardRedemption[]> {
+  const supabase = createClient();
+  const { data, error } = await (supabase
+    .from('reward_redemptions') as any)
+    .select('*, user:profiles(*)')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data || []) as DbRewardRedemption[];
+}
+
+export async function requestRewardRedemption(
+  rewardId: string
+): Promise<{ success: boolean; redemption_id: string }> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.rpc as any)('request_reward_redemption', {
+    p_reward_id: rewardId,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function respondRewardRedemption(
+  redemptionId: string,
+  approved: boolean,
+  reason?: string
+): Promise<{ success: boolean; status: string; requester_new_balance?: number }> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.rpc as any)('respond_reward_redemption', {
+    p_redemption_id: redemptionId,
+    p_approved: approved,
+    p_reason: reason || null,
+  });
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Chore Points Logs & Ledger
+// ---------------------------------------------------------------------------
+
+export async function fetchChorePointLogs(
+  householdId: string,
+  userId?: string
+): Promise<DbChorePointLog[]> {
+  const supabase = createClient();
+  let query = (supabase.from('chore_point_logs') as any)
+    .select('*, user:profiles(*)')
+    .eq('household_id', householdId)
+    .order('created_at', { ascending: false });
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data || []) as DbChorePointLog[];
+}
+
+export async function fetchUserChorePoints(userId: string): Promise<number> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('chore_points')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) return 0;
+  return ((data as any).chore_points as number) || 0;
 }
 
 // ---------------------------------------------------------------------------

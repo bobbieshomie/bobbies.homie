@@ -10,7 +10,10 @@ import {
   Sparkles,
   CheckCircle2,
   Calendar,
-  UserPlus
+  UserPlus,
+  Coins,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -25,6 +28,8 @@ import {
   fetchShoppingLists, 
   fetchPets, 
   fetchFinances,
+  fetchUserChorePoints,
+  toggleChoreWithPoints,
   type DbProfile 
 } from '@/lib/services/db';
 
@@ -33,6 +38,7 @@ export default function DashboardPage() {
 
   // Real store data
   const chores = useAppStore((state) => state.chores);
+  const setStoreChores = useAppStore((state) => state.setChores);
   const shoppingItems = useAppStore((state) => state.shoppingItems);
   const expenses = useAppStore((state) => state.expenses);
   const petRecords = useAppStore((state) => state.petRecords);
@@ -44,6 +50,8 @@ export default function DashboardPage() {
   const [activeUserAvatar, setActiveUserAvatar] = useState<string | null>(profile.myAvatarUrl || null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [householdId, setHouseholdId] = useState<string | null>(null);
+  const [myChorePoints, setMyChorePoints] = useState<number>(0);
+  const [togglingChoreId, setTogglingChoreId] = useState<string | null>(null);
   const [nudgeLoading, setNudgeLoading] = useState(false);
   const [nudgeCooldown, setNudgeCooldown] = useState(0);
   const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
@@ -89,6 +97,9 @@ export default function DashboardPage() {
             });
             setActiveUserAvatar(p.avatar_url);
 
+            const pts = await fetchUserChorePoints(user.id);
+            setMyChorePoints(pts);
+
             if (p.household_id) {
               setHouseholdId(p.household_id);
               const h = await fetchHousehold(p.household_id);
@@ -100,6 +111,19 @@ export default function DashboardPage() {
               }
               const mems = await fetchHouseholdMembers(p.household_id);
               setMembers(mems);
+
+              const chs = await fetchChores(p.household_id);
+              setStoreChores(
+                chs.map((c) => ({
+                  id: c.id,
+                  title: c.title,
+                  frequency: (c.frequency as any) || 'weekly',
+                  assignedTo: c.assigned_to || 'All',
+                  points: c.points || 10,
+                  isCompleted: c.is_completed,
+                  dueDate: c.due_date || undefined,
+                }))
+              );
             }
           }
         }
@@ -109,7 +133,48 @@ export default function DashboardPage() {
     }
 
     syncDashboard();
-  }, [updateProfile]);
+  }, [updateProfile, setStoreChores]);
+
+  // Quick toggle chore from Dashboard
+  const handleQuickToggleChore = async (choreId: string, currentStatus: boolean) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(40);
+    }
+    const nextCompleted = !currentStatus;
+    setTogglingChoreId(choreId);
+
+    // Optimistic store update
+    setStoreChores(
+      chores.map((c) => (c.id === choreId ? { ...c, isCompleted: nextCompleted } : c))
+    );
+
+    try {
+      const res = await toggleChoreWithPoints(choreId, nextCompleted);
+      if (res.success) {
+        setMyChorePoints(res.new_balance);
+      }
+    } catch (err) {
+      console.error('Failed to toggle chore from dashboard:', err);
+      // Revert if error
+      if (householdId) {
+        fetchChores(householdId).then((chs) => {
+          setStoreChores(
+            chs.map((c) => ({
+              id: c.id,
+              title: c.title,
+              frequency: (c.frequency as any) || 'weekly',
+              assignedTo: c.assigned_to || 'All',
+              points: c.points || 10,
+              isCompleted: c.is_completed,
+              dueDate: c.due_date || undefined,
+            }))
+          );
+        });
+      }
+    } finally {
+      setTogglingChoreId(null);
+    }
+  };
 
   const handleNudge = async () => {
     if (!householdId || !currentUserId || nudgeCooldown > 0) return;
@@ -310,13 +375,31 @@ export default function DashboardPage() {
         <main className="dashboard-body flex flex-col items-start px-6 p-0 gap-5 w-full flex-none order-2 self-stretch flex-grow-0">
           
           {/* chore-progress-card */}
-          <section className="chore-progress-card box-border flex flex-col items-start p-5 gap-3 w-full bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-0 self-stretch flex-grow-0 transition-colors">
-            <div className="card-split flex flex-row items-center p-0 gap-4 w-full min-h-[95px] flex-none order-0 self-stretch flex-grow-0">
-              {/* progress-left */}
-              <div className="progress-left flex flex-col items-start p-0 gap-1.5 flex-1 min-h-[95px] flex-none order-0 flex-grow-1">
+          <section className="chore-progress-card box-border flex flex-col items-start p-5 gap-3.5 w-full bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px] flex-none order-0 self-stretch flex-grow-0 transition-colors">
+            {/* Card top banner with link to /chores and points score */}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
                 <h2 className="font-outfit font-bold text-[18px] leading-[23px] text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.dashboard.todayChores}
                 </h2>
+                <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+                  <Coins className="w-3 h-3 text-[#F2C94C]" />
+                  <span>{myChorePoints}</span>
+                </span>
+              </div>
+
+              <Link
+                href="/chores"
+                className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] hover:underline flex items-center gap-0.5"
+              >
+                <span>{language === 'th' ? 'ร้านค้า & จัดการ' : 'Shop & Manage'}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="card-split flex flex-row items-center p-0 gap-4 w-full min-h-[85px] flex-none order-0 self-stretch flex-grow-0">
+              {/* progress-left */}
+              <div className="progress-left flex flex-col items-start p-0 gap-1.5 flex-1 min-h-[85px] flex-none order-0 flex-grow-1">
                 <p className="font-dm-sans font-normal text-[13px] leading-[17px] text-[#8D6E63] dark:text-[#948D87]">
                   {choreStats.total > 0
                     ? t.dashboard.choresSubtitle
@@ -331,7 +414,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <Link
-                    href="/create?tab=chores"
+                    href="/chores"
                     className="inline-flex items-center text-[12px] font-semibold text-[#2E7D32] dark:text-[#81C784] hover:underline mt-1"
                   >
                     + {t.dashboard.addChorePrompt}
@@ -340,8 +423,8 @@ export default function DashboardPage() {
               </div>
 
               {/* progress-ring-container */}
-              <div className="progress-ring-container flex flex-col justify-center items-center p-0 isolate relative w-[80px] h-[80px] flex-none order-1 flex-grow-0 shrink-0">
-                <svg className="w-[80px] h-[80px] -rotate-90" viewBox="0 0 80 80">
+              <div className="progress-ring-container flex flex-col justify-center items-center p-0 isolate relative w-[76px] h-[76px] flex-none order-1 flex-grow-0 shrink-0">
+                <svg className="w-[76px] h-[76px] -rotate-90" viewBox="0 0 80 80">
                   <circle
                     cx="40"
                     cy="40"
@@ -381,6 +464,45 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Quick Chores Checklist Preview */}
+            {chores.length > 0 && (
+              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5">
+                {chores.slice(0, 3).map((chore) => (
+                  <div
+                    key={chore.id}
+                    onClick={() => handleQuickToggleChore(chore.id, chore.isCompleted)}
+                    className="flex items-center justify-between p-2 rounded-[14px] bg-white/70 dark:bg-[#141312]/60 hover:bg-white dark:hover:bg-[#141312] border border-[#D7CCC8]/50 dark:border-[#2E2A27]/60 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`w-5 h-5 rounded-[7px] flex items-center justify-center border transition-all shrink-0 ${
+                          chore.isCompleted
+                            ? 'bg-[#2E7D32] border-[#2E7D32] text-white'
+                            : 'border-[#D7CCC8] dark:border-[#5D4037]'
+                        }`}
+                      >
+                        {chore.isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+
+                      <span
+                        className={`text-[13px] font-semibold truncate ${
+                          chore.isCompleted
+                            ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
+                            : 'text-[#5D4037] dark:text-[#DDD7D2]'
+                        }`}
+                      >
+                        {chore.title}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784] shrink-0 ml-2">
+                      +{chore.points} ⭐
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {/* summaries-grid */}
