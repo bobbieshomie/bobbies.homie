@@ -101,3 +101,48 @@ input[type="datetime-local"] {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* Logo Loading Animations */
+@keyframes logo-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(50%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-logo-breathe {
+  animation: logo-breathe 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-logo-glow {
+  animation: logo-glow 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-progress-slide {
+  animation: progress-slide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

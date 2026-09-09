@@ -4,6 +4,7 @@ import './globals.css';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import { LanguageProvider } from '@/lib/i18n/language-context';
 import { ThemeProvider } from '@/lib/theme/theme-context';
+import { AppSplash } from '@/components/ui/app-splash';
 
 const mali = Mali({
   subsets: ['thai', 'latin'],
@@ -91,7 +92,10 @@ export default function RootLayout({
       <body className="font-mali min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
         <ThemeProvider>
           <QueryProvider>
-            <LanguageProvider>{children}</LanguageProvider>
+            <LanguageProvider>
+              <AppSplash />
+              {children}
+            </LanguageProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>
