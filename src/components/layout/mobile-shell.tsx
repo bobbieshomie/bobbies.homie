@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 
 interface MobileShellProps {
   children: ReactNode;
@@ -23,10 +24,10 @@ export function MobileShell({ children, header, bottomNav }: MobileShellProps) {
           </header>
         )}
 
-        {/* Scrollable Mobile Content Body */}
-        <main className="flex-1 w-full overflow-y-auto pb-32">
+        {/* Scrollable Mobile Content Body with Pull-To-Refresh */}
+        <PullToRefresh>
           {children}
-        </main>
+        </PullToRefresh>
 
         {/* Floating Bottom Navigation Shell */}
         {bottomNav && (

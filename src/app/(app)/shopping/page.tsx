@@ -193,7 +193,7 @@ export default function ShoppingPage() {
   }, [lists]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] select-none max-w-[402px] mx-auto pb-28 no-scrollbar transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#141312] text-[#5D4037] dark:text-[#DDD7D2] select-none max-w-[402px] mx-auto pb-40 no-scrollbar transition-colors duration-200">
       {/* Top Utility Row */}
       <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
         <div>
@@ -204,6 +204,15 @@ export default function ShoppingPage() {
             {language === 'th' ? 'สร้างรายการซื้อของตามวันและสถานที่' : 'Shopping trips & checklists'}
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsBatchModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white text-xs font-semibold shadow-xs hover:bg-[#4A332C] hover:dark:bg-[#8D6E63] active:scale-95 transition-all cursor-pointer"
+        >
+          <Plus className="w-4 h-4 stroke-white" strokeWidth={2.5} />
+          <span>{language === 'th' ? 'เพิ่มลิสต์' : 'New List'}</span>
+        </button>
       </div>
 
       {/* Stats Summary Row */}
@@ -322,12 +331,12 @@ export default function ShoppingPage() {
         )}
       </div>
 
-      {/* Floating Add Button */}
-      <div className="fixed bottom-24 left-0 right-0 max-w-[402px] mx-auto px-6 pointer-events-none flex justify-end z-30">
+      {/* Floating Add Button - lifted safely above BottomNav */}
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+100px)] left-0 right-0 max-w-[402px] mx-auto px-6 pointer-events-none flex justify-end z-40">
         <button
           type="button"
           onClick={() => setIsBatchModalOpen(true)}
-          className="pointer-events-auto w-12 h-12 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white flex items-center justify-center shadow-lg hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] transition-transform active:scale-95 cursor-pointer"
+          className="pointer-events-auto w-13 h-13 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white flex items-center justify-center shadow-[0_8px_24px_rgba(93,64,55,0.25)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:bg-[#4A332C] hover:dark:bg-[#8D6E63] transition-transform active:scale-90 cursor-pointer ring-2 ring-white dark:ring-[#1F1D1B]"
           title={language === 'th' ? 'สร้างลิสต์ซื้อของ' : 'New shopping list'}
         >
           <Plus className="w-6 h-6 stroke-white" strokeWidth={2.5} />
