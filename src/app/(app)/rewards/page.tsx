@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ChevronLeft,
+  ChevronRight,
   Sparkles,
   Check,
   X,
@@ -33,6 +34,7 @@ import {
   Dice5,
   ArrowRight,
   CheckSquare,
+  Flame,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -102,6 +104,25 @@ function playTickSound() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.035);
+  } catch {}
+}
+
+function playDingSound() {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
   } catch {}
 }
 
@@ -190,13 +211,23 @@ function RewardsPageContent() {
     }
   }, [householdId]);
 
-  // Slot Machine Animation States
-  const [slotReel1, setSlotReel1] = useState<string[]>([]);
-  const [slotReel2, setSlotReel2] = useState<number[]>([]);
-  const [slotReel1Index, setSlotReel1Index] = useState(0);
-  const [slotReel2Index, setSlotReel2Index] = useState(0);
-  const [isSlotSpinning, setIsSlotSpinning] = useState(false);
-  const [slotStopped, setSlotStopped] = useState(false);
+  // Two-Step Gacha Slot Animation States
+  // Step 1: Chore horizontal reel flows right-to-left
+  // Step 2: User presses button to spin multiplier
+  type GachaStep = 'spinning_chore' | 'chore_selected' | 'spinning_multiplier' | 'finished';
+  const [gachaStep, setGachaStep] = useState<GachaStep>('spinning_chore');
+
+  // Horizontal Chore Reel
+  const [choreReel, setChoreReel] = useState<string[]>([]);
+  const [choreTranslateX, setChoreTranslateX] = useState<number>(0);
+  const [isChoreSpinning, setIsChoreSpinning] = useState<boolean>(false);
+  const choreViewportRef = useRef<HTMLDivElement>(null);
+
+  // Horizontal Multiplier Reel
+  const [multiplierReel, setMultiplierReel] = useState<number[]>([]);
+  const [multiplierTranslateX, setMultiplierTranslateX] = useState<number>(0);
+  const [isMultiplierSpinning, setIsMultiplierSpinning] = useState<boolean>(false);
+  const multiplierViewportRef = useRef<HTMLDivElement>(null);
 
   // Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -327,64 +358,102 @@ function RewardsPageContent() {
     });
   }, [redemptions, rewards, currentUserId, language]);
 
-  // Start Slot Machine Reel Animation
+  // Step 1: Start Horizontal Chore Slot Reel Animation (Flowing Right to Left)
   const startSlotMachineAnimation = (targetChore: string, targetMultiplier: number, isTest: boolean) => {
-    // Only pull from household chores list if available; fallback if none exist yet
+    // Only pull from household chores list if available
     const candidateChores =
       chores.length > 0
         ? chores.map((c) => c.title)
         : [targetChore];
-    const possibleMultipliers = [2, 3, 5, 2, 3];
+    const possibleMultipliers = [2, 3, 5, 2, 3, 5, 2, 3];
 
-    // Build Reel 1 (Chore) strip: 24 items, target at index 20
+    // Build Chore Reel: 28 items, target lands at index 22
     const reel1: string[] = [];
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 22; i++) {
       reel1.push(candidateChores[i % candidateChores.length]);
     }
-    reel1.push(targetChore); // target landing item at index 20
-    for (let i = 0; i < 4; i++) {
+    reel1.push(targetChore); // target landing item at index 22
+    for (let i = 0; i < 5; i++) {
       reel1.push(candidateChores[(i + 1) % candidateChores.length]);
     }
 
-    // Build Reel 2 (Multiplier) strip: 30 items, target at index 26
+    // Build Multiplier Reel: 26 items, target lands at index 20
     const reel2: number[] = [];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 20; i++) {
       reel2.push(possibleMultipliers[i % possibleMultipliers.length]);
     }
-    reel2.push(targetMultiplier); // target landing item at index 26
-    for (let i = 0; i < 4; i++) {
+    reel2.push(targetMultiplier); // target landing item at index 20
+    for (let i = 0; i < 5; i++) {
       reel2.push(possibleMultipliers[(i + 2) % possibleMultipliers.length]);
     }
 
     // Prepare initial position
-    setSlotReel1(reel1);
-    setSlotReel2(reel2);
-    setSlotReel1Index(0);
-    setSlotReel2Index(0);
-    setIsSlotSpinning(false);
-    setSlotStopped(false);
+    setChoreReel(reel1);
+    setMultiplierReel(reel2);
+    setChoreTranslateX(0);
+    setMultiplierTranslateX(0);
+    setIsChoreSpinning(false);
+    setIsMultiplierSpinning(false);
+    setGachaStep('spinning_chore');
     setSpinResult({ chore_title: targetChore, multiplier: targetMultiplier, isTest });
     setIsGachaModalOpen(true);
 
-    // Trigger spinning transforms in next tick
+    // Trigger horizontal right-to-left spin
     setTimeout(() => {
-      setIsSlotSpinning(true);
-      setSlotReel1Index(20);
-      setSlotReel2Index(26);
+      const viewportWidth = choreViewportRef.current?.offsetWidth || 310;
+      const cardWidth = 140;
+      const cardGap = 10;
+      const cardStep = cardWidth + cardGap;
+      const targetX = -(22 * cardStep - (viewportWidth - cardWidth) / 2);
+
+      setIsChoreSpinning(true);
+      setChoreTranslateX(targetX);
 
       // Play audio ticks while spinning
       let tickCount = 0;
       const tickInterval = setInterval(() => {
         playTickSound();
         tickCount++;
-        if (tickCount >= 22) clearInterval(tickInterval);
+        if (tickCount >= 24) clearInterval(tickInterval);
       }, 95);
 
-      // Settle slot machine and play win celebration sound
+      // Land chore after 2.65s
       setTimeout(() => {
-        setSlotStopped(true);
-        playWinSound();
+        setIsChoreSpinning(false);
+        playDingSound();
+        setGachaStep('chore_selected');
       }, 2650);
+    }, 60);
+  };
+
+  // Step 2: User presses button to spin multiplier
+  const handleStartMultiplierSpin = () => {
+    if (gachaStep !== 'chore_selected' || !spinResult) return;
+    setGachaStep('spinning_multiplier');
+
+    setTimeout(() => {
+      const multViewportWidth = multiplierViewportRef.current?.offsetWidth || 310;
+      const multCardWidth = 84;
+      const multGap = 8;
+      const multStep = multCardWidth + multGap;
+      const targetX = -(20 * multStep - (multViewportWidth - multCardWidth) / 2);
+
+      setIsMultiplierSpinning(true);
+      setMultiplierTranslateX(targetX);
+
+      let tickCount = 0;
+      const tickInterval = setInterval(() => {
+        playTickSound();
+        tickCount++;
+        if (tickCount >= 20) clearInterval(tickInterval);
+      }, 90);
+
+      // Land multiplier after 2.25s and celebrate
+      setTimeout(() => {
+        setIsMultiplierSpinning(false);
+        playWinSound();
+        setGachaStep('finished');
+      }, 2250);
     }, 60);
   };
 
@@ -1749,10 +1818,11 @@ function RewardsPageContent() {
         )}
 
         {/* ======================================================== */}
+        {/* ======================================================== */}
         {/* MODAL: GACHA SLOT MACHINE ANIMATION & RESULT             */}
         {/* ======================================================== */}
         {isGachaModalOpen && spinResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-dm-sans animate-fade-in">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-xs p-3.5 sm:p-4 font-dm-sans animate-fade-in">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#1E1C1A] rounded-[28px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-2xl overflow-hidden animate-scale-up">
               {/* Top Header */}
               <div className="px-5 py-3.5 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between bg-[#F4EFEA]/80 dark:bg-[#25221F]">
@@ -1769,97 +1839,200 @@ function RewardsPageContent() {
 
                 <button
                   onClick={() => setIsGachaModalOpen(false)}
-                  disabled={!slotStopped}
-                  className="p-1.5 rounded-full text-[#8D6E63] hover:bg-[#D7CCC8]/40 cursor-pointer disabled:opacity-30 transition-opacity"
+                  disabled={isChoreSpinning || isMultiplierSpinning}
+                  className="p-1.5 rounded-full text-[#8D6E63] hover:bg-[#D7CCC8]/40 cursor-pointer disabled:opacity-20 transition-opacity"
                   title="ปิด"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 text-center">
+              <div className="p-4 sm:p-5 space-y-3.5 text-center">
+                {/* Two-Step Progress Pill Indicator */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Step 1 Pill */}
+                  <div
+                    className={`py-1.5 px-2.5 rounded-[12px] border text-[11px] font-outfit font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      gachaStep === 'spinning_chore'
+                        ? 'bg-[#FFF3E0] dark:bg-[#3E2514] border-[#FFB74D] text-[#E65100] animate-pulse'
+                        : 'bg-[#E8F5E9] dark:bg-[#1B361E] border-[#81C784]/60 text-[#2E7D32] dark:text-[#A5D6A7]'
+                    }`}
+                  >
+                    <span>{gachaStep === 'spinning_chore' ? '⏳ 1. หมุนงานบ้าน' : '✓ 1. งานบ้านสำเร็จ'}</span>
+                  </div>
+
+                  {/* Step 2 Pill */}
+                  <div
+                    className={`py-1.5 px-2.5 rounded-[12px] border text-[11px] font-outfit font-bold flex items-center justify-center gap-1.5 transition-all ${
+                      gachaStep === 'spinning_chore'
+                        ? 'bg-[#F4EFEA] dark:bg-[#25221F] border-[#D7CCC8]/40 text-[#8D6E63]/60 dark:text-[#948D87]/60'
+                        : gachaStep === 'chore_selected'
+                        ? 'bg-[#FFF8E1] dark:bg-[#3A3018] border-[#FFD54F] text-[#E65100] animate-bounce'
+                        : gachaStep === 'spinning_multiplier'
+                        ? 'bg-[#FFF3E0] dark:bg-[#3E2514] border-[#FFB74D] text-[#E65100] animate-pulse'
+                        : 'bg-[#E8F5E9] dark:bg-[#1B361E] border-[#81C784]/60 text-[#2E7D32] dark:text-[#A5D6A7]'
+                    }`}
+                  >
+                    <span>
+                      {gachaStep === 'finished'
+                        ? `✓ 2. โบนัส x${spinResult.multiplier}`
+                        : gachaStep === 'spinning_multiplier'
+                        ? '⏳ 2. สุ่มคะแนน...'
+                        : gachaStep === 'chore_selected'
+                        ? '🎰 2. พร้อมสุ่มคะแนน!'
+                        : '2. สุ่มคะแนน'}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Slot Machine Casing */}
-                <div className="relative p-3.5 rounded-[22px] bg-gradient-to-b from-[#4E342E] via-[#3E2723] to-[#2B1B17] border-4 border-[#8D6E63] dark:border-[#5D4037] shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
+                <div className="relative p-3 rounded-[22px] bg-gradient-to-b from-[#4E342E] via-[#3E2723] to-[#2B1B17] border-4 border-[#8D6E63] dark:border-[#5D4037] shadow-[0_6px_22px_rgba(0,0,0,0.35)] space-y-2.5">
                   {/* Top Marquee lights */}
-                  <div className="flex justify-around items-center mb-2 px-2">
-                    {[0, 1, 2, 3, 4].map((i) => (
+                  <div className="flex justify-around items-center px-2">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
                         className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                          !slotStopped
+                          isChoreSpinning || isMultiplierSpinning
                             ? i % 2 === 0
                               ? 'bg-[#FFD54F] shadow-[0_0_8px_#FFD54F]'
                               : 'bg-[#FF5722] shadow-[0_0_8px_#FF5722]'
-                            : 'bg-[#81C784] shadow-[0_0_8px_#81C784]'
+                            : gachaStep === 'finished'
+                            ? 'bg-[#81C784] shadow-[0_0_8px_#81C784]'
+                            : 'bg-[#FFD54F] shadow-[0_0_8px_#FFD54F]'
                         }`}
                       />
                     ))}
                   </div>
 
-                  {/* Payline Viewing Window (Height: 76px) */}
-                  <div className="relative h-[76px] rounded-[16px] bg-white dark:bg-[#141312] border-2 border-[#D7CCC8] dark:border-[#423D39] shadow-inner overflow-hidden flex items-center">
-                    {/* Top & Bottom Vignette Shadow overlays for 3D Roller depth */}
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-4 bg-gradient-to-b from-black/25 to-transparent z-20" />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/25 to-transparent z-20" />
+                  {/* REEL 1: HORIZONTAL CHORE REEL (ไหลจากขวาไปซ้าย) */}
+                  <div>
+                    <div className="flex items-center justify-between px-1 mb-1 text-[10px] font-dm-sans text-[#D7CCC8]">
+                      <span className="font-bold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-[#FFD54F]" />
+                        <span>{language === 'th' ? '1. รายการงานบ้าน' : '1. Household Chore'}</span>
+                      </span>
+                      <span className="text-[#FFD54F] text-[10px]">
+                        {isChoreSpinning
+                          ? (language === 'th' ? 'กำลังหมุน (ขวา ➔ ซ้าย)...' : 'Spinning...')
+                          : (language === 'th' ? 'ล็อคงานแล้ว 🎯' : 'Locked 🎯')}
+                      </span>
+                    </div>
 
-                    {/* Left & Right Payline Pointers */}
-                    <div className="absolute left-1 z-20 text-[#E0533C] text-[10px] font-extrabold animate-pulse">▶</div>
-                    <div className="absolute right-1 z-20 text-[#E0533C] text-[10px] font-extrabold animate-pulse">◀</div>
-
-                    {/* Payline Horizontal Highlight Bar */}
                     <div
-                      className={`absolute inset-x-0 h-[76px] pointer-events-none z-10 transition-all duration-500 ${
-                        slotStopped
-                          ? 'bg-[#FFF9C4]/30 dark:bg-[#FFD54F]/10 border-y-2 border-[#FFB300]'
-                          : 'border-y border-[#FFB74D]/30'
-                      }`}
-                    />
+                      ref={choreViewportRef}
+                      className="relative w-full h-[74px] rounded-[16px] bg-[#1F1714] border-2 border-[#6D4C41] shadow-inner overflow-hidden flex items-center"
+                    >
+                      {/* Left & Right Vignette Shadows for 3D Depth */}
+                      <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#1F1714] via-[#1F1714]/80 to-transparent z-20" />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#1F1714] via-[#1F1714]/80 to-transparent z-20" />
 
-                    {/* REEL 1: CHORE (66% width) */}
-                    <div className="w-[66%] h-[76px] relative overflow-hidden pl-3 pr-1">
+                      {/* Top & Bottom Center Needles / Payline Pointers */}
+                      <div className="pointer-events-none absolute top-0.5 left-1/2 -translate-x-1/2 z-30 text-[#FFD54F] text-[11px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] animate-pulse">
+                        ▼
+                      </div>
+                      <div className="pointer-events-none absolute bottom-0.5 left-1/2 -translate-x-1/2 z-30 text-[#FFD54F] text-[11px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] animate-pulse">
+                        ▲
+                      </div>
+
+                      {/* Center Target Box Frame */}
                       <div
+                        className={`pointer-events-none absolute left-1/2 top-1 bottom-1 -translate-x-1/2 w-[140px] rounded-[12px] border-2 z-10 transition-all duration-300 ${
+                          gachaStep !== 'spinning_chore'
+                            ? 'border-[#FFD54F] bg-[#FFD54F]/15 shadow-[0_0_10px_rgba(255,213,79,0.3)]'
+                            : 'border-[#FFB74D]/60 bg-[#FFB74D]/5'
+                        }`}
+                      />
+
+                      {/* Horizontal Moving Reel Track */}
+                      <div
+                        className="flex items-center gap-[10px] will-change-transform"
                         style={{
-                          transform: `translateY(-${slotReel1Index * 76}px)`,
-                          transition: isSlotSpinning ? 'transform 1.9s cubic-bezier(0.12, 0.82, 0.22, 1)' : 'none',
+                          transform: `translateX(${choreTranslateX}px)`,
+                          transition: isChoreSpinning
+                            ? 'transform 2.6s cubic-bezier(0.12, 0.82, 0.22, 1)'
+                            : 'none',
                         }}
                       >
-                        {slotReel1.map((itemTitle, idx) => (
+                        {choreReel.map((itemTitle, idx) => (
                           <div
                             key={idx}
-                            className="h-[76px] flex items-center justify-center gap-1.5 px-1 text-center"
+                            className="w-[140px] h-[58px] shrink-0 rounded-[12px] bg-gradient-to-b from-[#342721] to-[#251B17] border border-[#5D4037] px-2.5 flex flex-col items-center justify-center text-center shadow-xs select-none"
                           >
-                            <Sparkles className="w-3.5 h-3.5 text-[#E65100] shrink-0" />
-                            <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2] line-clamp-1">
+                            <span className="font-outfit font-bold text-[13px] text-[#F5EBE6] line-clamp-2 leading-tight">
                               {itemTitle}
                             </span>
                           </div>
                         ))}
                       </div>
                     </div>
+                  </div>
 
-                    {/* Vertical Divider */}
-                    <div className="w-[2px] h-full bg-gradient-to-b from-[#D7CCC8]/40 via-[#8D6E63] to-[#D7CCC8]/40 z-10" />
+                  {/* REEL 2: HORIZONTAL MULTIPLIER REEL */}
+                  <div>
+                    <div className="flex items-center justify-between px-1 mb-1 text-[10px] font-dm-sans text-[#D7CCC8]">
+                      <span className="font-bold flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-[#FF7043]" />
+                        <span>{language === 'th' ? '2. โบนัสคะแนนคูณ' : '2. Points Multiplier'}</span>
+                      </span>
+                      <span className="text-[#FFB74D] text-[10px]">
+                        {gachaStep === 'spinning_chore'
+                          ? (language === 'th' ? 'รอสุ่มงานเสร็จก่อน' : 'Waiting...')
+                          : isMultiplierSpinning
+                          ? (language === 'th' ? 'กำลังหมุนสุ่ม...' : 'Spinning...')
+                          : gachaStep === 'finished'
+                          ? (language === 'th' ? `ล็อคแล้ว x${spinResult.multiplier} 🔥` : `Locked x${spinResult.multiplier}`)
+                          : (language === 'th' ? 'กดปุ่มด้านล่างเพื่อหมุน' : 'Press button below')}
+                      </span>
+                    </div>
 
-                    {/* REEL 2: MULTIPLIER (34% width) */}
-                    <div className="w-[34%] h-[76px] relative overflow-hidden pr-3 pl-1">
+                    <div
+                      ref={multiplierViewportRef}
+                      className="relative w-full h-[62px] rounded-[16px] bg-[#1F1714] border-2 border-[#6D4C41] shadow-inner overflow-hidden flex items-center"
+                    >
+                      {/* Left & Right Vignette Shadows */}
+                      <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#1F1714] via-[#1F1714]/80 to-transparent z-20" />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#1F1714] via-[#1F1714]/80 to-transparent z-20" />
+
+                      {/* Top & Bottom Needles */}
+                      <div className="pointer-events-none absolute top-0.5 left-1/2 -translate-x-1/2 z-30 text-[#FFD54F] text-[10px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] animate-pulse">
+                        ▼
+                      </div>
+                      <div className="pointer-events-none absolute bottom-0.5 left-1/2 -translate-x-1/2 z-30 text-[#FFD54F] text-[10px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] animate-pulse">
+                        ▲
+                      </div>
+
+                      {/* Center Target Box Frame */}
                       <div
+                        className={`pointer-events-none absolute left-1/2 top-1 bottom-1 -translate-x-1/2 w-[84px] rounded-[12px] border-2 z-10 transition-all duration-300 ${
+                          gachaStep === 'finished'
+                            ? 'border-[#FFD54F] bg-[#FFD54F]/20 shadow-[0_0_12px_rgba(255,213,79,0.4)]'
+                            : 'border-[#FFB74D]/50 bg-[#FFB74D]/5'
+                        }`}
+                      />
+
+                      {/* Multiplier Moving Track */}
+                      <div
+                        className="flex items-center gap-[8px] will-change-transform"
                         style={{
-                          transform: `translateY(-${slotReel2Index * 76}px)`,
-                          transition: isSlotSpinning ? 'transform 2.6s cubic-bezier(0.15, 0.85, 0.2, 1)' : 'none',
+                          transform: `translateX(${multiplierTranslateX}px)`,
+                          transition: isMultiplierSpinning
+                            ? 'transform 2.2s cubic-bezier(0.12, 0.82, 0.22, 1)'
+                            : 'none',
                         }}
                       >
-                        {slotReel2.map((mult, idx) => (
+                        {multiplierReel.map((mult, idx) => (
                           <div
                             key={idx}
-                            className="h-[76px] flex items-center justify-center"
+                            className="w-[84px] h-[48px] shrink-0 rounded-[12px] bg-gradient-to-b from-[#342721] to-[#251B17] border border-[#5D4037] flex items-center justify-center shadow-xs select-none"
                           >
                             <span
-                              className={`font-outfit font-extrabold text-[22px] px-2 py-0.5 rounded-full ${
+                              className={`font-outfit font-extrabold text-[19px] px-2.5 py-0.5 rounded-full ${
                                 mult >= 5
-                                  ? 'text-[#C62828] bg-[#FFEBEE] dark:bg-[#3E1B1B]'
+                                  ? 'text-[#FF5252] bg-[#FFEBEE]/15'
                                   : mult >= 3
-                                  ? 'text-[#E65100] bg-[#FFF3E0] dark:bg-[#3D2517]'
-                                  : 'text-[#2E7D32] bg-[#E8F5E9] dark:bg-[#1B361E]'
+                                  ? 'text-[#FFB74D] bg-[#FFF3E0]/15'
+                                  : 'text-[#81C784] bg-[#E8F5E9]/15'
                               }`}
                             >
                               x{mult}
@@ -1871,21 +2044,82 @@ function RewardsPageContent() {
                   </div>
 
                   {/* Slot Machine Bottom Base */}
-                  <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-[#D7CCC8]">
-                    <span className="flex items-center gap-1">
+                  <div className="pt-0.5 flex items-center justify-between px-1 text-[10px] text-[#D7CCC8]">
+                    <span className="flex items-center gap-1 font-outfit">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#FFD54F]" />
-                      <span>{isSlotSpinning && !slotStopped ? 'SPINNING...' : 'PAYLINE'}</span>
+                      <span>{gachaStep === 'finished' ? 'COMPLETE' : 'BOBBIES SLOT'}</span>
                     </span>
                     <span className="font-outfit font-bold tracking-wider text-[#FFD54F]">
-                      BOBBIES SLOTS
+                      2-STEP GACHA
                     </span>
                   </div>
                 </div>
 
-                {/* Result Callout (Revealed when slotStopped is true) */}
-                {slotStopped ? (
+                {/* ======================================================= */}
+                {/* STEP-DEPENDENT INTERACTION CONTENT                      */}
+                {/* ======================================================= */}
+
+                {/* 1. WHILE SPINNING CHORE */}
+                {gachaStep === 'spinning_chore' && (
+                  <div className="py-2 flex flex-col items-center justify-center gap-1 animate-pulse">
+                    <span className="font-outfit font-bold text-[14px] text-[#E65100]">
+                      🎰 {language === 'th' ? 'กำลังหมุนเลือกงานบ้าน (ไหลจากขวาไปซ้าย)...' : 'Rolling Chores Right to Left...'}
+                    </span>
+                    <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                      {language === 'th' ? 'รอดูว่าวันนี้จะได้งานบ้านชิ้นไหน!' : 'Wait to see which chore you get!'}
+                    </span>
+                  </div>
+                )}
+
+                {/* 2. CHORE SELECTED: PROMPT BUTTON TO SPIN MULTIPLIER */}
+                {gachaStep === 'chore_selected' && (
+                  <div className="space-y-2.5 animate-scale-up">
+                    <div className="p-2.5 rounded-[16px] bg-[#FFF8E1] dark:bg-[#2A2318] border border-[#FFE082] dark:border-[#534323] text-center">
+                      <div className="text-[11px] font-dm-sans font-bold text-[#8D6E63] dark:text-[#A8988B]">
+                        {language === 'th' ? '🎯 งานบ้านที่คุณได้รับคือ:' : '🎯 Selected Chore:'}
+                      </div>
+                      <div className="font-outfit font-extrabold text-[16px] text-[#5D4037] dark:text-[#F5EBE6] mt-0.5 line-clamp-1">
+                        {spinResult.chore_title}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleStartMultiplierSpin}
+                      className="w-full py-3 px-4 rounded-[18px] bg-gradient-to-r from-[#E65100] via-[#F57C00] to-[#FFA000] text-white font-outfit font-black text-[14px] sm:text-[15px] shadow-[0_5px_18px_rgba(230,81,0,0.45)] hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 animate-bounce"
+                    >
+                      <Sparkles className="w-4 h-4 text-[#FFF9C4]" />
+                      <span>
+                        {language === 'th'
+                          ? '🎰 กดเพื่อเริ่มสุ่มโบนัสคะแนน! (x2, x3, x5)'
+                          : '🎰 Press to Spin Bonus Points!'}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[#FFF9C4]" />
+                    </button>
+                    <p className="text-[10.5px] font-dm-sans text-[#8D6E63] dark:text-[#948D87]">
+                      {language === 'th'
+                        ? 'กดปุ่มด้านบนเพื่อหมุนสล็อตลุ้นตัวคูณคะแนน'
+                        : 'Tap the button above to roll the multiplier reel'}
+                    </p>
+                  </div>
+                )}
+
+                {/* 3. WHILE SPINNING MULTIPLIER */}
+                {gachaStep === 'spinning_multiplier' && (
+                  <div className="py-2 flex flex-col items-center justify-center gap-1 animate-pulse">
+                    <span className="font-outfit font-bold text-[14px] text-[#E65100]">
+                      🔥 {language === 'th' ? 'กำลังสุ่มโบนัสคะแนน...' : 'Rolling Points Multiplier...'}
+                    </span>
+                    <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                      {language === 'th' ? 'ขอให้ได้ x5 นะ ลุ้นกันเลย!' : 'Hoping for x5 multiplier!'}
+                    </span>
+                  </div>
+                )}
+
+                {/* 4. FINISHED: CELEBRATION RESULT CARD */}
+                {gachaStep === 'finished' && (
                   <div className="space-y-3 animate-scale-up">
-                    <div>
+                    <div className="p-3 rounded-[20px] bg-gradient-to-b from-[#FFFDE7]/80 to-[#FFF8E1]/80 dark:from-[#25201B] dark:to-[#1F1B17] border border-[#FFE082] dark:border-[#534323] shadow-xs">
                       <span
                         className={`font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
                           spinResult.isTest
@@ -1898,7 +2132,7 @@ function RewardsPageContent() {
                           : (language === 'th' ? '🎉 ยินดีด้วย! คุณได้รับโบนัส' : '🎉 Congratulations!')}
                       </span>
 
-                      <h4 className="font-outfit text-[19px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-1.5">
+                      <h4 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-1.5">
                         {spinResult.chore_title}
                       </h4>
 
@@ -1906,7 +2140,7 @@ function RewardsPageContent() {
                         <span className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87]">
                           {language === 'th' ? 'โบนัสคะแนนคูณ:' : 'Points Multiplier:'}
                         </span>
-                        <span className="font-outfit font-extrabold text-[22px] text-[#E65100] animate-bounce">
+                        <span className="font-outfit font-extrabold text-[24px] text-[#E65100] animate-bounce">
                           x{spinResult.multiplier} 🔥
                         </span>
                       </div>
@@ -1946,15 +2180,6 @@ function RewardsPageContent() {
                         {language === 'th' ? '🎉 เยี่ยมเลย รับทราบ!' : 'Got it!'}
                       </button>
                     )}
-                  </div>
-                ) : (
-                  <div className="py-2 flex flex-col items-center justify-center gap-1.5 animate-pulse">
-                    <span className="font-outfit font-bold text-[14px] text-[#E65100]">
-                      🎰 {language === 'th' ? 'กำลังหมุนสล็อตลุ้นโบนัส...' : 'Rolling Reels...'}
-                    </span>
-                    <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                      {language === 'th' ? 'ขอให้ได้ตัวคูณ x5 นะ!' : 'Aiming for x5 multiplier!'}
-                    </span>
                   </div>
                 )}
               </div>
