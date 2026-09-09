@@ -145,9 +145,6 @@ export default function HouseholdSettingsPage() {
     }
   };
 
-  // Calculate total household points
-  const totalHouseholdPoints = members.reduce((sum, m) => sum + (m.chore_points || 0), 0);
-
   // Log Out
   const handleLogout = async () => {
     document.cookie = 'homie_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -351,24 +348,14 @@ export default function HouseholdSettingsPage() {
         {/* 2. HOUSEHOLD MEMBERS & POINTS CARD                       */}
         {/* ======================================================== */}
         <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-[10px] bg-[#E0533C] text-white flex items-center justify-center shadow-xs">
-                <Users className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
-                  {language === 'th' ? 'สมาชิกในบ้าน & คะแนนสะสม' : 'Members & Points'}
-                </h3>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-[10px] bg-[#E0533C] text-white flex items-center justify-center shadow-xs">
+              <Users className="w-4 h-4" />
             </div>
-
-            {/* Total Household Points Pill */}
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#FFF8E1] dark:bg-[#2A2318] border border-[#FFE082] dark:border-[#534323] rounded-full">
-              <Star className="w-3.5 h-3.5 text-[#FFB300] fill-[#FFB300]" />
-              <span className="font-outfit font-extrabold text-[12px] text-[#E65100]">
-                {totalHouseholdPoints} {language === 'th' ? 'คะแนนรวม' : 'pts total'}
-              </span>
+            <div>
+              <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
+                {language === 'th' ? 'สมาชิกในบ้าน & คะแนนสะสม' : 'Members & Points'}
+              </h3>
             </div>
           </div>
 
