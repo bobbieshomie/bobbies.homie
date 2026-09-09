@@ -4,22 +4,33 @@ import React, { useState, useEffect } from 'react';
 import { AppLoading } from './app-loading';
 
 export function AppSplash() {
-  const [mounted, setMounted] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const [isFading, setIsFading] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    // Give enough time for the pleasant branded opening impression (650ms)
-    const timer = setTimeout(() => {
-      setIsFading(true);
-      const hideTimer = setTimeout(() => {
-        setShowSplash(false);
-      }, 400); // match transition duration
-      return () => clearTimeout(hideTimer);
-    }, 650);
+    try {
+      // Check if the user already saw the splash during this session
+      const alreadyOpened = sessionStorage.getItem('homie_app_opened');
+      if (alreadyOpened) {
+        return;
+      }
+      
+      // First time opening the app in this session
+      sessionStorage.setItem('homie_app_opened', 'true');
+      setShowSplash(true);
 
-    return () => clearTimeout(timer);
+      const timer = setTimeout(() => {
+        setIsFading(true);
+        const hideTimer = setTimeout(() => {
+          setShowSplash(false);
+        }, 400); // match transition duration
+        return () => clearTimeout(hideTimer);
+      }, 750);
+
+      return () => clearTimeout(timer);
+    } catch {
+      // safe fallback if storage is restricted
+    }
   }, []);
 
   if (!showSplash) return null;

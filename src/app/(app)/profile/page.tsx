@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Star
 } from 'lucide-react';
+import { AppLoading } from '@/components/ui/app-loading';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { useTheme } from '@/lib/theme/theme-context';
@@ -54,6 +55,7 @@ export default function AccountPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,6 +154,10 @@ export default function AccountPage() {
 
   // Log Out
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      sessionStorage.removeItem('homie_app_opened');
+    } catch {}
     document.cookie = 'homie_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     try {
       const supabase = createClient();
@@ -159,8 +165,10 @@ export default function AccountPage() {
     } catch {
       // safe fallback
     }
-    router.push('/login');
-    router.refresh();
+    setTimeout(() => {
+      router.push('/login');
+      router.refresh();
+    }, 750);
   };
 
   return (
@@ -417,6 +425,14 @@ export default function AccountPage() {
           </button>
         </div>
       </div>
+
+      {isLoggingOut && (
+        <AppLoading 
+          message={language === 'th' ? 'กำลังออกจากระบบ...' : 'Logging out...'} 
+          subMessage={language === 'th' ? 'แล้วพบกันใหม่นะ' : 'See you next time'} 
+          isFullScreen={true} 
+        />
+      )}
     </div>
   );
 }

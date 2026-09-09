@@ -21,6 +21,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { Crown as IconoirCrown } from 'iconoir-react';
+import { AppLoading } from '@/components/ui/app-loading';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { createClient } from '@/lib/supabase/client';
@@ -56,6 +57,7 @@ export default function HouseholdSettingsPage() {
   // Status feedback
   const [copiedCode, setCopiedCode] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // 1. Load active user, household & members data
   useEffect(() => {
@@ -147,6 +149,10 @@ export default function HouseholdSettingsPage() {
 
   // Log Out
   const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      sessionStorage.removeItem('homie_app_opened');
+    } catch {}
     document.cookie = 'homie_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     try {
       const supabase = createClient();
@@ -154,8 +160,10 @@ export default function HouseholdSettingsPage() {
     } catch {
       // safe fallback
     }
-    router.push('/login');
-    router.refresh();
+    setTimeout(() => {
+      router.push('/login');
+      router.refresh();
+    }, 750);
   };
 
   return (
@@ -398,10 +406,10 @@ export default function HouseholdSettingsPage() {
                           </div>
                           {isHouseLeader && (
                             <div 
-                              className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-gradient-to-tr from-[#FFB300] to-[#FFE082] text-[#5D4037] flex items-center justify-center shadow-xs ring-1.5 ring-white dark:ring-[#141312]"
+                              className="absolute -top-2.5 -right-1.5 pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]"
                               title={language === 'th' ? 'หัวหน้าบ้าน' : 'Head of Household'}
                             >
-                              <IconoirCrown className="w-2.5 h-2.5 text-[#5D4037]" width="10" height="10" strokeWidth={2.4} />
+                              <IconoirCrown className="w-5 h-5 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/25" width="20" height="20" strokeWidth={2} />
                             </div>
                           )}
                         </div>
@@ -411,12 +419,6 @@ export default function HouseholdSettingsPage() {
                             <h4 className="font-outfit font-bold text-[14.5px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
                               {m.nickname || m.full_name}
                             </h4>
-                            {isHouseLeader && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0">
-                                <IconoirCrown className="w-2.5 h-2.5" width="10" height="10" strokeWidth={2.4} />
-                                {language === 'th' ? 'หัวหน้าบ้าน' : 'Head'}
-                              </span>
-                            )}
                             {isMe && (
                               <span className="text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0">
                                 {language === 'th' ? 'คุณ' : 'You'}
@@ -429,9 +431,7 @@ export default function HouseholdSettingsPage() {
                             </p>
                           ) : (
                             <p className="font-dm-sans text-[11px] text-[#8D6E63]/70 dark:text-[#948D87]/70 truncate mt-0.5">
-                              {isHouseLeader
-                                ? (language === 'th' ? 'หัวหน้าบ้าน' : 'Head of Household')
-                                : (language === 'th' ? 'สมาชิกในบ้าน' : 'Household Member')}
+                              {language === 'th' ? 'สมาชิกในบ้าน' : 'Household Member'}
                             </p>
                           )}
                         </div>
@@ -506,6 +506,14 @@ export default function HouseholdSettingsPage() {
           </button>
         </div>
       </div>
+
+      {isLoggingOut && (
+        <AppLoading 
+          message={language === 'th' ? 'กำลังออกจากระบบ...' : 'Logging out...'} 
+          subMessage={language === 'th' ? 'แล้วพบกันใหม่นะ' : 'See you next time'} 
+          isFullScreen={true} 
+        />
+      )}
     </div>
   );
 }
