@@ -326,39 +326,40 @@ export default function ChoresPage() {
         )}
 
         {/* Top Header Bar */}
-        <div className="px-6 flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Link
-              href="/dashboard"
-              className="w-9 h-9 rounded-[14px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2] hover:opacity-80 transition-all shrink-0"
-              aria-label="Back to dashboard"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
+        <div className="px-6 mb-3">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                href="/dashboard"
+                className="w-9 h-9 rounded-[14px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2] hover:opacity-80 transition-all shrink-0"
+                aria-label="Back to dashboard"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Link>
 
-            <div>
-              <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
-                <CheckSquare className="w-5 h-5 text-[#2E7D32]" />
-                <span>{language === 'th' ? 'งานบ้าน' : 'Chores'}</span>
+              <h1 className="font-outfit font-bold text-[22px] sm:text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2 truncate">
+                <CheckSquare className="w-5 h-5 text-[#2E7D32] shrink-0" />
+                <span className="truncate">{language === 'th' ? 'งานบ้าน' : 'Chores'}</span>
               </h1>
-              <p className="font-dm-sans text-[13px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
-                {language === 'th' ? 'ช่วยกันดูแลบ้านให้สะอาดน่าอยู่' : 'Keeping our home cozy and clean'}
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Quick Link to Rewards Shop */}
+              <Link
+                href="/rewards"
+                className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
+              >
+                <Gift className="w-3.5 h-3.5 text-[#E0533C]" />
+                <span>{language === 'th' ? 'ร้านค้า' : 'Shop'}</span>
+              </Link>
+
+              <NotificationBell />
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Quick Link to Rewards Shop */}
-            <Link
-              href="/rewards"
-              className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
-            >
-              <Gift className="w-3.5 h-3.5 text-[#E0533C]" />
-              <span>{language === 'th' ? 'ร้านค้า' : 'Shop'}</span>
-            </Link>
-
-            <NotificationBell />
-          </div>
+          <p className="font-dm-sans text-[12.5px] leading-normal text-[#8D6E63] dark:text-[#948D87] pl-0.5">
+            {language === 'th' ? 'ช่วยกันดูแลบ้านให้สะอาดน่าอยู่' : 'Keeping our home cozy and clean'}
+          </p>
         </div>
 
         {/* ======================================================== */}

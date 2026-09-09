@@ -460,19 +460,19 @@ export default function HouseholdSettingsPage() {
                           )}
                         </div>
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <h4 className="font-outfit font-bold text-[14.5px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
                               {m.nickname || m.full_name}
                             </h4>
                             {isMe && (
-                              <span className="text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              <span className="text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0">
                                 {language === 'th' ? 'คุณ' : 'You'}
                               </span>
                             )}
                           </div>
                           {m.bio ? (
-                            <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate max-w-[160px] mt-0.5">
+                            <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
                               {m.bio}
                             </p>
                           ) : (

@@ -633,16 +633,16 @@ export default function CalendarPage() {
 
       {/* Unified Household Banner */}
       <div className="px-6 py-2.5">
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px]">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white flex items-center justify-center">
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[16px] gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-7 h-7 rounded-full bg-[#5D4037] dark:bg-[#6E544A] text-white flex items-center justify-center shrink-0">
               <Users className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <span className="text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] block leading-tight">
+            <div className="min-w-0 flex-1">
+              <span className="text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] block leading-tight truncate">
                 {language === 'th' ? 'กิจกรรมรวมในบ้าน' : 'Household Shared Calendar'}
               </span>
-              <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
+              <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87] block truncate">
                 {householdMembers.length > 0 
                   ? `${householdMembers.length} ${language === 'th' ? 'คนในบ้าน' : 'members'}` 
                   : (language === 'th' ? 'คนในบ้าน' : 'members')}
@@ -652,7 +652,7 @@ export default function CalendarPage() {
           <button
             type="button"
             onClick={() => setIsAddEventOpen(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#5D4037] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white text-[11px] font-semibold rounded-[10px] shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#5D4037] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white text-[11px] font-semibold rounded-[10px] shadow-xs transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
             {t.calendar.addEvent}

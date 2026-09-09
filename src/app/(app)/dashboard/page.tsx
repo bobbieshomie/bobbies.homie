@@ -286,11 +286,11 @@ export default function DashboardPage() {
         {/* header */}
         <header className="header box-border flex flex-col items-start px-6 pt-5 pb-0 gap-3 w-full bg-transparent flex-none order-0 self-stretch flex-grow-0">
           <div className="flex flex-row justify-between items-center p-0 w-full">
-            <div className="welcome-text flex flex-col items-start p-0 gap-1 flex-1">
-              <span className="font-dm-sans font-medium text-[13px] leading-[17px] text-[#8D6E63] dark:text-[#948D87] tracking-wide">
+            <div className="welcome-text flex flex-col items-start p-0 gap-0.5 flex-1 min-w-0 pr-2">
+              <span className="font-dm-sans font-medium text-[12.5px] leading-[17px] text-[#8D6E63] dark:text-[#948D87] tracking-wide truncate w-full">
                 {formatCurrentDate()}
               </span>
-              <h1 className="font-outfit font-extrabold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2]">
+              <h1 className="font-outfit font-extrabold text-[22px] sm:text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] truncate w-full">
                 {greeting}, {profile.myNickname || profile.name}!
               </h1>
             </div>
