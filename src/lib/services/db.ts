@@ -994,6 +994,18 @@ export async function fetchMyActiveGachaSpin(userId: string): Promise<DbChoreGac
   return data as DbChoreGachaSpin | null;
 }
 
+export async function resetMyWeeklyGachaSpin(userId: string): Promise<boolean> {
+  const supabase = createClient();
+  const currentWeek = getWeekIdentifier();
+  const { error } = await (supabase as any)
+    .from('chore_gacha_spins')
+    .delete()
+    .eq('user_id', userId)
+    .eq('week_identifier', currentWeek);
+
+  return !error;
+}
+
 export async function spinChoreGacha(params: {
   householdId: string;
   userId: string;

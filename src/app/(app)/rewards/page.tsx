@@ -54,6 +54,7 @@ import {
   fetchChoreGachaSpins,
   fetchMyActiveGachaSpin,
   spinChoreGacha,
+  resetMyWeeklyGachaSpin,
   type DbChore,
   type DbChoreReward,
   type DbRewardRedemption,
@@ -129,7 +130,7 @@ function RewardsPageContent() {
   const [isGachaModalOpen, setIsGachaModalOpen] = useState(false);
   const [isGachaHistoryModalOpen, setIsGachaHistoryModalOpen] = useState(false);
   const [isSpinningGacha, setIsSpinningGacha] = useState(false);
-  const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number } | null>(null);
+  const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number; isTest?: boolean } | null>(null);
 
   // Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -324,6 +325,40 @@ function RewardsPageContent() {
       alert(err?.message || 'Error spinning');
     } finally {
       setIsSpinningGacha(false);
+    }
+  };
+
+  // Test Gacha Spin (Bypasses points and weekly restriction for testing)
+  const handleTestSpinGacha = () => {
+    setIsSpinningGacha(true);
+    setTimeout(() => {
+      const sampleChores =
+        chores.length > 0
+          ? chores.map((c) => c.title)
+          : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า'];
+      const pickedChoreTitle = sampleChores[Math.floor(Math.random() * sampleChores.length)];
+      const multipliers = [2, 2, 3, 3, 5];
+      const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
+
+      setSpinResult({
+        chore_title: pickedChoreTitle,
+        multiplier: pickedMultiplier,
+        isTest: true,
+      });
+      setIsGachaModalOpen(true);
+      setIsSpinningGacha(false);
+    }, 450);
+  };
+
+  // Reset Weekly Spin Cooldown (for testing the production spin button again)
+  const handleResetWeeklyGacha = async () => {
+    if (!currentUserId) return;
+    try {
+      await resetMyWeeklyGachaSpin(currentUserId);
+      showToast(language === 'th' ? 'รีเซ็ตสิทธิ์สุ่มสัปดาห์นี้เรียบร้อย (พร้อมสุ่มใหม่)' : 'Weekly spin reset');
+      await loadData();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to reset');
     }
   };
 
@@ -801,12 +836,22 @@ function RewardsPageContent() {
 
               <div className="flex items-center gap-1.5 shrink-0">
                 {activeGachaSpin ? (
-                  <button
-                    onClick={() => setIsGachaHistoryModalOpen(true)}
-                    className="font-outfit px-2.5 py-1.5 rounded-[10px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[12px] font-bold cursor-pointer hover:opacity-90"
-                  >
-                    x{activeGachaSpin.multiplier}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setIsGachaHistoryModalOpen(true)}
+                      className="font-outfit px-2.5 py-1.5 rounded-[10px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[12px] font-bold cursor-pointer hover:opacity-90"
+                      title={language === 'th' ? 'ดูประวัติการสุ่ม' : 'View spin history'}
+                    >
+                      x{activeGachaSpin.multiplier}
+                    </button>
+                    <button
+                      onClick={handleResetWeeklyGacha}
+                      className="font-dm-sans p-1.5 rounded-[10px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] hover:text-[#C62828] text-[11px] font-bold cursor-pointer transition-colors"
+                      title={language === 'th' ? 'รีเซ็ตสิทธิ์สุ่มสัปดาห์นี้ (สำหรับเทสระบบ)' : 'Reset weekly cooldown'}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     onClick={handleSpinGacha}
@@ -827,6 +872,17 @@ function RewardsPageContent() {
                     )}
                   </button>
                 )}
+
+                {/* TEST GACHA BUTTON */}
+                <button
+                  onClick={handleTestSpinGacha}
+                  disabled={isSpinningGacha}
+                  className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#FFF3E0] dark:bg-[#2F261E] border border-[#FFB74D]/60 text-[#E65100] dark:text-[#FFB74D] text-[11px] font-bold flex items-center gap-1 hover:bg-[#FFE0B2] transition-colors cursor-pointer shadow-2xs"
+                  title={language === 'th' ? 'ทดสอบระบบสุ่มกล่องปริศนา (ไม่หักคะแนน / สุ่มได้ไม่จำกัด)' : 'Test spin (No points deducted)'}
+                >
+                  <Sparkles className="w-3 h-3 text-[#E65100]" />
+                  <span>{language === 'th' ? 'เทสสุ่ม' : 'Test'}</span>
+                </button>
               </div>
             </div>
 
@@ -1498,8 +1554,16 @@ function RewardsPageContent() {
               </div>
 
               <div>
-                <span className="font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#E0533C]/10 text-[#E0533C]">
-                  {language === 'th' ? 'ผลการสุ่มกล่องปริศนา!' : 'Mystery Box Result!'}
+                <span
+                  className={`font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                    spinResult.isTest
+                      ? 'bg-[#FFF3E0] text-[#E65100] border border-[#FFB74D]/40'
+                      : 'bg-[#E0533C]/10 text-[#E0533C]'
+                  }`}
+                >
+                  {spinResult.isTest
+                    ? (language === 'th' ? '🧪 ผลการทดสอบสุ่ม (Test Mode)' : '🧪 Test Spin Result')
+                    : (language === 'th' ? 'ผลการสุ่มกล่องปริศนา!' : 'Mystery Box Result!')}
                 </span>
                 <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-2">
                   {spinResult.chore_title}
@@ -1513,18 +1577,40 @@ function RewardsPageContent() {
                   </span>
                 </div>
                 <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-2">
-                  {language === 'th'
-                    ? 'เมื่อทำงานบ้านนี้เสร็จ คะแนนจะถูกคูณตามโบนัสนี้ทันที!'
-                    : 'Complete this chore this week to earn multiplied bonus points!'}
+                  {spinResult.isTest
+                    ? (language === 'th'
+                        ? 'โหมดทดสอบ: ไม่มีการหักคะแนน และไม่มีการจำกัดโควต้าสัปดาห์'
+                        : 'Test Mode: No points deducted and no weekly limit.')
+                    : (language === 'th'
+                        ? 'เมื่อทำงานบ้านนี้เสร็จ คะแนนจะถูกคูณตามโบนัสนี้ทันที!'
+                        : 'Complete this chore this week to earn multiplied bonus points!')}
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsGachaModalOpen(false)}
-                className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white font-dm-sans text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer"
-              >
-                {language === 'th' ? 'รับทราบ' : 'Got it!'}
-              </button>
+              {spinResult.isTest ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleTestSpinGacha}
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#5D4037] dark:text-[#DDD7D2] font-dm-sans text-[12px] font-bold hover:bg-[#D7CCC8]/40 transition-all cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{language === 'th' ? 'เทสสุ่มอีกรอบ' : 'Spin Again'}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsGachaModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold hover:opacity-90 transition-all cursor-pointer"
+                  >
+                    {language === 'th' ? 'ปิด' : 'Close'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsGachaModalOpen(false)}
+                  className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white font-dm-sans text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer"
+                >
+                  {language === 'th' ? 'รับทราบ' : 'Got it!'}
+                </button>
+              )}
             </div>
           </div>
         )}
