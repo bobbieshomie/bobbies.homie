@@ -797,7 +797,7 @@ export default function FinancesPage() {
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder={t.finances.expenseTitlePlaceholder}
+                  placeholder={language === 'th' ? 'ชื่อรายการ' : 'Item Name'}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
@@ -813,7 +813,7 @@ export default function FinancesPage() {
                   min="0.01"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="0.00"
+                  placeholder={t.finances.amount}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
@@ -989,7 +989,7 @@ export default function FinancesPage() {
                   min="0.01"
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
-                  placeholder="0.00"
+                  placeholder={language === 'th' ? 'จำนวนเงินที่โอน' : 'Transfer Amount'}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
@@ -1003,7 +1003,7 @@ export default function FinancesPage() {
                   type="text"
                   value={transferNote}
                   onChange={(e) => setTransferNote(e.target.value)}
-                  placeholder={language === 'th' ? 'เช่น ชำระค่าเช่าเดือนนี้' : 'e.g. Rent payment'}
+                  placeholder={language === 'th' ? 'หมายเหตุ' : 'Note'}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>

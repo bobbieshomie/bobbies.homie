@@ -1666,7 +1666,7 @@ function RewardsPageContent() {
                     required
                     value={rewardTitle}
                     onChange={(e) => setRewardTitle(e.target.value)}
-                    placeholder={t.chores.rewardTitlePlaceholder}
+                    placeholder={t.chores.rewardTitle}
                     className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] font-dm-sans text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
@@ -1679,7 +1679,7 @@ function RewardsPageContent() {
                     type="text"
                     value={rewardDesc}
                     onChange={(e) => setRewardDesc(e.target.value)}
-                    placeholder="เช่น ร้านประจำแถวบ้าน, ไม่เกิน 200 บ."
+                    placeholder={t.chores.rewardDesc}
                     className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] font-dm-sans text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
@@ -1695,6 +1695,7 @@ function RewardsPageContent() {
                     required
                     value={rewardCost}
                     onChange={(e) => setRewardCost(Number(e.target.value))}
+                    placeholder={t.chores.pointsCost}
                     className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] font-outfit font-bold focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>

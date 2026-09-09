@@ -487,7 +487,7 @@ export default function ShoppingPage() {
                   required
                   value={listTitle}
                   onChange={(e) => setListTitle(e.target.value)}
-                  placeholder={language === 'th' ? 'เช่น ซื้อของสดเข้าตู้เย็น' : 'e.g. Weekly Groceries'}
+                  placeholder={language === 'th' ? 'หัวข้อลิสต์ซื้อของ' : 'List Title'}
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
@@ -506,14 +506,14 @@ export default function ShoppingPage() {
                 </div>
 
                 <div className="min-w-0">
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] mb-1">
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
                     {language === 'th' ? 'สถานที่ / ร้านค้า' : 'Store / Location'}
                   </label>
                   <input
                     type="text"
                     value={listLocation}
                     onChange={(e) => setListLocation(e.target.value)}
-                    placeholder={language === 'th' ? 'เช่น Lotus, ตลาด' : 'e.g. Supermarket'}
+                    placeholder={language === 'th' ? 'สถานที่ / ร้านค้า' : 'Store / Location'}
                     className="w-full max-w-full box-border px-3 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037] block"
                   />
                 </div>
@@ -553,14 +553,14 @@ export default function ShoppingPage() {
                           type="text"
                           value={item.title}
                           onChange={(e) => handleUpdateBatchRow(item.id, 'title', e.target.value)}
-                          placeholder={listTitle.trim() || (language === 'th' ? 'ชื่อของ' : 'Item name')}
+                          placeholder={language === 'th' ? 'ชื่อของ' : 'Item name'}
                           className="flex-1 px-3 py-2 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[12px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/50 focus:outline-none focus:border-[#5D4037]"
                         />
                         <input
                           type="text"
                           value={item.quantity}
                           onChange={(e) => handleUpdateBatchRow(item.id, 'quantity', e.target.value)}
-                          placeholder="-"
+                          placeholder={language === 'th' ? 'จำนวน' : 'Qty'}
                           className="w-14 px-2.5 py-2 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[12px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] text-center placeholder-[#8D6E63]/50 focus:outline-none focus:border-[#5D4037]"
                         />
                         <button

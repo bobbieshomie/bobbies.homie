@@ -248,7 +248,7 @@ export default function HouseholdSettingsPage() {
                     value={tempHouseholdName}
                     onChange={(e) => setTempHouseholdName(e.target.value)}
                     className="flex-1 px-3.5 py-2 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#5D4037] dark:border-[#D7CCC8] rounded-[14px] text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none"
-                    placeholder={language === 'th' ? 'ชื่อบ้าน...' : 'Household name...'}
+                    placeholder={language === 'th' ? 'ชื่อบ้าน' : 'Household Name'}
                   />
                   <button
                     type="submit"

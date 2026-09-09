@@ -519,7 +519,7 @@ function CreatePageContent() {
                   required
                   value={shopListTitle}
                   onChange={(e) => setShopListTitle(e.target.value)}
-                  placeholder={language === 'th' ? 'เช่น ของสดสัปดาห์นี้, ของใช้เข้าบ้าน' : 'e.g. Weekly Groceries, Kitchen Restock'}
+                  placeholder={language === 'th' ? 'หัวข้อรายการซื้อของ' : 'Shopping List Title'}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                 />
               </div>
@@ -544,7 +544,7 @@ function CreatePageContent() {
                     type="text"
                     value={shopListLocation}
                     onChange={(e) => setShopListLocation(e.target.value)}
-                    placeholder={language === 'th' ? 'เช่น Tops, Lotus' : 'e.g. Market, Mart'}
+                    placeholder={language === 'th' ? 'สถานที่' : 'Location'}
                     className="w-full px-3 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
@@ -574,14 +574,14 @@ function CreatePageContent() {
                         required
                         value={item.title}
                         onChange={(e) => handleUpdateShoppingItem(idx, 'title', e.target.value)}
-                        placeholder={language === 'th' ? `สินค้าชิ้นที่ ${idx + 1}` : `Item #${idx + 1}`}
+                        placeholder={language === 'th' ? 'ชื่อของ' : 'Item name'}
                         className="flex-1 px-2.5 py-1.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[10px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                       />
                       <input
                         type="text"
                         value={item.quantity}
                         onChange={(e) => handleUpdateShoppingItem(idx, 'quantity', e.target.value)}
-                        placeholder="จำนวน"
+                        placeholder={language === 'th' ? 'จำนวน' : 'Quantity'}
                         className="w-16 px-2 py-1.5 bg-white dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[10px] text-[12px] text-center text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                       />
                       {shopItems.length > 1 && (
@@ -962,7 +962,7 @@ function CreatePageContent() {
                       required
                       value={petLogTitle}
                       onChange={(e) => setPetLogTitle(e.target.value)}
-                      placeholder={language === 'th' ? 'เช่น ฉีดวัคซีนพิษสุนัขบ้า, อาบน้ำตัดขน' : 'e.g. Rabies Vaccine, Grooming'}
+                      placeholder={language === 'th' ? 'หัวข้อการดูแล' : 'Care Task'}
                       className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037]"
                     />
                   </div>
@@ -1076,6 +1076,7 @@ function CreatePageContent() {
                   min={1}
                   value={chorePoints}
                   onChange={(e) => setChorePoints(parseInt(e.target.value) || 10)}
+                  placeholder={t.create.points}
                   className="w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none focus:border-[#5D4037]"
                 />
               </div>

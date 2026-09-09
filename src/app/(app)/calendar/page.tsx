@@ -494,7 +494,7 @@ export default function CalendarPage() {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={language === 'th' ? 'เช่น ซื้อของ, นัดหมอ, ไปเที่ยว...' : 'e.g. Buy groceries, Doctor appointment...'}
+            placeholder={language === 'th' ? 'ชื่อโน้ต / กิจกรรม' : 'Note / Event Title'}
             className="w-full pl-9 pr-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/50 focus:outline-none focus:border-[#5D4037]"
           />
         </div>
@@ -525,7 +525,7 @@ export default function CalendarPage() {
             type="text"
             value={otherText}
             onChange={(e) => setOtherText(e.target.value)}
-            placeholder={language === 'th' ? 'ระบุประเภท เช่น นัดหมอ, วันเกิด...' : 'Specify type e.g. Doctor, Birthday...'}
+            placeholder={language === 'th' ? 'ระบุประเภท' : 'Specify type'}
             className="mt-2 w-full px-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/50 focus:outline-none focus:border-[#5D4037]"
           />
         )}
@@ -579,7 +579,7 @@ export default function CalendarPage() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder={t.calendar.locationPlaceholder}
+            placeholder={language === 'th' ? 'สถานที่' : 'Location'}
             className="w-full pl-9 pr-3.5 py-2.5 bg-[#F4EFEA] dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/50 focus:outline-none focus:border-[#5D4037]"
           />
         </div>

@@ -279,7 +279,7 @@ export default function AccountPage() {
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                placeholder={language === 'th' ? 'ชื่อเล่น' : 'Nickname'}
+                placeholder={language === 'th' ? 'ชื่อ หรือ ชื่อเล่นของคุณ' : 'Full Name or Nickname'}
                 className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037] dark:focus:border-[#D7CCC8]"
               />
             </div>
@@ -292,7 +292,7 @@ export default function AccountPage() {
                 type="text"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder={language === 'th' ? 'เช่น พร้อมดูแลบ้านเสมอ' : 'e.g. Always ready to help'}
+                placeholder={language === 'th' ? 'ข้อความสั้นๆ ถึงสมาชิกในบ้าน' : 'Bio & Status'}
                 className="w-full px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] text-[#5D4037] dark:text-[#DDD7D2] placeholder-[#8D6E63]/60 focus:outline-none focus:border-[#5D4037] dark:focus:border-[#D7CCC8]"
               />
             </div>

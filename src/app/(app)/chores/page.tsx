@@ -678,14 +678,14 @@ export default function ChoresPage() {
               <form onSubmit={handleSaveChore} className="p-6 space-y-4">
                 <div>
                   <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
-                    ชื่องานบ้าน
+                    {language === 'th' ? 'ชื่องานบ้าน' : 'Chore Title'}
                   </label>
                   <input
                     type="text"
                     required
                     value={choreTitle}
                     onChange={(e) => setChoreTitle(e.target.value)}
-                    placeholder="เช่น กวาดบ้าน, ล้างจาน, ทิ้งขยะ"
+                    placeholder={language === 'th' ? 'ชื่องานบ้าน' : 'Chore Title'}
                     className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
@@ -709,13 +709,14 @@ export default function ChoresPage() {
 
                   <div>
                     <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
-                      คะแนนที่ได้รับ
+                      {language === 'th' ? 'คะแนนที่ได้รับ' : 'Points'}
                     </label>
                     <input
                       type="number"
                       min="1"
                       value={chorePoints}
                       onChange={(e) => setChorePoints(Number(e.target.value))}
+                      placeholder={language === 'th' ? 'คะแนนที่ได้รับ' : 'Points'}
                       className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] font-outfit font-bold focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                     />
                   </div>
