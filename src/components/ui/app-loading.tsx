@@ -39,9 +39,6 @@ export function AppLoading({
     <div className="relative flex flex-col items-center justify-center select-none">
       {/* Pure Hero Logo Loading (Bear with internal flow fill) */}
       <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
-        {/* Ambient soft glow behind the logo */}
-        <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-[#FFB300]/15 via-[#E0533C]/10 to-transparent blur-2xl pointer-events-none" />
-
         {/* Layer 1: Ghost Base Silhouette */}
         <div className="absolute inset-0 w-full h-full text-[#5D4037]/15 dark:text-[#FDFBF7]/20 pointer-events-none transition-opacity duration-300">
           <BearLogoSvg />
@@ -58,7 +55,7 @@ export function AppLoading({
             repeat: Infinity,
             repeatDelay: 0.3,
           }}
-          className="absolute inset-0 w-full h-full pointer-events-none text-[#5D4037] dark:text-[#FDFBF7] drop-shadow-[0_4px_16px_rgba(93,64,55,0.12)] dark:drop-shadow-[0_4px_16px_rgba(255,255,255,0.25)]"
+          className="absolute inset-0 w-full h-full pointer-events-none text-[#5D4037] dark:text-[#FDFBF7]"
         >
           <BearLogoSvg />
         </motion.div>
