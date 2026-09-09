@@ -149,6 +149,21 @@ export default function ShoppingPage() {
 
       setLists((prev) => [created, ...prev]);
 
+      // Dispatch push notification to housemates
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: hId,
+          excludeUserId: uId,
+          title: '🛒 Bobbies Homie',
+          body: language === 'th'
+            ? `มีลิสต์ซื้อของใหม่: "${listTitle.trim()}" (${validItems.length} รายการ)`
+            : `New shopping list: "${listTitle.trim()}" (${validItems.length} items)`,
+          link: '/shopping',
+        }),
+      }).catch(() => {});
+
       // Reset
       setListTitle('');
       setListLocation('');

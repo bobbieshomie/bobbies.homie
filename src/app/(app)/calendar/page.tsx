@@ -322,6 +322,30 @@ export default function CalendarPage() {
       );
 
       setEvents((prev) => [...prev, created]);
+
+      // Dispatch push notification to housemates
+      const senderName = userObj.nickname || userObj.full_name || 'คนในบ้าน';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isToday = datePrefix === todayStr;
+
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: userObj.household_id,
+          excludeUserId: userObj.id,
+          title: '📅 Bobbies Homie',
+          body: isToday
+            ? (language === 'th'
+                ? `${senderName} เพิ่มกิจกรรมสำหรับวันนี้: "${finalTitle}" (${showTime ? newTime : 'ทั้งวัน'}) 📅`
+                : `${senderName} added an event today: "${finalTitle}" (${showTime ? newTime : 'All day'}) 📅`)
+            : (language === 'th'
+                ? `${senderName} เพิ่มนัดหมายลงปฏิทิน: "${finalTitle}" วันที่ ${padDay}/${padMonth}`
+                : `${senderName} scheduled event: "${finalTitle}" on ${padDay}/${padMonth}`),
+          link: '/calendar',
+        }),
+      }).catch(() => {});
+
       setNewTitle('');
       setNewLocation('');
       setNewOtherText('');

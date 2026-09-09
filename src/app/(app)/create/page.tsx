@@ -204,6 +204,22 @@ function CreatePageContent() {
       );
 
       showSuccessAndRedirect(t.create.successShopping, '/shopping');
+
+      // Dispatch Push Notification for Shopping
+      const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: currentUser.household_id,
+          excludeUserId: currentUser.id,
+          title: '🛒 Bobbies Homie',
+          body: language === 'th'
+            ? `${senderName} เพิ่มลิสต์ซื้อของใหม่: "${shopListTitle.trim()}" (${validItems.length} รายการ)`
+            : `${senderName} added shopping list: "${shopListTitle.trim()}" (${validItems.length} items)`,
+          link: '/shopping',
+        }),
+      }).catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'บันทึกรายการซื้อของไม่สำเร็จ';
       alert(msg);
@@ -232,6 +248,29 @@ function CreatePageContent() {
       });
 
       showSuccessAndRedirect(t.create.successCalendar, '/calendar');
+
+      // Dispatch Push Notification for Calendar Event
+      const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isToday = calDate === todayStr;
+
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: currentUser.household_id,
+          excludeUserId: currentUser.id,
+          title: '📅 Bobbies Homie',
+          body: isToday
+            ? (language === 'th'
+                ? `${senderName} เพิ่มกิจกรรมสำหรับวันนี้: "${calTitle.trim()}" (${calTime}) 📅`
+                : `${senderName} added an event today: "${calTitle.trim()}" (${calTime}) 📅`)
+            : (language === 'th'
+                ? `${senderName} เพิ่มนัดหมายลงปฏิทิน: "${calTitle.trim()}" วันที่ ${calDate}`
+                : `${senderName} scheduled event: "${calTitle.trim()}" on ${calDate}`),
+          link: '/calendar',
+        }),
+      }).catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'บันทึกกิจกรรมไม่สำเร็จ';
       alert(msg);
@@ -257,6 +296,22 @@ function CreatePageContent() {
       });
 
       showSuccessAndRedirect(t.create.successFinance, '/finances');
+
+      // Dispatch Push Notification for New Expense
+      const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: currentUser.household_id,
+          excludeUserId: currentUser.id,
+          title: '💰 Bobbies Homie',
+          body: language === 'th'
+            ? `${senderName} เพิ่มค่าใช้จ่ายใหม่: "${finTitle.trim()}" จำนวน ฿${amountNum.toLocaleString('th-TH')} 💸`
+            : `${senderName} added expense: "${finTitle.trim()}" ฿${amountNum.toLocaleString()} 💸`,
+          link: '/finances',
+        }),
+      }).catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'บันทึกค่าใช้จ่ายไม่สำเร็จ';
       alert(msg);
@@ -300,6 +355,30 @@ function CreatePageContent() {
         });
 
         showSuccessAndRedirect(t.create.successPets, '/pets');
+
+        // Dispatch Push Notification for Pet Appointment / Care
+        const targetPet = householdPets.find((p) => p.id === selectedPetId);
+        const pName = targetPet?.name || 'สัตว์เลี้ยง';
+        const actionText =
+          petLogType === 'vaccine'
+            ? (language === 'th' ? 'ฉีดวัคซีน' : 'vaccination')
+            : petLogType === 'grooming'
+            ? (language === 'th' ? 'อาบน้ำตัดขน' : 'grooming')
+            : (language === 'th' ? 'พบสัตวแพทย์' : 'vet visit');
+
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId: currentUser.household_id,
+            excludeUserId: currentUser.id,
+            title: '🐾 Bobbies Homie',
+            body: language === 'th'
+              ? `นัดหมาย ${pName}: วันที่ ${petLogDate} ต้องพาไป${actionText} ("${petLogTitle.trim()}") 🐾`
+              : `Appointment for ${pName}: On ${petLogDate} bring for ${actionText} ("${petLogTitle.trim()}") 🐾`,
+            link: '/pets',
+          }),
+        }).catch(() => {});
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'บันทึกไม่สำเร็จ';

@@ -206,6 +206,26 @@ export default function PetsPage() {
       });
 
       setPetLogs((prev) => [...prev, created]);
+
+      // Dispatch push notification to housemates
+      const actionText = activeTab === 'vaccines' ? 'ฉีดวัคซีน' : 'อาบน้ำตัดขน';
+      const senderName = currentUser?.nickname || currentUser?.full_name || 'คนในบ้าน';
+      if (currentUser?.household_id) {
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId: currentUser.household_id,
+            excludeUserId: currentUser.id,
+            title: '🐾 Bobbies Homie',
+            body: language === 'th'
+              ? `นัดหมาย ${currentPet.name}: วันที่ ${scheduledDate} ต้องพาไป${actionText} ("${newLogTitle.trim()}") 🐾`
+              : `Appointment for ${currentPet.name}: On ${scheduledDate} bring for ${actionText} ("${newLogTitle.trim()}") 🐾`,
+            link: '/pets',
+          }),
+        }).catch(() => {});
+      }
+
       setNewLogTitle('');
       setNewLogDate(new Date().toISOString().split('T')[0]);
       setIsAddLogModalOpen(false);

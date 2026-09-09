@@ -223,6 +223,23 @@ export default function FinancesPage() {
       });
 
       setExpenses((prev) => [created, ...prev]);
+
+      // Dispatch push notification to housemates
+      const senderName = userObj.nickname || userObj.full_name || 'คนในบ้าน';
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: userObj.household_id,
+          excludeUserId: userObj.id,
+          title: '💰 Bobbies Homie',
+          body: language === 'th'
+            ? `${senderName} เพิ่มค่าใช้จ่ายใหม่: "${newTitle.trim()}" จำนวน ฿${amountVal.toLocaleString('th-TH')} 💸`
+            : `${senderName} added expense: "${newTitle.trim()}" ฿${amountVal.toLocaleString()} 💸`,
+          link: '/finances',
+        }),
+      }).catch(() => {});
+
       setNewTitle('');
       setNewAmount('');
       setIsAddModalOpen(false);
@@ -279,6 +296,27 @@ export default function FinancesPage() {
         setExpenses((prev) =>
           prev.map((e) => (e.id === id ? { ...e, is_reimbursed: !currentReimbursed } : e))
         );
+
+        // When marked as paid/settled, send push notification
+        if (!currentReimbursed && currentUser?.household_id) {
+          const target = expenses.find((e) => e.id === id);
+          const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+          const titleDesc = target?.title ? ` "${target.title}"` : '';
+          const amountDesc = target?.amount ? ` ฿${Number(target.amount).toLocaleString('th-TH')}` : '';
+          fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              householdId: currentUser.household_id,
+              excludeUserId: currentUser.id,
+              title: '💵 Bobbies Homie',
+              body: language === 'th'
+                ? `${senderName} เคลียร์บิลแล้ว:${titleDesc}${amountDesc} เรียบร้อยแล้ว 🎉`
+                : `${senderName} settled bill:${titleDesc}${amountDesc} 🎉`,
+              link: '/finances',
+            }),
+          }).catch(() => {});
+        }
       }
     } catch (err) {
       console.error(err);
@@ -306,6 +344,21 @@ export default function FinancesPage() {
         .eq('household_id', currentUser.household_id);
 
       setExpenses((prev) => prev.map((e) => ({ ...e, is_reimbursed: true })));
+
+      const senderName = currentUser.nickname || currentUser.full_name || 'คนในบ้าน';
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: currentUser.household_id,
+          excludeUserId: currentUser.id,
+          title: '💵 Bobbies Homie',
+          body: language === 'th'
+            ? `${senderName} เคลียร์ยอดค่าใช้จ่ายทั้งหมดในบ้านเรียบร้อยแล้ว! ✨`
+            : `${senderName} settled all household expenses! ✨`,
+          link: '/finances',
+        }),
+      }).catch(() => {});
     } catch (err) {
       console.error(err);
     }
@@ -357,6 +410,25 @@ export default function FinancesPage() {
       await updateFinance(created.id, { is_reimbursed: true });
       const settled = { ...created, is_reimbursed: true };
       setExpenses((prev) => [settled, ...prev]);
+
+      const fromMember = householdMembers.find((m) => m.id === transferFrom);
+      const toMember = householdMembers.find((m) => m.id === transferTo);
+      const fromName = fromMember ? (fromMember.nickname || fromMember.full_name) : 'คนในบ้าน';
+      const toName = toMember ? (toMember.nickname || toMember.full_name) : '';
+      fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId: userObj.household_id,
+          excludeUserId: userObj.id,
+          title: '💸 Bobbies Homie',
+          body: language === 'th'
+            ? `${fromName} โอนชำระเงิน${toName ? `ให้ ${toName}` : ''} ฿${amountVal.toLocaleString('th-TH')} เรียบร้อยแล้ว ✨`
+            : `${fromName} transferred ฿${amountVal.toLocaleString()}${toName ? ` to ${toName}` : ''} ✨`,
+          link: '/finances',
+        }),
+      }).catch(() => {});
+
       setTransferAmount('');
       setTransferNote('');
       setIsTransferModalOpen(false);

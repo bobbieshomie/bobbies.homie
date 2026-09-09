@@ -7,11 +7,15 @@ import {
   fetchFinances, 
   fetchChores, 
   fetchShoppingLists,
+  fetchPetLogs,
+  fetchPets,
   fetchProfile,
   type DbCalendarEvent,
   type DbFinance,
   type DbChore,
-  type DbShoppingItem
+  type DbShoppingItem,
+  type DbPetLog,
+  type DbPet
 } from '@/lib/services/db';
 import { useNotificationStore } from '@/features/shared/stores/use-notification-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -37,11 +41,13 @@ export function useNotifications() {
       const householdId = profile.household_id;
 
       // Fetch all required resources in parallel
-      const [events, finances, chores, shoppingLists] = await Promise.all([
+      const [events, finances, chores, shoppingLists, petLogs, pets] = await Promise.all([
         fetchCalendarEvents(householdId).catch(() => [] as DbCalendarEvent[]),
         fetchFinances(householdId).catch(() => [] as DbFinance[]),
         fetchChores(householdId).catch(() => [] as DbChore[]),
         fetchShoppingLists(householdId).catch(() => []),
+        fetchPetLogs(householdId).catch(() => [] as DbPetLog[]),
+        fetchPets(householdId).catch(() => [] as DbPet[]),
       ]);
 
       const now = new Date();
@@ -157,7 +163,30 @@ export function useNotifications() {
         }
       });
 
-      // 5. 🛒 ของที่ยังไม่ได้ซื้อ (มี shopping items ค้าง > 3 รายการ)
+      // 5. 🛒 รายการซื้อของใหม่ หรือ มีของค้างซื้อ
+      shoppingLists.forEach((l) => {
+        const unpurchasedCount = l.items ? l.items.filter((i: any) => !i.is_purchased).length : 0;
+        if (l.created_at) {
+          const createdTime = new Date(l.created_at).getTime();
+          const isRecent = now.getTime() - createdTime < 48 * 60 * 60 * 1000;
+          if (isRecent && unpurchasedCount > 0) {
+            newNotifications.push({
+              id: `shopping-new-list-${l.id}`,
+              type: 'shopping_new_list',
+              icon: '🛒',
+              title: language === 'th' ? 'มีลิสต์ซื้อของใหม่' : 'New Shopping List',
+              message: language === 'th'
+                ? `ลิสต์ "${l.title}" มีของที่ต้องซื้อ ${unpurchasedCount} รายการ`
+                : `List "${l.title}" has ${unpurchasedCount} items to buy`,
+              link: '/shopping',
+              badge: language === 'th' ? 'ลิสต์ใหม่' : 'New',
+              category: 'shopping',
+              created_at: l.created_at,
+            });
+          }
+        }
+      });
+
       const allShoppingItems: DbShoppingItem[] = [];
       shoppingLists.forEach((l) => {
         if (l.items) {
@@ -182,11 +211,80 @@ export function useNotifications() {
         });
       }
 
-      // 6. 🧹 งานบ้านค้างอยู่ (chores ที่เลย due_date แล้วและยังไม่เสร็จ)
+      // 6. 🐾 นัดหมายสัตว์เลี้ยง (แจ้งเตือนล่วงหน้า 3 วันสำหรับ ฉีดวัคซีน, อาบน้ำตัดขน, พบแพทย์)
+      petLogs.forEach((pl) => {
+        if (pl.is_done || !pl.scheduled_date) return;
+        const petObj = pets.find((p) => p.id === pl.pet_id);
+        const petName = petObj?.name || (language === 'th' ? 'สัตว์เลี้ยง' : 'Pet');
+
+        // Date math
+        const logDate = new Date(pl.scheduled_date);
+        const diffTime = logDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 0 && diffDays <= 3) {
+          const actionText =
+            pl.log_type === 'vaccine'
+              ? (language === 'th' ? 'ฉีดวัคซีน' : 'vaccination')
+              : pl.log_type === 'grooming'
+              ? (language === 'th' ? 'อาบน้ำตัดขน' : 'grooming')
+              : (language === 'th' ? 'พบสัตวแพทย์ / ตรวจสุขภาพ' : 'vet checkup');
+
+          const formattedDate = new Date(pl.scheduled_date).toLocaleDateString(
+            language === 'th' ? 'th-TH' : 'en-US',
+            { day: 'numeric', month: 'short' }
+          );
+
+          const daysLabel =
+            diffDays === 0
+              ? (language === 'th' ? 'วันนี้' : 'Today')
+              : diffDays === 1
+              ? (language === 'th' ? 'พรุ่งนี้' : 'Tomorrow')
+              : (language === 'th' ? `อีก ${diffDays} วัน` : `In ${diffDays} days`);
+
+          newNotifications.push({
+            id: `pet-advance-${pl.id}`,
+            type: 'pet_care_reminder',
+            icon: '🐾',
+            title: language === 'th' ? `นัดหมาย ${petName} (${daysLabel})` : `${petName} Appointment (${daysLabel})`,
+            message: language === 'th'
+              ? `อีก ${diffDays > 0 ? diffDays : 0} วันจะถึงวันที่ ${formattedDate}: ต้องพา${petName}ไป${actionText} (${pl.title}) 🐾`
+              : `In ${diffDays} day(s) on ${formattedDate}: Bring ${petName} for ${actionText} (${pl.title}) 🐾`,
+            link: '/pets',
+            badge: daysLabel,
+            category: 'pets',
+            created_at: pl.scheduled_date,
+          });
+        }
+      });
+
+      // 7. 💰 มีค่าใช้จ่ายใหม่ที่เพิ่งเพิ่ม (< 24 ชม.)
+      finances.forEach((f) => {
+        if (!f.is_reimbursed && f.created_at) {
+          const createdTime = new Date(f.created_at).getTime();
+          const isRecent = now.getTime() - createdTime < 24 * 60 * 60 * 1000;
+          if (isRecent) {
+            newNotifications.push({
+              id: `fin-new-${f.id}`,
+              type: 'finance_new_expense',
+              icon: '💰',
+              title: language === 'th' ? 'มีค่าใช้จ่ายใหม่' : 'New Expense',
+              message: language === 'th'
+                ? `รายการ "${f.title}" ยอดเงิน ฿${Number(f.amount || 0).toLocaleString('th-TH')}`
+                : `"${f.title}" amount ฿${Number(f.amount || 0).toLocaleString()}`,
+              link: '/finances',
+              badge: `฿${Number(f.amount || 0).toLocaleString()}`,
+              category: 'finance',
+              created_at: f.created_at,
+            });
+          }
+        }
+      });
+
+      // 8. 🧹 งานบ้านค้างอยู่ (chores ที่เลย due_date แล้วและยังไม่เสร็จ)
       chores.forEach((c) => {
         if (!c.is_completed && c.due_date) {
           const dueDate = new Date(c.due_date);
-          // Compare dates (if dueDate is before today)
           const dueDayStr = c.due_date.split('T')[0];
           if (dueDayStr < todayStr || (dueDayStr === todayStr && dueDate.getTime() < now.getTime())) {
             newNotifications.push({
