@@ -242,12 +242,23 @@ export default function DashboardPage() {
   const choreStats = useMemo(() => {
     const total = chores.length;
     if (total === 0) {
-      return { completed: 0, total: 0, percent: 0 };
+      return { completed: 0, total: 0, remaining: 0, percent: 0, remainingPercent: 0 };
     }
     const completed = chores.filter((c) => c.isCompleted).length;
+    const remaining = total - completed;
     const percent = Math.round((completed / total) * 100);
-    return { completed, total, percent };
+    const remainingPercent = Math.max(0, 100 - percent);
+    return { completed, total, remaining, percent, remainingPercent };
   }, [chores]);
+
+  const allChoresDone = chores.length === 0 || choreStats.remaining === 0;
+
+  // Circular progress math
+  const radius = 33;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = allChoresDone
+    ? 0
+    : circumference - (choreStats.remainingPercent / 100) * circumference;
 
   // Real unpurchased shopping items count
   const shoppingCount = useMemo(() => {
@@ -371,52 +382,113 @@ export default function DashboardPage() {
         <main className="dashboard-body flex flex-col items-start px-6 p-0 gap-4 w-full flex-none order-2 self-stretch flex-grow-0">
           
           {/* ======================================================== */}
-          {/* 1. CHORE CARD: กล่องยาวแต่ไม่สูง (ตามคำขอ)                 */}
+          {/* 1. CHORES SECTION WITH CIRCULAR PROGRESS RING            */}
           {/* ======================================================== */}
-          <section className="w-full p-4 rounded-[22px] bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] transition-colors">
-            {/* Top row */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-[10px] bg-[#2E7D32]/15 dark:bg-[#1B5E20]/40 flex items-center justify-center text-[#2E7D32] dark:text-[#81C784]">
-                  <CheckSquare className="w-4 h-4 stroke-[2.2]" />
-                </div>
-                <h2 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
+          <section className="chores-card box-border flex flex-col items-start p-4 gap-3 w-full bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.039)] rounded-[24px]">
+            {/* Card Top: Text & Circular Ring */}
+            <div className="card-top flex flex-row justify-between items-center p-0 w-full">
+              <div className="label-container flex flex-col items-start p-0 gap-1 flex-1 min-w-0 pr-2">
+                <span className="font-outfit font-semibold text-[13px] leading-[16px] text-[#8D6E63] dark:text-[#948D87] tracking-wide">
                   {t.dashboard.todayChores}
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-[#C8E6C9] dark:bg-[#1B5E20]/40 text-[#2E7D32] dark:text-[#81C784] text-[11px] font-bold">
-                  {choreStats.completed}/{choreStats.total} ({choreStats.percent}%)
                 </span>
-                <Link
-                  href="/chores"
-                  className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] hover:underline flex items-center gap-0.5 ml-1"
-                >
-                  <span>จัดการ</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+
+                <h3 className="font-outfit font-bold text-[17px] leading-[22px] text-[#5D4037] dark:text-[#DDD7D2] truncate w-full">
+                  {allChoresDone || chores.length === 0
+                    ? 'งานบ้านหมดแล้ว'
+                    : `เหลืองานบ้านอีก ${choreStats.remainingPercent}% ของวันนี้`}
+                </h3>
+
+                <div className="flex items-center gap-2 mt-0.5">
+                  {chores.length > 0 ? (
+                    <div className="badge-completed flex flex-row items-center px-2 py-0.5 bg-[#C8E6C9] dark:bg-[#1B5E20]/40 rounded-[10px]">
+                      <span className="font-dm-sans font-bold text-[11px] text-[#2E7D32] dark:text-[#81C784]">
+                        {choreStats.completed} / {choreStats.total} {allChoresDone ? 'เสร็จครบแล้ว' : t.dashboard.choresDone}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                      งานบ้านหมดแล้ว
+                    </span>
+                  )}
+
+                  <Link
+                    href="/chores"
+                    className="text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784] hover:underline flex items-center gap-0.5"
+                  >
+                    <span>จัดการ</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Old-style Circular Progress Ring */}
+              <div className="progress-ring-container flex flex-col justify-center items-center p-0 isolate relative w-[76px] h-[76px] flex-none order-1 shrink-0">
+                <svg className="w-[76px] h-[76px] -rotate-90" viewBox="0 0 80 80">
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r={radius}
+                    fill="#FFFFFF"
+                    stroke="#FFFFFF"
+                    className="dark:fill-[#141312] dark:stroke-[#141312]"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r={radius}
+                    fill="none"
+                    stroke="#E8DFD8"
+                    className="dark:stroke-[#2E2A27]"
+                    strokeWidth="6"
+                  />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r={radius}
+                    fill="none"
+                    stroke={allChoresDone ? '#2E7D32' : '#2E7D32'}
+                    strokeWidth="6"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                    className="transition-all duration-700 ease-out"
+                  />
+                </svg>
+
+                <div className="center-label flex flex-col items-center p-0 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                  {allChoresDone ? (
+                    <Check className="w-5 h-5 text-[#2E7D32] stroke-[3]" />
+                  ) : (
+                    <span className="font-outfit font-bold text-[15px] leading-[18px] text-[#5D4037] dark:text-[#DDD7D2]">
+                      {choreStats.remainingPercent}%
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Slim Horizontal Progress Bar */}
-            <div className="w-full h-2 rounded-full bg-[#E8DFD8] dark:bg-[#2E2A27] overflow-hidden mb-2.5">
-              <div
-                className="h-full bg-[#2E7D32] rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${choreStats.percent}%` }}
-              />
-            </div>
-
-            {/* Compact Chore Checklist */}
-            {chores.length === 0 ? (
-              <div className="text-center py-1">
-                <Link href="/chores" className="text-[12px] text-[#2E7D32] font-semibold hover:underline">
-                  + {t.dashboard.addChorePrompt}
-                </Link>
+            {/* Chore Checklist: กล่องยาวแต่ไม่สูง (Horizontal items, no % inside) */}
+            {allChoresDone ? (
+              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27]">
+                <div className="text-center py-2 px-3 rounded-[14px] bg-[#E8F5E9]/60 dark:bg-[#1B5E20]/20 border border-[#2E7D32]/20">
+                  <span className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center gap-1.5">
+                    🎉 งานบ้านหมดแล้ว
+                  </span>
+                  <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+                    ทำงานบ้านครบหมดแล้ว พักผ่อนได้เลย~
+                  </p>
+                </div>
+              </div>
+            ) : chores.length === 0 ? (
+              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] text-center py-1">
+                <span className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                  งานบ้านหมดแล้ว
+                </span>
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {chores.slice(0, 2).map((chore) => {
+              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5">
+                {chores.slice(0, 3).map((chore) => {
                   const hasBonus = activeGachaSpin && chore.title.toLowerCase().includes(activeGachaSpin.chore_title.toLowerCase());
                   return (
                     <div
