@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Crown as IconoirCrown } from 'iconoir-react';
 
 export interface AppLoadingProps {
   /** Optional title or status text (e.g. 'Bobbies Homie' or 'กำลังออกจากระบบ...') */
@@ -32,29 +31,16 @@ function BearLogoSvg({ className = 'w-full h-full' }: { className?: string }) {
 }
 
 export function AppLoading({
-  message = 'Bobbies Homie',
-  subMessage = 'อบอุ่นในทุกวันของการอยู่ร่วมกัน',
   isFullScreen = true,
   fillDuration = 1.8,
-  showText = true,
   className = '',
 }: AppLoadingProps) {
   const content = (
     <div className="relative flex flex-col items-center justify-center select-none">
-      {/* 1. Pure Hero Logo Loading (Bear with internal flow fill) */}
+      {/* Pure Hero Logo Loading (Bear with internal flow fill) */}
       <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
         {/* Ambient soft glow behind the logo */}
         <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-[#FFB300]/15 via-[#E0533C]/10 to-transparent blur-2xl pointer-events-none" />
-
-        {/* Pastel crown on the top-right ear */}
-        <div className="absolute -top-1.5 -right-0.5 z-20 pointer-events-none drop-shadow-sm">
-          <IconoirCrown
-            className="w-3.5 h-3.5 text-[#F6D365] fill-[#FFF3C4] dark:fill-[#F6D365]/30"
-            width="14"
-            height="14"
-            strokeWidth={2.2}
-          />
-        </div>
 
         {/* Layer 1: Ghost Base Silhouette */}
         <div className="absolute inset-0 w-full h-full text-[#5D4037]/15 dark:text-[#FDFBF7]/20 pointer-events-none transition-opacity duration-300">
@@ -77,27 +63,6 @@ export function AppLoading({
           <BearLogoSvg />
         </motion.div>
       </div>
-
-      {/* 2. Brand Message / Status */}
-      <div className="text-center space-y-1 mt-6">
-        <h1 className="font-outfit font-black text-[22px] tracking-tight text-[#5D4037] dark:text-[#FDFBF7]">
-          {message}
-        </h1>
-        {subMessage && (
-          <p className="font-dm-sans text-[12px] font-medium text-[#8D6E63] dark:text-[#A89F91]">
-            {subMessage}
-          </p>
-        )}
-      </div>
-
-      {/* 3. Subtle loading... indicator */}
-      {showText && (
-        <div className="relative mt-2.5 flex items-center justify-center">
-          <span className="text-[11px] font-dm-sans font-semibold tracking-[0.22em] lowercase text-[#8D6E63]/40 dark:text-[#FDFBF7]/30 select-none animate-pulse">
-            loading...
-          </span>
-        </div>
-      )}
     </div>
   );
 
