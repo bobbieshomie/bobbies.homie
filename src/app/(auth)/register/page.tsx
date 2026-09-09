@@ -29,7 +29,7 @@ function RegisterForm() {
 
   // Household setup mode: create new home vs join existing
   const [householdMode, setHouseholdMode] = useState<'create' | 'join'>('create');
-  const [householdName, setHouseholdName] = useState('Our Sweet Home');
+  const [householdName, setHouseholdName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -370,7 +370,7 @@ function RegisterForm() {
                     type="text"
                     value={householdName}
                     onChange={(e) => setHouseholdName(e.target.value)}
-                    placeholder={t.auth.householdName}
+                    placeholder="ชื่อบ้าน/House name"
                     className="w-full px-3.5 py-2.5 text-[14px] font-dm-sans bg-white border border-[#D7CCC8] rounded-[14px] text-[#5D4037] placeholder-[#A1887F] focus:outline-none focus:border-[#5D4037]"
                   />
                 </div>
