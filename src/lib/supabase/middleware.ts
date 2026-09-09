@@ -76,6 +76,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/pets') ||
     pathname.startsWith('/finances') ||
     pathname.startsWith('/profile') ||
+    pathname.startsWith('/household') ||
+    pathname.startsWith('/rewards') ||
+    pathname.startsWith('/chores') ||
     pathname.startsWith('/create');
 
   // Redirect unauthenticated users to /login

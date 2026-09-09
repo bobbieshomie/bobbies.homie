@@ -1,21 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Camera, 
-  Copy, 
   Check, 
   LogOut, 
   Home, 
   Moon, 
   Sun, 
   Users,
-  Pencil,
-  X,
-  Eye,
-  EyeOff,
-  Globe
+  Globe,
+  ChevronRight,
+  Star
 } from 'lucide-react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
@@ -27,7 +25,6 @@ import {
   updateProfile as updateDbProfile, 
   fetchHousehold, 
   fetchHouseholdMembers, 
-  joinHouseholdByCode, 
   type DbProfile, 
   type DbHousehold 
 } from '@/lib/services/db';
@@ -48,23 +45,14 @@ export default function AccountPage() {
   const [bio, setBio] = useState(profile.myBio || '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.myAvatarUrl || null);
   
-  // Household states
+  // Household summary states
   const [household, setHousehold] = useState<DbHousehold | null>(null);
   const [householdName, setHouseholdName] = useState(profile.name || 'Bobbies Homie');
   const [members, setMembers] = useState<DbProfile[]>([]);
-  const [joinCodeInput, setJoinCodeInput] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
-
-  // Household name edit & invite code visibility states
-  const [isEditingHouseholdName, setIsEditingHouseholdName] = useState(false);
-  const [tempHouseholdName, setTempHouseholdName] = useState('');
-  const [savingHouseholdName, setSavingHouseholdName] = useState(false);
-  const [showInviteCode, setShowInviteCode] = useState(false);
 
   // Status feedback
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,15 +90,6 @@ export default function AccountPage() {
 
     loadUserData();
   }, []);
-
-  // Copy household invite code
-  const handleCopyCode = () => {
-    const codeToCopy = household?.invite_code || profile.inviteCode || '';
-    if (!codeToCopy) return;
-    navigator.clipboard.writeText(codeToCopy);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
-  };
 
   // Avatar file upload handler
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,18 +134,9 @@ export default function AccountPage() {
           bio: bio.trim(),
           avatar_url: avatarUrl,
         });
-
-        if (household?.id && householdName.trim() !== household.name) {
-          const supabase = createClient();
-          await supabase
-            .from('households')
-            .update({ name: householdName.trim() })
-            .eq('id', household.id);
-        }
       }
 
       setStoreProfile({
-        name: householdName.trim(),
         myNickname: nickname.trim() || fullName.trim(),
         myBio: bio.trim(),
         myAvatarUrl: avatarUrl,
@@ -177,87 +147,6 @@ export default function AccountPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error saving profile';
       setStatusMessage({ type: 'error', text: msg });
-    }
-  };
-
-  // Household name editing handlers
-  const startEditingHouseholdName = () => {
-    setTempHouseholdName(householdName);
-    setIsEditingHouseholdName(true);
-  };
-
-  const cancelEditingHouseholdName = () => {
-    setIsEditingHouseholdName(false);
-  };
-
-  const handleSaveHouseholdName = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = tempHouseholdName.trim();
-    if (!trimmed || trimmed === householdName) {
-      setIsEditingHouseholdName(false);
-      return;
-    }
-
-    try {
-      setSavingHouseholdName(true);
-      if (household?.id) {
-        const supabase = createClient();
-        const { error } = await supabase
-          .from('households')
-          .update({ name: trimmed })
-          .eq('id', household.id);
-        if (error) throw error;
-      }
-      setHouseholdName(trimmed);
-      if (household) {
-        setHousehold({ ...household, name: trimmed });
-      }
-      setStoreProfile({ name: trimmed });
-      setIsEditingHouseholdName(false);
-      setStatusMessage({
-        type: 'success',
-        text: language === 'th' ? 'เปลี่ยนชื่อบ้านสำเร็จเรียบร้อยแล้ว' : 'Household name updated successfully',
-      });
-      setTimeout(() => setStatusMessage(null), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update household name';
-      setStatusMessage({ type: 'error', text: msg });
-    } finally {
-      setSavingHouseholdName(false);
-    }
-  };
-
-  // Join another household with invite code
-  const handleJoinHousehold = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinCodeInput.trim()) return;
-
-    setIsJoining(true);
-    setStatusMessage(null);
-
-    try {
-      const userId = currentUser?.id;
-      if (!userId) {
-        throw new Error(language === 'th' ? 'กรุณาเข้าสู่ระบบก่อนเข้าร่วมบ้าน' : 'Please sign in to join a household');
-      }
-
-      const joinedH = await joinHouseholdByCode(joinCodeInput.trim(), userId);
-      setHousehold(joinedH);
-      setHouseholdName(joinedH.name);
-      
-      const newMems = await fetchHouseholdMembers(joinedH.id);
-      setMembers(newMems);
-
-      setJoinCodeInput('');
-      setStatusMessage({ 
-        type: 'success', 
-        text: language === 'th' ? `เข้าร่วมบ้าน "${joinedH.name}" เรียบร้อยแล้ว` : `Joined "${joinedH.name}" successfully` 
-      });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Invalid invite code';
-      setStatusMessage({ type: 'error', text: errMsg });
-    } finally {
-      setIsJoining(false);
     }
   };
 
@@ -277,14 +166,27 @@ export default function AccountPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Bar */}
-      <div className="flex flex-row justify-between items-center px-6 pt-5 pb-2 w-full">
+      <div className="px-6 pt-5 pb-2 w-full">
         <div>
           <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
             {language === 'th' ? 'บัญชีและการตั้งค่า' : 'Account & Settings'}
           </h1>
           <p className="font-dm-sans text-[12px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
-            {language === 'th' ? 'จัดการข้อมูลส่วนตัว สมาชิกบ้าน และธีม' : 'Manage profile, household members & theme'}
+            {language === 'th' ? 'จัดการข้อมูลส่วนตัว ธีมสี และภาษาของแอป' : 'Manage your profile details, theme & language'}
           </p>
+        </div>
+
+        {/* Tab Switcher: Profile vs Household */}
+        <div className="grid grid-cols-2 gap-2 mt-4 p-1 bg-[#F4EFEA] dark:bg-[#201D1A] rounded-[16px] border border-[#D7CCC8]/60 dark:border-[#2E2A27]">
+          <div className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center bg-white dark:bg-[#2E2A27] text-[#5D4037] dark:text-[#FDFBF7] shadow-xs">
+            {language === 'th' ? '👤 บัญชีส่วนตัว' : '👤 Profile'}
+          </div>
+          <Link
+            href="/household"
+            className="py-2 px-3 rounded-[12px] font-outfit text-[12.5px] font-bold text-center text-[#8D6E63] dark:text-[#948D87] hover:bg-white/60 dark:hover:bg-[#2E2A27]/60 transition-all"
+          >
+            {language === 'th' ? '🏠 บ้านและสมาชิก' : '🏠 Household'}
+          </Link>
         </div>
       </div>
 
@@ -309,7 +211,44 @@ export default function AccountPage() {
       )}
 
       <div className="flex-1 px-6 space-y-4 pt-2">
-        {/* 1. Profile & Avatar Card */}
+        {/* ======================================================== */}
+        {/* 1. SEPARATED HOUSEHOLD SETTINGS LINK CARD                */}
+        {/* ======================================================== */}
+        <Link
+          href="/household"
+          className="block p-4.5 bg-gradient-to-r from-[#F4EFEA] via-[#EFE8E1] to-[#F4EFEA] dark:from-[#1F1D1B] dark:via-[#26221F] dark:to-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] hover:border-[#5D4037] dark:hover:border-[#6E544A] rounded-[24px] shadow-xs transition-all group cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-[14px] bg-[#5D4037] dark:bg-[#6E544A] text-[#FFD54F] flex items-center justify-center shadow-xs shrink-0">
+                <Home className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-outfit font-bold text-[15.5px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                    {householdName || 'บ้านของเรา'}
+                  </h3>
+                  <span className="text-[10.5px] font-dm-sans font-bold px-2 py-0.5 rounded-full bg-white dark:bg-[#141312] text-[#8D6E63] dark:text-[#948D87] border border-[#D7CCC8]/60 dark:border-[#2E2A27] shrink-0">
+                    {members.length} {language === 'th' ? 'คนในบ้าน' : 'members'}
+                  </span>
+                </div>
+                <p className="font-dm-sans text-[11.5px] text-[#8D6E63] dark:text-[#948D87] mt-0.5 flex items-center gap-1 truncate">
+                  <Star className="w-3 h-3 text-[#FFB300] fill-[#FFB300] shrink-0" />
+                  <span className="truncate">
+                    {language === 'th'
+                      ? 'ดูคะแนนสะสมคนในบ้าน & ตั้งค่าบ้าน ➔'
+                      : 'View member points & household settings ➔'}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#8D6E63] dark:text-[#948D87] group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+          </div>
+        </Link>
+
+        {/* ======================================================== */}
+        {/* 2. Profile & Avatar Card                                 */}
+        {/* ======================================================== */}
         <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors">
           <div className="flex items-center gap-4 mb-4">
             {/* Avatar with Camera Trigger */}
@@ -393,209 +332,6 @@ export default function AccountPage() {
             >
               {language === 'th' ? 'บันทึกข้อมูลส่วนตัว' : 'Save Profile Details'}
             </button>
-          </form>
-        </section>
-
-        {/* 2. Household Management Card */}
-        <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors space-y-4">
-          <div className="flex items-center gap-2">
-            <Home className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
-            <h3 className="font-outfit font-bold text-[16px] text-[#5D4037] dark:text-[#DDD7D2]">
-              {language === 'th' ? 'ข้อมูลบ้านของเรา' : 'Household Details'}
-            </h3>
-          </div>
-
-          {/* Household Name with Pencil Edit Icon */}
-          <div className="p-3.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px]">
-            {isEditingHouseholdName ? (
-              <form onSubmit={handleSaveHouseholdName} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87]">
-                    {language === 'th' ? 'ระบุชื่อบ้านใหม่' : 'New Household Name'}
-                  </label>
-                  <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
-                    {language === 'th' ? 'กดบันทึกเพื่อเปลี่ยน' : 'Save to apply'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    autoFocus
-                    required
-                    value={tempHouseholdName}
-                    onChange={(e) => setTempHouseholdName(e.target.value)}
-                    className="flex-1 px-3.5 py-2 bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#5D4037] dark:border-[#D7CCC8] rounded-[14px] text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] focus:outline-none"
-                    placeholder={language === 'th' ? 'ชื่อบ้าน...' : 'Household name...'}
-                  />
-                  <button
-                    type="submit"
-                    disabled={savingHouseholdName}
-                    className="px-3.5 py-2 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[14px] text-[12px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 active:scale-95 shadow-xs shrink-0"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>{savingHouseholdName ? '...' : (language === 'th' ? 'บันทึก' : 'Save')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelEditingHouseholdName}
-                    disabled={savingHouseholdName}
-                    className="p-2 bg-[#F4EFEA] dark:bg-[#1F1D1B] hover:bg-[#D7CCC8]/40 dark:hover:bg-[#2E2A27] text-[#8D6E63] dark:text-[#948D87] rounded-[14px] border border-[#D7CCC8] dark:border-[#2E2A27] transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
-                    title={language === 'th' ? 'ยกเลิก' : 'Cancel'}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div>
-                <span className="text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87] block mb-1">
-                  {language === 'th' ? 'ชื่อบ้านของคุณ' : 'Household Name'}
-                </span>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-outfit font-bold text-[18px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
-                    {householdName || household?.name || (language === 'th' ? 'บ้านของเรา' : 'Our Home')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={startEditingHouseholdName}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] hover:bg-[#D7CCC8] dark:hover:bg-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] rounded-[12px] text-[12px] font-semibold border border-[#D7CCC8] dark:border-[#2E2A27] transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
-                    title={language === 'th' ? 'กดเพื่อเปลี่ยนชื่อบ้าน' : 'Click to change name'}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    <span>{language === 'th' ? 'เปลี่ยนชื่อ' : 'Edit'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Invite Code Box with Show/Hide System */}
-          <div className="p-3.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[18px]">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87]">
-                {language === 'th' ? 'รหัสคำเชิญสำหรับสมาชิก' : 'Invite Code for Members'}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowInviteCode((prev) => !prev)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-[8px] bg-[#F4EFEA] dark:bg-[#1F1D1B] hover:bg-[#D7CCC8]/50 dark:hover:bg-[#2E2A27] text-[11px] font-semibold text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] dark:hover:text-[#FDFBF7] transition-colors cursor-pointer"
-              >
-                {showInviteCode ? (
-                  <>
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span>{language === 'th' ? 'ซ่อนรหัส' : 'Hide'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>{language === 'th' ? 'แสดงรหัส' : 'Show'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="flex items-center justify-between gap-2 mt-2">
-              {showInviteCode ? (
-                <code className="font-dm-sans font-bold text-[18px] tracking-widest text-[#5D4037] dark:text-[#DDD7D2] select-all">
-                  {household?.invite_code || '...'}
-                </code>
-              ) : (
-                <span className="font-mono text-[18px] tracking-[0.25em] text-[#8D6E63] dark:text-[#948D87] select-none font-bold">
-                  ••••••••
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] hover:bg-[#D7CCC8] dark:hover:bg-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] rounded-[12px] text-[12px] font-semibold border border-[#D7CCC8] dark:border-[#2E2A27] transition-all cursor-pointer shrink-0"
-              >
-                {copiedCode ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{language === 'th' ? 'คัดลอกแล้ว' : 'Copied'}</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{language === 'th' ? 'คัดลอกรหัส' : 'Copy Code'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Household Members List */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-[#8D6E63] dark:text-[#948D87]" />
-              <span className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
-                {language === 'th' ? 'สมาชิกในบ้านตอนนี้' : 'Household Members'} ({members.length || 1})
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {members.length > 0 ? (
-                members.map((m) => (
-                  <div 
-                    key={m.id}
-                    className="flex items-center justify-between p-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px]"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-[#D7CCC8] dark:bg-[#2E2A27] flex items-center justify-center text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
-                        {m.avatar_url ? (
-                          <img src={m.avatar_url} alt={m.nickname || m.full_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span>{(m.nickname || m.full_name || 'U').charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
-                          {m.nickname || m.full_name}
-                        </p>
-                        {m.id === currentUser?.id && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                            ({language === 'th' ? 'คุณ' : 'You'})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[11px] px-2 py-0.5 bg-[#F4EFEA] dark:bg-[#1F1D1B] text-[#8D6E63] dark:text-[#948D87] rounded-full">
-                      {language === 'th' ? 'สมาชิก' : 'Member'}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="p-3 text-center bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px]">
-                  <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87]">
-                    {language === 'th' 
-                      ? 'คุณเป็นคนแรกในบ้าน แชร์รหัสคำเชิญด้านบนเพื่อให้สมาชิกคนอื่นเข้าร่วมได้ทันที' 
-                      : 'You are the first member! Share your code above to invite others.'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Join Another Household Form */}
-          <form onSubmit={handleJoinHousehold} className="pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27]/60 space-y-2">
-            <label className="block text-[12px] font-medium text-[#8D6E63] dark:text-[#948D87]">
-              {language === 'th' ? 'ต้องการย้ายหรือเข้าร่วมบ้านอื่น' : 'Join Another Household'}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                placeholder={language === 'th' ? 'กรอกรหัส 8 หลัก' : 'Enter 8-digit code'}
-                className="flex-1 px-3.5 py-2 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] uppercase tracking-wider focus:outline-none focus:border-[#5D4037]"
-              />
-              <button
-                type="submit"
-                disabled={isJoining || !joinCodeInput.trim()}
-                className="px-4 py-2 bg-[#5D4037] dark:bg-[#6E544A] text-white rounded-[14px] text-[13px] font-bold disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                {isJoining ? '...' : (language === 'th' ? 'เข้าร่วม' : 'Join')}
-              </button>
-            </div>
           </form>
         </section>
 

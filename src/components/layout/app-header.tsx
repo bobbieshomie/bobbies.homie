@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { RiBearSmileFill } from '@remixicon/react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -25,7 +26,11 @@ export function AppHeader({
   return (
     <div className="flex items-center justify-between h-14 px-4 bg-[#FDFBF7] dark:bg-[#2A1B16] border-b border-[#D7CCC8]/50 dark:border-[#5D4037]/50 transition-colors">
       {/* Brand & Household Name */}
-      <div className="flex items-center space-x-2">
+      <Link 
+        href="/household"
+        className="flex items-center space-x-2 hover:opacity-85 transition-opacity cursor-pointer"
+        title="ตั้งค่าบ้าน & สมาชิก"
+      >
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F4EFEA] dark:bg-[#38241D] border border-[#D7CCC8] dark:border-[#5D4037] text-[#5D4037] dark:text-[#FDFBF7]">
           <RiBearSmileFill className="w-5 h-5 fill-[#5D4037] dark:fill-[#FDFBF7]" />
         </div>
@@ -34,7 +39,7 @@ export function AppHeader({
             {displayHousehold}
           </h1>
         </div>
-      </div>
+      </Link>
 
       {/* Partner Actions */}
       <div className="flex items-center space-x-2.5">
