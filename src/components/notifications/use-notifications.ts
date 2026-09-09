@@ -322,7 +322,7 @@ export function useNotifications() {
               message: language === 'th'
                 ? `${userName} สุ่มได้งานบ้าน "${gs.chore_title}" โบนัสคูณ x${gs.multiplier}! 🌟`
                 : `${userName} got "${gs.chore_title}" with x${gs.multiplier} multiplier! 🌟`,
-              link: '/dashboard',
+              link: '/rewards',
               badge: `x${gs.multiplier}`,
               category: 'chore',
               created_at: gs.created_at,

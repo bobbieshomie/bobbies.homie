@@ -561,7 +561,7 @@ export default function DashboardPage() {
             </div>
 
             <Link
-              href="/chores?tab=rewards"
+              href="/rewards"
               className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold hover:opacity-90 shadow-2xs flex items-center gap-1"
             >
               <span>{language === 'th' ? 'ไปร้านค้า' : 'Shop'}</span>
