@@ -175,6 +175,20 @@ function RewardsPageContent() {
   const [isGachaHistoryModalOpen, setIsGachaHistoryModalOpen] = useState(false);
   const [isSpinningGacha, setIsSpinningGacha] = useState(false);
   const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number; isTest?: boolean } | null>(null);
+  const [gachaCost, setGachaCost] = useState<number>(10);
+  const [savingGachaCost, setSavingGachaCost] = useState(false);
+
+  // Load configured gacha cost per household from localStorage (defaults to 10)
+  useEffect(() => {
+    if (householdId) {
+      try {
+        const saved = localStorage.getItem(`gacha_cost_${householdId}`);
+        if (saved && !isNaN(Number(saved)) && Number(saved) > 0) {
+          setGachaCost(Number(saved));
+        }
+      } catch (e) {}
+    }
+  }, [householdId]);
 
   // Slot Machine Animation States
   const [slotReel1, setSlotReel1] = useState<string[]>([]);
@@ -315,10 +329,11 @@ function RewardsPageContent() {
 
   // Start Slot Machine Reel Animation
   const startSlotMachineAnimation = (targetChore: string, targetMultiplier: number, isTest: boolean) => {
+    // Only pull from household chores list if available; fallback if none exist yet
     const candidateChores =
       chores.length > 0
         ? chores.map((c) => c.title)
-        : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า', 'รดน้ำต้นไม้', 'ดูดฝุ่นห้อง'];
+        : [targetChore];
     const possibleMultipliers = [2, 3, 5, 2, 3];
 
     // Build Reel 1 (Chore) strip: 24 items, target at index 20
@@ -376,17 +391,26 @@ function RewardsPageContent() {
   // Handle Mystery Box Gacha Spin
   const handleSpinGacha = async () => {
     if (!currentUserId || !householdId) return;
-    if (myPoints < 10) {
-      alert(language === 'th' ? 'คะแนนของคุณไม่พอ (ต้องใช้ 10 คะแนน)' : 'Insufficient points (10 pts required)');
+    if (chores.length === 0) {
+      alert(
+        language === 'th'
+          ? 'ยังไม่มีรายการงานบ้านในระบบ กรุณาเพิ่มงานบ้านก่อนสุ่ม'
+          : 'No household chores available to spin. Please create chores first.'
+      );
       return;
     }
-    if (chores.length === 0) {
-      alert(language === 'th' ? 'ยังไม่มีงานบ้านในระบบให้สุ่ม' : 'No chores available to spin');
+    if (myPoints < gachaCost) {
+      alert(
+        language === 'th'
+          ? `คะแนนของคุณไม่พอ (ต้องใช้ ${gachaCost} คะแนน)`
+          : `Insufficient points (${gachaCost} pts required)`
+      );
       return;
     }
 
     try {
       setIsSpinningGacha(true);
+      // Pick random chore from the actual chores list
       const pickedChore = chores[Math.floor(Math.random() * chores.length)];
       const multipliers = [2, 2, 2, 3, 3, 5];
       const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
@@ -397,13 +421,13 @@ function RewardsPageContent() {
         choreId: pickedChore.id,
         choreTitle: pickedChore.title,
         multiplier: pickedMultiplier,
-        pointsCost: 10,
+        pointsCost: gachaCost,
       });
 
       if (res.success) {
         const finalChore = res.chore_title || pickedChore.title;
         const finalMultiplier = res.multiplier || pickedMultiplier;
-        setMyPoints((prev) => Math.max(0, prev - 10));
+        setMyPoints((prev) => Math.max(0, prev - gachaCost));
 
         startSlotMachineAnimation(finalChore, finalMultiplier, false);
         loadData();
@@ -427,7 +451,11 @@ function RewardsPageContent() {
         if (res.error === 'already_spun_this_week') {
           alert(language === 'th' ? 'คุณสุ่มกล่องปริศนาในสัปดาห์นี้ไปแล้ว' : 'Already spun this week');
         } else if (res.error === 'insufficient_points') {
-          alert(language === 'th' ? 'คะแนนของคุณไม่พอ (ต้องใช้ 10 คะแนน)' : 'Insufficient points');
+          alert(
+            language === 'th'
+              ? `คะแนนของคุณไม่พอ (ต้องใช้ ${gachaCost} คะแนน)`
+              : `Insufficient points (${gachaCost} pts required)`
+          );
         } else {
           alert(language === 'th' ? 'เกิดข้อผิดพลาดในการสุ่ม' : 'Failed to spin');
         }
@@ -439,17 +467,21 @@ function RewardsPageContent() {
     }
   };
 
-  // Test Gacha Spin (Bypasses points and weekly restriction for testing)
+  // Test Gacha Spin (Bypasses points and weekly restriction for testing, uses actual household chores)
   const handleTestSpinGacha = () => {
-    const sampleChores =
-      chores.length > 0
-        ? chores.map((c) => c.title)
-        : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า', 'รดน้ำต้นไม้'];
-    const pickedChoreTitle = sampleChores[Math.floor(Math.random() * sampleChores.length)];
+    if (chores.length === 0) {
+      alert(
+        language === 'th'
+          ? 'ยังไม่มีรายการงานบ้านในระบบ กรุณาเพิ่มงานบ้านก่อนทดสอบสุ่ม'
+          : 'No chores available to test spin. Please create chores first.'
+      );
+      return;
+    }
+    const pickedChore = chores[Math.floor(Math.random() * chores.length)];
     const multipliers = [2, 2, 3, 3, 5];
     const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
 
-    startSlotMachineAnimation(pickedChoreTitle, pickedMultiplier, true);
+    startSlotMachineAnimation(pickedChore.title, pickedMultiplier, true);
   };
 
   // Reset Weekly Spin Cooldown (for testing the production spin button again)
@@ -786,7 +818,7 @@ function RewardsPageContent() {
             <div>
               <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
                 <Gift className="w-5 h-5 text-[#E0533C]" />
-                <span>{language === 'th' ? 'ร้านค้า & รางวัล' : 'Rewards & Shop'}</span>
+                <span>{language === 'th' ? 'ร้านค้ารางวัล' : 'ShopReward'}</span>
               </h1>
               <p className="font-dm-sans text-[13px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
                 {language === 'th' ? 'ใช้คะแนนสะสมแลกรางวัล หรือจัดการของรางวัล' : 'Redeem rewards and manage approvals'}
@@ -932,8 +964,8 @@ function RewardsPageContent() {
                         ? `งาน "${activeGachaSpin.chore_title}" โบนัส x${activeGachaSpin.multiplier}`
                         : `Task "${activeGachaSpin.chore_title}" bonus x${activeGachaSpin.multiplier}`
                       : language === 'th'
-                      ? 'ใช้ 10 คะแนน สุ่มรับงานบ้านโบนัสคูณ x2 - x5'
-                      : 'Cost 10 pts to get a chore bonus multiplier'}
+                      ? `ใช้ ${gachaCost} คะแนน สุ่มรับงานบ้านโบนัสคูณ x2 - x5`
+                      : `Cost ${gachaCost} pts to get a chore bonus multiplier`}
                   </p>
                 </div>
               </div>
@@ -959,9 +991,9 @@ function RewardsPageContent() {
                 ) : (
                   <button
                     onClick={handleSpinGacha}
-                    disabled={isSpinningGacha || myPoints < 10}
+                    disabled={isSpinningGacha || myPoints < gachaCost}
                     className={`font-dm-sans px-3 py-1.5 rounded-[12px] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
-                      myPoints >= 10
+                      myPoints >= gachaCost
                         ? 'bg-[#5D4037] text-white hover:opacity-90 shadow-2xs'
                         : 'bg-[#D7CCC8]/50 text-[#8D6E63] cursor-not-allowed'
                     }`}
@@ -971,7 +1003,7 @@ function RewardsPageContent() {
                     ) : (
                       <>
                         <Dice5 className="w-3.5 h-3.5" />
-                        <span>{language === 'th' ? 'สุ่ม 10 pt' : 'Spin 10 pt'}</span>
+                        <span>{language === 'th' ? `สุ่ม ${gachaCost} pt` : `Spin ${gachaCost} pt`}</span>
                       </>
                     )}
                   </button>
@@ -1421,6 +1453,75 @@ function RewardsPageContent() {
                 })}
               </div>
             )}
+
+            {/* Gacha Mystery Box Settings Card */}
+            <div className="p-4 bg-white dark:bg-[#201D1A] border border-[#E0D7D0] dark:border-[#2E2A27] rounded-[20px] shadow-xs space-y-3 font-dm-sans">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[10px] bg-[#5D4037]/10 dark:bg-[#DDD7D2]/10 flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2]">
+                    <Dice5 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                      {language === 'th' ? 'การตั้งค่ากล่องสุ่มงานบ้าน' : 'Mystery Box Settings'}
+                    </h3>
+                    <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                      {language === 'th' ? 'กำหนดคะแนนที่ต้องใช้ในการสุ่มแต่ละครั้ง' : 'Configure points required per spin'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-1 flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] mb-1">
+                    {language === 'th' ? 'คะแนนที่ใช้ต่อครั้ง' : 'Points per spin'}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={gachaCost}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        setGachaCost(val);
+                      }}
+                      className="w-24 px-3 py-1.5 rounded-[12px] bg-[#FAF7F2] dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] font-outfit font-bold focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                    />
+                    <span className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+                      {t.chores.pointsUnit}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (householdId) {
+                      try {
+                        localStorage.setItem(`gacha_cost_${householdId}`, String(gachaCost));
+                        showToast(
+                          language === 'th'
+                            ? `บันทึกคะแนนสำหรับสุ่มเป็น ${gachaCost} คะแนนแล้ว`
+                            : `Mystery box spin cost updated to ${gachaCost} pts`
+                        );
+                      } catch (e) {}
+                    }
+                  }}
+                  className="self-end px-3.5 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold hover:opacity-90 transition-all cursor-pointer shadow-2xs"
+                >
+                  {language === 'th' ? 'บันทึก' : 'Save'}
+                </button>
+              </div>
+
+              <div className="p-2.5 rounded-[12px] bg-[#FAF7F2] dark:bg-[#25221F] border border-[#E0D7D0]/60 dark:border-[#2E2A27] flex items-center justify-between text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                <span>{language === 'th' ? 'รายการงานบ้านในระบบที่นำมาสุ่ม:' : 'Chores available for spinning:'}</span>
+                <span className="font-outfit font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                  {chores.length} {language === 'th' ? 'งาน' : 'items'}
+                </span>
+              </div>
+            </div>
 
             {/* Approved Rewards Management List */}
             <div className="space-y-3 pt-2">
