@@ -85,6 +85,50 @@ function getRewardIconComponent(iconName: string | null) {
   return found ? found.icon : Gift;
 }
 
+function playTickSound() {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(360, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.035);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.005, ctx.currentTime + 0.035);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.035);
+  } catch {}
+}
+
+function playWinSound() {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 victory chime
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const startTime = ctx.currentTime + idx * 0.09;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.14, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.35);
+    });
+  } catch {}
+}
+
 function RewardsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,6 +175,14 @@ function RewardsPageContent() {
   const [isGachaHistoryModalOpen, setIsGachaHistoryModalOpen] = useState(false);
   const [isSpinningGacha, setIsSpinningGacha] = useState(false);
   const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number; isTest?: boolean } | null>(null);
+
+  // Slot Machine Animation States
+  const [slotReel1, setSlotReel1] = useState<string[]>([]);
+  const [slotReel2, setSlotReel2] = useState<number[]>([]);
+  const [slotReel1Index, setSlotReel1Index] = useState(0);
+  const [slotReel2Index, setSlotReel2Index] = useState(0);
+  const [isSlotSpinning, setIsSlotSpinning] = useState(false);
+  const [slotStopped, setSlotStopped] = useState(false);
 
   // Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -261,6 +313,66 @@ function RewardsPageContent() {
     });
   }, [redemptions, rewards, currentUserId, language]);
 
+  // Start Slot Machine Reel Animation
+  const startSlotMachineAnimation = (targetChore: string, targetMultiplier: number, isTest: boolean) => {
+    const candidateChores =
+      chores.length > 0
+        ? chores.map((c) => c.title)
+        : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า', 'รดน้ำต้นไม้', 'ดูดฝุ่นห้อง'];
+    const possibleMultipliers = [2, 3, 5, 2, 3];
+
+    // Build Reel 1 (Chore) strip: 24 items, target at index 20
+    const reel1: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      reel1.push(candidateChores[i % candidateChores.length]);
+    }
+    reel1.push(targetChore); // target landing item at index 20
+    for (let i = 0; i < 4; i++) {
+      reel1.push(candidateChores[(i + 1) % candidateChores.length]);
+    }
+
+    // Build Reel 2 (Multiplier) strip: 30 items, target at index 26
+    const reel2: number[] = [];
+    for (let i = 0; i < 26; i++) {
+      reel2.push(possibleMultipliers[i % possibleMultipliers.length]);
+    }
+    reel2.push(targetMultiplier); // target landing item at index 26
+    for (let i = 0; i < 4; i++) {
+      reel2.push(possibleMultipliers[(i + 2) % possibleMultipliers.length]);
+    }
+
+    // Prepare initial position
+    setSlotReel1(reel1);
+    setSlotReel2(reel2);
+    setSlotReel1Index(0);
+    setSlotReel2Index(0);
+    setIsSlotSpinning(false);
+    setSlotStopped(false);
+    setSpinResult({ chore_title: targetChore, multiplier: targetMultiplier, isTest });
+    setIsGachaModalOpen(true);
+
+    // Trigger spinning transforms in next tick
+    setTimeout(() => {
+      setIsSlotSpinning(true);
+      setSlotReel1Index(20);
+      setSlotReel2Index(26);
+
+      // Play audio ticks while spinning
+      let tickCount = 0;
+      const tickInterval = setInterval(() => {
+        playTickSound();
+        tickCount++;
+        if (tickCount >= 22) clearInterval(tickInterval);
+      }, 95);
+
+      // Settle slot machine and play win celebration sound
+      setTimeout(() => {
+        setSlotStopped(true);
+        playWinSound();
+      }, 2650);
+    }, 60);
+  };
+
   // Handle Mystery Box Gacha Spin
   const handleSpinGacha = async () => {
     if (!currentUserId || !householdId) return;
@@ -289,12 +401,11 @@ function RewardsPageContent() {
       });
 
       if (res.success) {
-        setSpinResult({
-          chore_title: res.chore_title || pickedChore.title,
-          multiplier: res.multiplier || pickedMultiplier,
-        });
+        const finalChore = res.chore_title || pickedChore.title;
+        const finalMultiplier = res.multiplier || pickedMultiplier;
         setMyPoints((prev) => Math.max(0, prev - 10));
-        setIsGachaModalOpen(true);
+
+        startSlotMachineAnimation(finalChore, finalMultiplier, false);
         loadData();
 
         // Push notification
@@ -307,8 +418,8 @@ function RewardsPageContent() {
             excludeUserId: currentUserId,
             title: '🎁 Bobbies Homie',
             body: language === 'th'
-              ? `${senderName} สุ่มกล่องปริศนาได้งานบ้าน "${pickedChore.title}" รับโบนัสคะแนนคูณ x${pickedMultiplier}! 🌟`
-              : `${senderName} spun the mystery box and got "${pickedChore.title}" with x${pickedMultiplier} pts! 🌟`,
+              ? `${senderName} สุ่มกล่องปริศนาได้งานบ้าน "${finalChore}" รับโบนัสคะแนนคูณ x${finalMultiplier}! 🌟`
+              : `${senderName} spun the mystery box and got "${finalChore}" with x${finalMultiplier} pts! 🌟`,
             link: '/rewards',
           }),
         }).catch(() => {});
@@ -330,24 +441,15 @@ function RewardsPageContent() {
 
   // Test Gacha Spin (Bypasses points and weekly restriction for testing)
   const handleTestSpinGacha = () => {
-    setIsSpinningGacha(true);
-    setTimeout(() => {
-      const sampleChores =
-        chores.length > 0
-          ? chores.map((c) => c.title)
-          : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า'];
-      const pickedChoreTitle = sampleChores[Math.floor(Math.random() * sampleChores.length)];
-      const multipliers = [2, 2, 3, 3, 5];
-      const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
+    const sampleChores =
+      chores.length > 0
+        ? chores.map((c) => c.title)
+        : ['ล้างจาน', 'กวาดห้องนอน', 'นำขยะไปทิ้ง', 'เช็ดโต๊ะอาหาร', 'ซักผ้า', 'รดน้ำต้นไม้'];
+    const pickedChoreTitle = sampleChores[Math.floor(Math.random() * sampleChores.length)];
+    const multipliers = [2, 2, 3, 3, 5];
+    const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
 
-      setSpinResult({
-        chore_title: pickedChoreTitle,
-        multiplier: pickedMultiplier,
-        isTest: true,
-      });
-      setIsGachaModalOpen(true);
-      setIsSpinningGacha(false);
-    }, 450);
+    startSlotMachineAnimation(pickedChoreTitle, pickedMultiplier, true);
   };
 
   // Reset Weekly Spin Cooldown (for testing the production spin button again)
@@ -1544,73 +1646,215 @@ function RewardsPageContent() {
         )}
 
         {/* ======================================================== */}
-        {/* MODAL: GACHA SPIN RESULT                                 */}
+        {/* MODAL: GACHA SLOT MACHINE ANIMATION & RESULT             */}
         {/* ======================================================== */}
         {isGachaModalOpen && spinResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
-            <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl p-6 text-center animate-scale-up space-y-4">
-              <div className="w-16 h-16 rounded-[22px] bg-[#FFF3E0] text-[#E65100] flex items-center justify-center mx-auto animate-bounce">
-                <Dice5 className="w-9 h-9" />
-              </div>
-
-              <div>
-                <span
-                  className={`font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                    spinResult.isTest
-                      ? 'bg-[#FFF3E0] text-[#E65100] border border-[#FFB74D]/40'
-                      : 'bg-[#E0533C]/10 text-[#E0533C]'
-                  }`}
-                >
-                  {spinResult.isTest
-                    ? (language === 'th' ? '🧪 ผลการทดสอบสุ่ม (Test Mode)' : '🧪 Test Spin Result')
-                    : (language === 'th' ? 'ผลการสุ่มกล่องปริศนา!' : 'Mystery Box Result!')}
-                </span>
-                <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-2">
-                  {spinResult.chore_title}
-                </h3>
-                <div className="mt-3 flex items-center justify-center gap-2">
-                  <span className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87]">
-                    {language === 'th' ? 'โบนัสคะแนนคูณ:' : 'Points Multiplier:'}
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-[#E8F5E9] text-[#2E7D32] font-outfit font-extrabold text-[20px]">
-                    x{spinResult.multiplier}
-                  </span>
-                </div>
-                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-2">
-                  {spinResult.isTest
-                    ? (language === 'th'
-                        ? 'โหมดทดสอบ: ไม่มีการหักคะแนน และไม่มีการจำกัดโควต้าสัปดาห์'
-                        : 'Test Mode: No points deducted and no weekly limit.')
-                    : (language === 'th'
-                        ? 'เมื่อทำงานบ้านนี้เสร็จ คะแนนจะถูกคูณตามโบนัสนี้ทันที!'
-                        : 'Complete this chore this week to earn multiplied bonus points!')}
-                </p>
-              </div>
-
-              {spinResult.isTest ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-dm-sans animate-fade-in">
+            <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#1E1C1A] rounded-[28px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-2xl overflow-hidden animate-scale-up">
+              {/* Top Header */}
+              <div className="px-5 py-3.5 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between bg-[#F4EFEA]/80 dark:bg-[#25221F]">
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleTestSpinGacha}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#5D4037] dark:text-[#DDD7D2] font-dm-sans text-[12px] font-bold hover:bg-[#D7CCC8]/40 transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>{language === 'th' ? 'เทสสุ่มอีกรอบ' : 'Spin Again'}</span>
-                  </button>
-                  <button
-                    onClick={() => setIsGachaModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold hover:opacity-90 transition-all cursor-pointer"
-                  >
-                    {language === 'th' ? 'ปิด' : 'Close'}
-                  </button>
+                  <div className="w-7 h-7 rounded-[10px] bg-[#5D4037] text-[#FFD54F] flex items-center justify-center shadow-xs">
+                    <Dice5 className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="font-outfit text-[15px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                      {language === 'th' ? 'สล็อตกล่องสุ่มงานบ้าน' : 'Chore Mystery Slot'}
+                    </h3>
+                  </div>
                 </div>
-              ) : (
+
                 <button
                   onClick={() => setIsGachaModalOpen(false)}
-                  className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white font-dm-sans text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer"
+                  disabled={!slotStopped}
+                  className="p-1.5 rounded-full text-[#8D6E63] hover:bg-[#D7CCC8]/40 cursor-pointer disabled:opacity-30 transition-opacity"
+                  title="ปิด"
                 >
-                  {language === 'th' ? 'รับทราบ' : 'Got it!'}
+                  <X className="w-5 h-5" />
                 </button>
-              )}
+              </div>
+
+              <div className="p-5 space-y-4 text-center">
+                {/* Slot Machine Casing */}
+                <div className="relative p-3.5 rounded-[22px] bg-gradient-to-b from-[#4E342E] via-[#3E2723] to-[#2B1B17] border-4 border-[#8D6E63] dark:border-[#5D4037] shadow-[0_6px_20px_rgba(0,0,0,0.3)]">
+                  {/* Top Marquee lights */}
+                  <div className="flex justify-around items-center mb-2 px-2">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                          !slotStopped
+                            ? i % 2 === 0
+                              ? 'bg-[#FFD54F] shadow-[0_0_8px_#FFD54F]'
+                              : 'bg-[#FF5722] shadow-[0_0_8px_#FF5722]'
+                            : 'bg-[#81C784] shadow-[0_0_8px_#81C784]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Payline Viewing Window (Height: 76px) */}
+                  <div className="relative h-[76px] rounded-[16px] bg-white dark:bg-[#141312] border-2 border-[#D7CCC8] dark:border-[#423D39] shadow-inner overflow-hidden flex items-center">
+                    {/* Top & Bottom Vignette Shadow overlays for 3D Roller depth */}
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-4 bg-gradient-to-b from-black/25 to-transparent z-20" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/25 to-transparent z-20" />
+
+                    {/* Left & Right Payline Pointers */}
+                    <div className="absolute left-1 z-20 text-[#E0533C] text-[10px] font-extrabold animate-pulse">▶</div>
+                    <div className="absolute right-1 z-20 text-[#E0533C] text-[10px] font-extrabold animate-pulse">◀</div>
+
+                    {/* Payline Horizontal Highlight Bar */}
+                    <div
+                      className={`absolute inset-x-0 h-[76px] pointer-events-none z-10 transition-all duration-500 ${
+                        slotStopped
+                          ? 'bg-[#FFF9C4]/30 dark:bg-[#FFD54F]/10 border-y-2 border-[#FFB300]'
+                          : 'border-y border-[#FFB74D]/30'
+                      }`}
+                    />
+
+                    {/* REEL 1: CHORE (66% width) */}
+                    <div className="w-[66%] h-[76px] relative overflow-hidden pl-3 pr-1">
+                      <div
+                        style={{
+                          transform: `translateY(-${slotReel1Index * 76}px)`,
+                          transition: isSlotSpinning ? 'transform 1.9s cubic-bezier(0.12, 0.82, 0.22, 1)' : 'none',
+                        }}
+                      >
+                        {slotReel1.map((itemTitle, idx) => (
+                          <div
+                            key={idx}
+                            className="h-[76px] flex items-center justify-center gap-1.5 px-1 text-center"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-[#E65100] shrink-0" />
+                            <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2] line-clamp-1">
+                              {itemTitle}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Vertical Divider */}
+                    <div className="w-[2px] h-full bg-gradient-to-b from-[#D7CCC8]/40 via-[#8D6E63] to-[#D7CCC8]/40 z-10" />
+
+                    {/* REEL 2: MULTIPLIER (34% width) */}
+                    <div className="w-[34%] h-[76px] relative overflow-hidden pr-3 pl-1">
+                      <div
+                        style={{
+                          transform: `translateY(-${slotReel2Index * 76}px)`,
+                          transition: isSlotSpinning ? 'transform 2.6s cubic-bezier(0.15, 0.85, 0.2, 1)' : 'none',
+                        }}
+                      >
+                        {slotReel2.map((mult, idx) => (
+                          <div
+                            key={idx}
+                            className="h-[76px] flex items-center justify-center"
+                          >
+                            <span
+                              className={`font-outfit font-extrabold text-[22px] px-2 py-0.5 rounded-full ${
+                                mult >= 5
+                                  ? 'text-[#C62828] bg-[#FFEBEE] dark:bg-[#3E1B1B]'
+                                  : mult >= 3
+                                  ? 'text-[#E65100] bg-[#FFF3E0] dark:bg-[#3D2517]'
+                                  : 'text-[#2E7D32] bg-[#E8F5E9] dark:bg-[#1B361E]'
+                              }`}
+                            >
+                              x{mult}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Slot Machine Bottom Base */}
+                  <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-[#D7CCC8]">
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FFD54F]" />
+                      <span>{isSlotSpinning && !slotStopped ? 'SPINNING...' : 'PAYLINE'}</span>
+                    </span>
+                    <span className="font-outfit font-bold tracking-wider text-[#FFD54F]">
+                      BOBBIES SLOTS
+                    </span>
+                  </div>
+                </div>
+
+                {/* Result Callout (Revealed when slotStopped is true) */}
+                {slotStopped ? (
+                  <div className="space-y-3 animate-scale-up">
+                    <div>
+                      <span
+                        className={`font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
+                          spinResult.isTest
+                            ? 'bg-[#FFF3E0] text-[#E65100] border border-[#FFB74D]/40'
+                            : 'bg-[#E8F5E9] text-[#2E7D32] border border-[#81C784]/40'
+                        }`}
+                      >
+                        {spinResult.isTest
+                          ? (language === 'th' ? '🧪 ผลการทดสอบสุ่ม (Test Mode)' : '🧪 Test Spin Result')
+                          : (language === 'th' ? '🎉 ยินดีด้วย! คุณได้รับโบนัส' : '🎉 Congratulations!')}
+                      </span>
+
+                      <h4 className="font-outfit text-[19px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-1.5">
+                        {spinResult.chore_title}
+                      </h4>
+
+                      <div className="mt-1 flex items-center justify-center gap-1.5">
+                        <span className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87]">
+                          {language === 'th' ? 'โบนัสคะแนนคูณ:' : 'Points Multiplier:'}
+                        </span>
+                        <span className="font-outfit font-extrabold text-[22px] text-[#E65100] animate-bounce">
+                          x{spinResult.multiplier} 🔥
+                        </span>
+                      </div>
+
+                      <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                        {spinResult.isTest
+                          ? (language === 'th'
+                              ? 'โหมดทดสอบ: ไม่มีการหักคะแนน และไม่มีการจำกัดโควต้าสัปดาห์'
+                              : 'Test Mode: No points deducted and no weekly limit.')
+                          : (language === 'th'
+                              ? 'เมื่อทำงานบ้านนี้เสร็จ คะแนนจะถูกคูณตามโบนัสนี้ทันที!'
+                              : 'Complete this chore this week to earn multiplied bonus points!')}
+                      </p>
+                    </div>
+
+                    {spinResult.isTest ? (
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handleTestSpinGacha}
+                          className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#5D4037] dark:text-[#DDD7D2] font-dm-sans text-[12px] font-bold hover:bg-[#D7CCC8]/40 transition-all cursor-pointer flex items-center justify-center gap-1 shadow-2xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>{language === 'th' ? 'เทสสุ่มอีกรอบ' : 'Spin Again'}</span>
+                        </button>
+                        <button
+                          onClick={() => setIsGachaModalOpen(false)}
+                          className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs"
+                        >
+                          {language === 'th' ? 'ปิด' : 'Close'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsGachaModalOpen(false)}
+                        className="w-full py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs"
+                      >
+                        {language === 'th' ? '🎉 เยี่ยมเลย รับทราบ!' : 'Got it!'}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-2 flex flex-col items-center justify-center gap-1.5 animate-pulse">
+                    <span className="font-outfit font-bold text-[14px] text-[#E65100]">
+                      🎰 {language === 'th' ? 'กำลังหมุนสล็อตลุ้นโบนัส...' : 'Rolling Reels...'}
+                    </span>
+                    <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                      {language === 'th' ? 'ขอให้ได้ตัวคูณ x5 นะ!' : 'Aiming for x5 multiplier!'}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
