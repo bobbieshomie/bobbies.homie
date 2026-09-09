@@ -81,7 +81,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
+      <body className="font-dm-sans min-h-screen min-h-[100dvh] w-full bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#FDFBF7] antialiased selection:bg-[#5D4037] selection:text-[#FDFBF7]">
         <ThemeProvider>
           <QueryProvider>
             <LanguageProvider>{children}</LanguageProvider>

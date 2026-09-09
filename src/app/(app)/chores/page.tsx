@@ -316,10 +316,10 @@ export default function ChoresPage() {
 
   return (
     <PullToRefresh onRefresh={loadData}>
-      <div className="w-full max-w-md mx-auto min-h-screen pb-28 pt-4 select-none">
+      <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-32 pt-4 transition-colors duration-200 font-dm-sans">
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#5D4037] text-white px-4 py-2.5 rounded-full shadow-lg text-[13px] font-semibold flex items-center gap-2 animate-bounce">
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#5D4037] text-white px-4 py-2.5 rounded-full shadow-lg text-[13px] font-semibold flex items-center gap-2 animate-bounce font-dm-sans">
             <CheckCircle2 className="w-4 h-4 text-[#81C784]" />
             <span>{toastMessage}</span>
           </div>
@@ -337,11 +337,11 @@ export default function ChoresPage() {
             </Link>
 
             <div>
-              <h1 className="text-[20px] font-bold text-[#5D4037] dark:text-[#DDD7D2] leading-tight flex items-center gap-1.5">
+              <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
                 <CheckSquare className="w-5 h-5 text-[#2E7D32]" />
                 <span>{language === 'th' ? 'งานบ้าน' : 'Chores'}</span>
               </h1>
-              <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+              <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
                 {language === 'th' ? 'ช่วยกันดูแลบ้านให้สะอาดน่าอยู่' : 'Keeping our home cozy and clean'}
               </p>
             </div>
@@ -351,7 +351,7 @@ export default function ChoresPage() {
             {/* Quick Link to Rewards Shop */}
             <Link
               href="/rewards"
-              className="px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
+              className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
             >
               <Gift className="w-3.5 h-3.5 text-[#E0533C]" />
               <span>{language === 'th' ? 'ร้านค้า' : 'Shop'}</span>
@@ -368,17 +368,17 @@ export default function ChoresPage() {
           <div className="p-4 bg-gradient-to-br from-[#FFFDF9] to-[#F7F3ED] dark:from-[#23201D] dark:to-[#1B1917] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-[0px_4px_16px_rgba(93,64,55,0.05)]">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] uppercase tracking-wide">
+                <span className="font-dm-sans text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] uppercase tracking-wide">
                   {t.dashboard.todayChores}
                 </span>
-                <div className="text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-0.5">
+                <div className="font-outfit text-[20px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-0.5">
                   {choreStats.completed} / {choreStats.total} {t.dashboard.choresDone}
                 </div>
               </div>
 
               {/* Minimal Progress Ring or Badge */}
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-bold text-[#2E7D32] dark:text-[#81C784] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 px-2.5 py-1 rounded-[10px]">
+                <span className="font-outfit text-[14px] font-bold text-[#2E7D32] dark:text-[#81C784] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 px-2.5 py-1 rounded-[10px]">
                   {choreStats.percent}%
                 </span>
               </div>
@@ -393,10 +393,10 @@ export default function ChoresPage() {
             </div>
 
             {/* Subtle Footnote: Unobtrusive Points Mention & Link */}
-            <div className="mt-3 pt-2.5 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center justify-between text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+            <div className="mt-3 pt-2.5 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center justify-between text-[11px] text-[#8D6E63] dark:text-[#948D87] font-dm-sans">
               <span>
                 {language === 'th' ? 'คะแนนสะสมของคุณ:' : 'Your Points:'}{' '}
-                <span className="font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
+                <span className="font-outfit font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {myPoints} pt
                 </span>
               </span>
@@ -419,7 +419,7 @@ export default function ChoresPage() {
             {/* Tab 1: งานบ้าน */}
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer font-dm-sans ${
                 activeTab === 'tasks'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
                   : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
@@ -428,7 +428,7 @@ export default function ChoresPage() {
               <CheckSquare className="w-3.5 h-3.5" />
               <span>{language === 'th' ? 'รายการงานบ้าน' : 'Tasks'}</span>
               {choreStats.completed < choreStats.total && (
-                <span className="px-1.5 py-0.2 rounded-full bg-[#8D6E63]/15 text-[10px] font-bold">
+                <span className="font-outfit px-1.5 py-0.2 rounded-full bg-[#8D6E63]/15 text-[10px] font-bold">
                   {choreStats.total - choreStats.completed}
                 </span>
               )}
@@ -437,7 +437,7 @@ export default function ChoresPage() {
             {/* Tab 2: ประวัติงานบ้าน */}
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer font-dm-sans ${
                 activeTab === 'logs'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
                   : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
@@ -456,7 +456,7 @@ export default function ChoresPage() {
           <div className="px-6 pt-2 space-y-3">
             {/* Filter Pills and Add Chore Button */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 font-dm-sans">
                 {(['all', 'today', 'pending', 'done'] as ChoreFilter[]).map((f) => (
                   <button
                     key={f}
@@ -477,7 +477,7 @@ export default function ChoresPage() {
 
               <button
                 onClick={openCreateChoreModal}
-                className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer"
+                className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer font-dm-sans"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{t.chores.addChore}</span>
@@ -490,7 +490,7 @@ export default function ChoresPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#5D4037]" />
               </div>
             ) : filteredChores.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
+              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6 font-dm-sans">
                 <CheckSquare className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
                 <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.noChores}
@@ -528,7 +528,7 @@ export default function ChoresPage() {
 
                         <div className="min-w-0 flex-1">
                           <span
-                            className={`text-[14px] font-bold block truncate transition-all ${
+                            className={`font-dm-sans text-[14px] font-bold block truncate transition-all ${
                               chore.is_completed
                                 ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
                                 : 'text-[#5D4037] dark:text-[#DDD7D2]'
@@ -537,7 +537,7 @@ export default function ChoresPage() {
                             {chore.title}
                           </span>
 
-                          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                          <div className="font-dm-sans flex items-center gap-2 mt-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                             <span className="capitalize">
                               {chore.frequency === 'daily' && t.create.daily}
                               {chore.frequency === 'weekly' && t.create.weekly}
@@ -563,7 +563,7 @@ export default function ChoresPage() {
 
                       {/* Right: SUBTLE / MUTED POINTS (NOT FLASHY) */}
                       <div className="shrink-0 text-right">
-                        <span className="text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] bg-[#F4EFEA] dark:bg-[#282421] px-2 py-0.5 rounded-[8px]">
+                        <span className="font-outfit text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] bg-[#F4EFEA] dark:bg-[#282421] px-2.5 py-1 rounded-[8px]">
                           {chore.points || 10} pt
                         </span>
                       </div>
@@ -579,12 +579,12 @@ export default function ChoresPage() {
         {/* TAB 2: CHORE COMPLETION LOG (งานบ้าน, วันที่, คะแนน)       */}
         {/* ======================================================== */}
         {activeTab === 'logs' && (
-          <div className="px-6 pt-2 space-y-3">
+          <div className="px-6 pt-2 space-y-3 font-dm-sans">
             <div>
-              <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+              <h2 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'ประวัติการทำงานบ้าน' : 'Chore Completion Log'}
               </h2>
-              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+              <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
                 {language === 'th' ? 'รายการงานบ้านที่ทำเสร็จแล้ว วันที่ และคะแนนที่ได้รับ' : 'Completed chores, date completed, and points earned'}
               </p>
             </div>
@@ -592,7 +592,7 @@ export default function ChoresPage() {
             {choreLogs.length === 0 ? (
               <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
                 <History className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
-                <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
+                <p className="font-dm-sans text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {language === 'th' ? 'ยังไม่มีประวัติการทำงานบ้าน' : 'No chore completion history yet'}
                 </p>
               </div>
@@ -616,10 +616,10 @@ export default function ChoresPage() {
                       {/* Left: Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87]">
+                          <span className="font-dm-sans text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87]">
                             {logUserName}
                           </span>
-                          <span className="text-[10px] text-[#8D6E63]/60 dark:text-[#948D87]/60">
+                          <span className="font-dm-sans text-[10px] text-[#8D6E63]/60 dark:text-[#948D87]/60">
                             •{' '}
                             {log.created_at
                               ? new Date(log.created_at).toLocaleDateString(
@@ -636,14 +636,14 @@ export default function ChoresPage() {
                           </span>
                         </div>
 
-                        <h4 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                        <h4 className="font-dm-sans text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
                           {log.title}
                         </h4>
                       </div>
 
                       {/* Right: Subtle points earned */}
                       <div className="text-right shrink-0">
-                        <span className="font-outfit font-semibold text-[14px] text-[#2E7D32] dark:text-[#81C784]">
+                        <span className="font-outfit font-bold text-[15px] text-[#2E7D32] dark:text-[#81C784]">
                           +{log.points_delta} pt
                         </span>
                       </div>
@@ -659,10 +659,10 @@ export default function ChoresPage() {
         {/* MODAL: CREATE / EDIT CHORE                               */}
         {/* ======================================================== */}
         {isChoreModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl overflow-hidden animate-scale-up">
               <div className="px-6 py-4 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between">
-                <h3 className="text-[16px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {editingChore ? t.chores.editChore : t.chores.addChore}
                 </h3>
                 <button
@@ -676,7 +676,7 @@ export default function ChoresPage() {
 
               <form onSubmit={handleSaveChore} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
                     ชื่องานบ้าน
                   </label>
                   <input
@@ -685,19 +685,19 @@ export default function ChoresPage() {
                     value={choreTitle}
                     onChange={(e) => setChoreTitle(e.target.value)}
                     placeholder="เช่น กวาดบ้าน, ล้างจาน, ทิ้งขยะ"
-                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
                       {t.chores.frequency}
                     </label>
                     <select
                       value={choreFrequency}
                       onChange={(e) => setChoreFrequency(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                      className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                     >
                       <option value="daily">{t.create.daily}</option>
                       <option value="weekly">{t.create.weekly}</option>
@@ -707,7 +707,7 @@ export default function ChoresPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                    <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
                       คะแนนที่ได้รับ
                     </label>
                     <input
@@ -721,13 +721,13 @@ export default function ChoresPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1 font-dm-sans">
                     {t.chores.assignedTo}
                   </label>
                   <select
                     value={choreAssignedTo}
                     onChange={(e) => setChoreAssignedTo(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                    className="w-full px-3 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] font-dm-sans text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   >
                     <option value="All">{t.chores.allMembers}</option>
                     {members.map((m) => (
@@ -742,14 +742,14 @@ export default function ChoresPage() {
                   <button
                     type="button"
                     onClick={() => setIsChoreModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[13px] font-bold cursor-pointer"
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[13px] font-bold cursor-pointer font-dm-sans"
                   >
                     {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={savingChore}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50 font-dm-sans"
                   >
                     {savingChore ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

@@ -626,10 +626,10 @@ function RewardsPageContent() {
 
   return (
     <PullToRefresh onRefresh={loadData}>
-      <div className="w-full max-w-md mx-auto min-h-screen pb-28 pt-4 select-none">
+      <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-32 pt-4 transition-colors duration-200 font-dm-sans">
         {/* Toast Alert */}
         {toastMessage && (
-          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#5D4037] text-white px-4 py-2.5 rounded-full shadow-lg text-[13px] font-semibold flex items-center gap-2 animate-bounce">
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#5D4037] text-white px-4 py-2.5 rounded-full shadow-lg text-[13px] font-semibold flex items-center gap-2 animate-bounce font-dm-sans">
             <CheckCircle2 className="w-4 h-4 text-[#81C784]" />
             <span>{toastMessage}</span>
           </div>
@@ -647,11 +647,11 @@ function RewardsPageContent() {
             </Link>
 
             <div>
-              <h1 className="text-[20px] font-bold text-[#5D4037] dark:text-[#DDD7D2] leading-tight flex items-center gap-1.5">
+              <h1 className="font-outfit font-bold text-[24px] leading-[30px] text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-2">
                 <Gift className="w-5 h-5 text-[#E0533C]" />
                 <span>{language === 'th' ? 'ร้านค้า & รางวัล' : 'Rewards & Shop'}</span>
               </h1>
-              <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87]">
+              <p className="font-dm-sans text-[13px] leading-[18px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
                 {language === 'th' ? 'ใช้คะแนนสะสมแลกรางวัล หรือจัดการของรางวัล' : 'Redeem rewards and manage approvals'}
               </p>
             </div>
@@ -661,7 +661,7 @@ function RewardsPageContent() {
             {/* Link to Chores page */}
             <Link
               href="/chores"
-              className="px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
+              className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-80 transition-colors shadow-2xs"
             >
               <CheckSquare className="w-3.5 h-3.5 text-[#2E7D32]" />
               <span>{language === 'th' ? 'งานบ้าน' : 'Chores'}</span>
@@ -679,15 +679,15 @@ function RewardsPageContent() {
             <div className="flex items-center justify-between">
               {/* My Points */}
               <div className="flex-1">
-                <span className="text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1">
+                <span className="font-dm-sans text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1">
                   <Coins className="w-3.5 h-3.5 text-[#F2C94C]" />
                   <span>{t.chores.myPoints}</span>
                 </span>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="font-outfit font-extrabold text-[26px] text-[#5D4037] dark:text-[#DDD7D2]">
+                  <span className="font-outfit font-extrabold text-[28px] leading-[32px] text-[#5D4037] dark:text-[#DDD7D2]">
                     {myPoints}
                   </span>
-                  <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87]">
+                  <span className="font-dm-sans text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87]">
                     {t.chores.pointsUnit}
                   </span>
                 </div>
@@ -696,14 +696,14 @@ function RewardsPageContent() {
               {/* Partner Points */}
               {partnerMember && (
                 <div className="text-right border-l border-[#D7CCC8]/60 dark:border-[#2E2A27] pl-4">
-                  <span className="text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] block">
+                  <span className="font-dm-sans text-[11px] font-medium text-[#8D6E63] dark:text-[#948D87] block">
                     {partnerMember.nickname || partnerMember.full_name}
                   </span>
                   <div className="flex items-baseline justify-end gap-1 mt-0.5">
                     <span className="font-outfit font-bold text-[20px] text-[#5D4037]/80 dark:text-[#DDD7D2]/80">
                       {partnerMember.chore_points || 0}
                     </span>
-                    <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                    <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                       {t.chores.pointsUnit}
                     </span>
                   </div>
@@ -716,12 +716,12 @@ function RewardsPageContent() {
         {/* ======================================================== */}
         {/* SLIDEBAR TAB NAVIGATION                                  */}
         {/* ======================================================== */}
-        <div className="px-6 py-1 w-full mb-2">
+        <div className="px-6 py-1 w-full mb-2 font-dm-sans">
           <div className="flex items-center gap-1.5 p-1.5 bg-[#F4EFEA] dark:bg-[#23201D] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[20px] overflow-x-auto no-scrollbar scroll-smooth">
             {/* Tab 1: ร้านค้า */}
             <button
               onClick={() => setActiveTab('shop')}
-              className={`flex-1 min-w-[90px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[90px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer font-dm-sans ${
                 activeTab === 'shop'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
                   : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
@@ -729,7 +729,7 @@ function RewardsPageContent() {
             >
               <Gift className="w-3.5 h-3.5" />
               <span>{language === 'th' ? 'ร้านค้า' : 'Shop'}</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-[#5D4037]/10 dark:bg-[#DDD7D2]/10 text-[10px] font-bold">
+              <span className="font-outfit px-1.5 py-0.2 rounded-full bg-[#5D4037]/10 dark:bg-[#DDD7D2]/10 text-[10px] font-bold">
                 {activeShopRewards.length}
               </span>
             </button>
@@ -737,7 +737,7 @@ function RewardsPageContent() {
             {/* Tab 2: ประวัติการแลกรางวัล */}
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex-1 min-w-[110px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 min-w-[110px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer font-dm-sans ${
                 activeTab === 'logs'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
                   : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
@@ -750,7 +750,7 @@ function RewardsPageContent() {
             {/* Tab 3: จัดการรางวัล & อนุมัติ 2 คน */}
             <button
               onClick={() => setActiveTab('manage')}
-              className={`relative flex-1 min-w-[100px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`relative flex-1 min-w-[100px] py-2 text-[12px] font-bold rounded-[14px] transition-all flex items-center justify-center gap-1.5 cursor-pointer font-dm-sans ${
                 activeTab === 'manage'
                   ? 'bg-white dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] shadow-xs'
                   : 'text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037]'
@@ -759,7 +759,7 @@ function RewardsPageContent() {
               <Settings2 className="w-3.5 h-3.5" />
               <span>{language === 'th' ? 'จัดการรางวัล' : 'Manage'}</span>
               {totalPendingApprovalsForMe > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[#E0533C] text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse">
+                <span className="font-outfit w-4 h-4 rounded-full bg-[#E0533C] text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse">
                   {totalPendingApprovalsForMe}
                 </span>
               )}
@@ -771,7 +771,7 @@ function RewardsPageContent() {
         {/* TAB 1: REWARD SHOP (BROWSE & REDEEM + GACHA)             */}
         {/* ======================================================== */}
         {activeTab === 'shop' && (
-          <div className="px-6 pt-2 space-y-3">
+          <div className="px-6 pt-2 space-y-3 font-dm-sans">
             {/* Subtle Weekly Mystery Box Gacha Card */}
             <div className="p-3.5 bg-[#FAF7F2] dark:bg-[#201D1A] border border-[#E0D7D0] dark:border-[#2E2A27] rounded-[20px] flex items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3 min-w-0">
@@ -780,14 +780,14 @@ function RewardsPageContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <h3 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                    <h3 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
                       {language === 'th' ? 'กล่องสุ่มงานบ้าน' : 'Mystery Box'}
                     </h3>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#E0533C]/10 text-[#E0533C] font-extrabold">
+                    <span className="font-outfit text-[10px] px-1.5 py-0.2 rounded-full bg-[#E0533C]/10 text-[#E0533C] font-extrabold">
                       {language === 'th' ? 'สัปดาห์ละ 1 ครั้ง' : '1x / week'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
+                  <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
                     {activeGachaSpin
                       ? language === 'th'
                         ? `งาน "${activeGachaSpin.chore_title}" โบนัส x${activeGachaSpin.multiplier}`
@@ -803,7 +803,7 @@ function RewardsPageContent() {
                 {activeGachaSpin ? (
                   <button
                     onClick={() => setIsGachaHistoryModalOpen(true)}
-                    className="px-2.5 py-1.5 rounded-[10px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[11px] font-bold cursor-pointer hover:opacity-90"
+                    className="font-outfit px-2.5 py-1.5 rounded-[10px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] text-[12px] font-bold cursor-pointer hover:opacity-90"
                   >
                     x{activeGachaSpin.multiplier}
                   </button>
@@ -811,7 +811,7 @@ function RewardsPageContent() {
                   <button
                     onClick={handleSpinGacha}
                     disabled={isSpinningGacha || myPoints < 10}
-                    className={`px-3 py-1.5 rounded-[12px] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    className={`font-dm-sans px-3 py-1.5 rounded-[12px] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       myPoints >= 10
                         ? 'bg-[#5D4037] text-white hover:opacity-90 shadow-2xs'
                         : 'bg-[#D7CCC8]/50 text-[#8D6E63] cursor-not-allowed'
@@ -833,17 +833,17 @@ function RewardsPageContent() {
             {/* Shop Header */}
             <div className="flex items-center justify-between pt-1">
               <div>
-                <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <h2 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.tabRewards}
                 </h2>
-                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
                   {language === 'th' ? 'ใช้คะแนนสะสมแลกรางวัลที่อนุมัติแล้ว' : 'Redeem approved household rewards'}
                 </p>
               </div>
 
               <button
                 onClick={() => setActiveTab('manage')}
-                className="px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-90 cursor-pointer"
+                className="font-dm-sans px-2.5 py-1.5 rounded-[12px] bg-[#F4EFEA] dark:bg-[#24211E] border border-[#D7CCC8] dark:border-[#2E2A27] text-[#5D4037] dark:text-[#DDD7D2] text-[11px] font-bold flex items-center gap-1 hover:opacity-90 cursor-pointer"
               >
                 <Settings2 className="w-3 h-3" />
                 <span>{language === 'th' ? 'จัดการรางวัล' : 'Manage'}</span>
@@ -856,7 +856,7 @@ function RewardsPageContent() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#5D4037]" />
               </div>
             ) : activeShopRewards.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
+              <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6 font-dm-sans">
                 <Gift className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
                 <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.noRewards}
@@ -888,19 +888,19 @@ function RewardsPageContent() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                          <h3 className="font-outfit text-[15px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
                             {reward.title}
                           </h3>
                           {reward.description && (
-                            <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate">
+                            <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
                               {reward.description}
                             </p>
                           )}
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className="font-outfit font-extrabold text-[14px] text-[#E0533C]">
+                            <span className="font-outfit font-extrabold text-[15px] text-[#E0533C]">
                               {reward.points_cost}
                             </span>
-                            <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                               {t.chores.pointsUnit}
                             </span>
                           </div>
@@ -911,7 +911,7 @@ function RewardsPageContent() {
                       <button
                         onClick={() => setRedeemConfirmItem(reward)}
                         disabled={!canAfford}
-                        className={`px-3.5 py-2 rounded-[12px] text-[12px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer ${
+                        className={`font-dm-sans px-3.5 py-2 rounded-[12px] text-[12px] font-bold flex items-center gap-1 transition-all shrink-0 cursor-pointer ${
                           canAfford
                             ? 'bg-[#5D4037] text-white hover:opacity-90 shadow-xs'
                             : 'bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63]/60 dark:text-[#948D87]/60 cursor-not-allowed'
@@ -932,12 +932,12 @@ function RewardsPageContent() {
         {/* TAB 2: REWARD REDEMPTION LOG (แลกอะไรไป, วันที่, กี่คะแนน) */}
         {/* ======================================================== */}
         {activeTab === 'logs' && (
-          <div className="px-6 pt-2 space-y-3">
+          <div className="px-6 pt-2 space-y-3 font-dm-sans">
             <div>
-              <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+              <h2 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? 'ประวัติการแลกของรางวัล' : 'Reward Redemption Log'}
               </h2>
-              <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+              <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87]">
                 {language === 'th' ? 'แสดงรายการของรางวัลที่แลก วันที่ และคะแนนที่ใช้' : 'History of redeemed rewards, dates, and points cost'}
               </p>
             </div>
@@ -945,7 +945,7 @@ function RewardsPageContent() {
             {rewardLogs.length === 0 ? (
               <div className="py-12 text-center bg-white dark:bg-[#201D1A] rounded-[20px] border border-[#D7CCC8]/60 dark:border-[#2E2A27] p-6">
                 <History className="w-10 h-10 text-[#8D6E63]/40 mx-auto mb-2" />
-                <p className="text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
+                <p className="font-dm-sans text-[14px] font-semibold text-[#5D4037] dark:text-[#DDD7D2]">
                   {language === 'th' ? 'ยังไม่มีประวัติการแลกของรางวัล' : 'No reward redemptions yet'}
                 </p>
               </div>
@@ -967,10 +967,10 @@ function RewardsPageContent() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87]">
+                            <span className="font-dm-sans text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87]">
                               {log.userName}
                             </span>
-                            <span className="text-[10px] text-[#8D6E63]/60 dark:text-[#948D87]/60">
+                            <span className="font-dm-sans text-[10px] text-[#8D6E63]/60 dark:text-[#948D87]/60">
                               •{' '}
                               {log.createdAt
                                 ? new Date(log.createdAt).toLocaleDateString(
@@ -987,24 +987,24 @@ function RewardsPageContent() {
                             </span>
                           </div>
 
-                          <h4 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                          <h4 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
                             {log.rewardTitle}
                           </h4>
 
                           {/* Status Badge */}
                           <div className="mt-1">
                             {log.status === 'pending' && (
-                              <span className="inline-block text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100]">
+                              <span className="inline-block font-dm-sans text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100]">
                                 {language === 'th' ? 'รออนุมัติ' : 'Pending'}
                               </span>
                             )}
                             {log.status === 'approved' && (
-                              <span className="inline-block text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#E8F5E9] text-[#2E7D32]">
+                              <span className="inline-block font-dm-sans text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#E8F5E9] text-[#2E7D32]">
                                 {language === 'th' ? 'อนุมัติแล้ว' : 'Approved'}
                               </span>
                             )}
                             {log.status === 'rejected' && (
-                              <span className="inline-block text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#FFEBEE] text-[#C62828]">
+                              <span className="inline-block font-dm-sans text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#FFEBEE] text-[#C62828]">
                                 {language === 'th' ? 'ปฏิเสธ (คืนแต้ม)' : 'Rejected'}
                               </span>
                             )}
@@ -1017,7 +1017,7 @@ function RewardsPageContent() {
                         <span className="font-outfit font-extrabold text-[16px] text-[#E0533C]">
                           -{log.pointsSpent}
                         </span>
-                        <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87] ml-1">
+                        <span className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] ml-1">
                           {t.chores.pointsUnit}
                         </span>
                       </div>
@@ -1033,20 +1033,20 @@ function RewardsPageContent() {
         {/* TAB 3: MANAGE REWARDS & APPROVALS (TWO-PERSON PROPOSALS) */}
         {/* ======================================================== */}
         {activeTab === 'manage' && (
-          <div className="px-6 pt-2 space-y-4">
+          <div className="px-6 pt-2 space-y-4 font-dm-sans">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <h2 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {language === 'th' ? 'จัดการของรางวัล & อนุมัติ' : 'Manage Rewards & Approvals'}
                 </h2>
-                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                   {language === 'th' ? 'เพิ่ม แก้ไข หรือลบรางวัล ต้องได้รับการยืนยันจากทั้งสองคน' : 'Propose reward changes with two-person confirmation'}
                 </p>
               </div>
 
               <button
                 onClick={openCreateRewardModal}
-                className="px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer shrink-0"
+                className="px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold flex items-center gap-1 shadow-xs hover:opacity-90 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{language === 'th' ? 'เพิ่มรางวัล' : 'Add Reward'}</span>
@@ -1056,7 +1056,7 @@ function RewardsPageContent() {
             {/* Approvals Queue */}
             {(pendingRewardProposals.length > 0 || pendingRedemptions.length > 0) && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <div className="flex items-center gap-2 font-outfit text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   <ShieldCheck className="w-4 h-4 text-[#E65100]" />
                   <span>{language === 'th' ? `คำขอที่รอการยืนยัน & อนุมัติ (${totalPendingApprovalsForMe})` : `Pending Approvals (${totalPendingApprovalsForMe})`}</span>
                 </div>
@@ -1077,10 +1077,10 @@ function RewardsPageContent() {
                   return (
                     <div
                       key={reward.id}
-                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs"
+                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs font-dm-sans"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
+                        <span className="font-dm-sans text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5" />
                           <span>
                             {proposerName}{' '}
@@ -1090,7 +1090,7 @@ function RewardsPageContent() {
                           </span>
                         </span>
 
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
+                        <span className="font-dm-sans text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
                           {isMyProposal
                             ? language === 'th'
                               ? 'รอคนในบ้านยืนยัน'
@@ -1105,11 +1105,11 @@ function RewardsPageContent() {
                         {isPendingCreate && (
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                              <h3 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                                 {reward.title}
                               </h3>
                               {reward.description && (
-                                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                                   {reward.description}
                                 </p>
                               )}
@@ -1122,16 +1122,16 @@ function RewardsPageContent() {
 
                         {isPendingEdit && (
                           <div className="space-y-1">
-                            <div className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                               เดิม: <span className="line-through">{reward.title}</span> ({reward.points_cost} คะแนน)
                             </div>
                             <div className="flex items-center justify-between">
                               <div>
-                                <h3 className="text-[14px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                                <h3 className="font-outfit text-[14px] font-bold text-[#2E7D32] dark:text-[#81C784]">
                                   ใหม่: {reward.pending_payload?.title || reward.title}
                                 </h3>
                                 {reward.pending_payload?.description && (
-                                  <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                                  <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                                     {reward.pending_payload.description}
                                   </p>
                                 )}
@@ -1145,10 +1145,10 @@ function RewardsPageContent() {
 
                         {isPendingDelete && (
                           <div>
-                            <h3 className="text-[14px] font-bold text-[#C62828]">
+                            <h3 className="font-outfit text-[14px] font-bold text-[#C62828]">
                               ขอลบรางวัล: &ldquo;{reward.title}&rdquo; ({reward.points_cost} คะแนน)
                             </h3>
-                            <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                               เมื่อทั้งสองคนอนุมัติ รางวัลนี้จะถูกลบออกจากร้านค้า
                             </p>
                           </div>
@@ -1159,7 +1159,7 @@ function RewardsPageContent() {
                         {isMyProposal ? (
                           <button
                             onClick={() => handleCancelProposal(reward)}
-                            className="w-full py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[12px] font-bold hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
+                            className="w-full py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] font-dm-sans text-[12px] font-bold hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
                           >
                             ยกเลิกคำขอ
                           </button>
@@ -1167,13 +1167,13 @@ function RewardsPageContent() {
                           <>
                             <button
                               onClick={() => handleRespondProposal(reward, false)}
-                              className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
+                              className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] font-dm-sans text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
                             >
                               ปฏิเสธ
                             </button>
                             <button
                               onClick={() => handleRespondProposal(reward, true)}
-                              className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                              className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white font-dm-sans text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
                             >
                               <Check className="w-3.5 h-3.5" />
                               <span>อนุมัติ</span>
@@ -1196,15 +1196,15 @@ function RewardsPageContent() {
                   return (
                     <div
                       key={red.id}
-                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs"
+                      className="p-4 bg-white dark:bg-[#201D1A] border-2 border-[#E65100]/30 rounded-[20px] space-y-3 shadow-xs font-dm-sans"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
+                        <span className="font-dm-sans text-[12px] font-semibold text-[#8D6E63] dark:text-[#948D87] flex items-center gap-1.5">
                           <Gift className="w-3.5 h-3.5 text-[#E65100]" />
                           <span>{requesterName} ขอแลกรางวัล:</span>
                         </span>
 
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
+                        <span className="font-dm-sans text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E0] text-[#E65100] dark:bg-[#E65100]/20 dark:text-[#FFB74D]">
                           {isRequester
                             ? language === 'th'
                               ? 'รอคนในบ้านอนุมัติ'
@@ -1217,10 +1217,10 @@ function RewardsPageContent() {
 
                       <div className="flex items-center justify-between py-1">
                         <div>
-                          <h3 className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                          <h3 className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                             {red.reward_title || 'ของรางวัล'}
                           </h3>
-                          <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                          <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87]">
                             {red.created_at
                               ? new Date(red.created_at).toLocaleDateString(
                                   language === 'th' ? 'th-TH' : 'en-US',
@@ -1243,13 +1243,13 @@ function RewardsPageContent() {
                         <div className="pt-2 border-t border-[#D7CCC8]/40 dark:border-[#2E2A27] flex items-center gap-2">
                           <button
                             onClick={() => handleRespondRedemption(red, false)}
-                            className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
+                            className="flex-1 py-2 rounded-[12px] bg-[#F4EFEA] dark:bg-[#292522] text-[#C62828] font-dm-sans text-[12px] font-bold hover:bg-[#FFEBEE] transition-colors cursor-pointer"
                           >
                             {t.chores.reject}
                           </button>
                           <button
                             onClick={() => handleRespondRedemption(red, true)}
-                            className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                            className="flex-1 py-2 rounded-[12px] bg-[#2E7D32] text-white font-dm-sans text-[12px] font-bold hover:bg-[#1B5E20] transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>{t.chores.approve}</span>
@@ -1264,7 +1264,7 @@ function RewardsPageContent() {
 
             {/* Approved Rewards Management List */}
             <div className="space-y-3 pt-2">
-              <h3 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+              <h3 className="font-outfit text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                 {language === 'th' ? `รางวัลทั้งหมดในร้านค้า (${activeShopRewards.length})` : `All Store Rewards (${activeShopRewards.length})`}
               </h3>
 
@@ -1273,7 +1273,7 @@ function RewardsPageContent() {
                 return (
                   <div
                     key={reward.id}
-                    className="p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3 shadow-2xs"
+                    className="p-3.5 bg-white dark:bg-[#201D1A] border border-[#D7CCC8]/80 dark:border-[#2E2A27] rounded-[18px] flex items-center justify-between gap-3 shadow-2xs font-dm-sans"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-9 h-9 rounded-[12px] bg-[#FFF3E0] dark:bg-[#2B231D] flex items-center justify-center text-[#E65100] shrink-0">
@@ -1281,7 +1281,7 @@ function RewardsPageContent() {
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                        <h4 className="font-outfit text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
                           {reward.title}
                         </h4>
                         <span className="font-outfit font-extrabold text-[12px] text-[#E0533C]">
@@ -1317,10 +1317,10 @@ function RewardsPageContent() {
         {/* MODAL: CREATE / EDIT REWARD (PROPOSAL)                   */}
         {/* ======================================================== */}
         {isRewardModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl overflow-hidden animate-scale-up">
               <div className="px-6 py-4 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between">
-                <h3 className="text-[16px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <h3 className="font-outfit text-[16px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {editingReward ? t.chores.editReward : t.chores.createReward}
                 </h3>
                 <button
@@ -1331,9 +1331,9 @@ function RewardsPageContent() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveRewardProposal} className="p-6 space-y-4">
+              <form onSubmit={handleSaveRewardProposal} className="p-6 space-y-4 font-dm-sans">
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                  <label className="block font-dm-sans text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
                     {t.chores.rewardTitle}
                   </label>
                   <input
@@ -1342,12 +1342,12 @@ function RewardsPageContent() {
                     value={rewardTitle}
                     onChange={(e) => setRewardTitle(e.target.value)}
                     placeholder={t.chores.rewardTitlePlaceholder}
-                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] font-dm-sans text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                  <label className="block font-dm-sans text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
                     {t.chores.rewardDesc}
                   </label>
                   <input
@@ -1355,12 +1355,12 @@ function RewardsPageContent() {
                     value={rewardDesc}
                     onChange={(e) => setRewardDesc(e.target.value)}
                     placeholder="เช่น ร้านประจำแถวบ้าน, ไม่เกิน 200 บ."
-                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
+                    className="w-full px-3.5 py-2.5 rounded-[14px] bg-white dark:bg-[#2A2724] border border-[#D7CCC8] dark:border-[#3D3835] font-dm-sans text-[13px] text-[#5D4037] dark:text-[#DDD7D2] focus:outline-hidden focus:ring-2 focus:ring-[#5D4037]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
+                  <label className="block font-dm-sans text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1">
                     {t.chores.pointsCost}
                   </label>
                   <input
@@ -1375,7 +1375,7 @@ function RewardsPageContent() {
                 </div>
 
                 <div>
-                  <label className="block text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1.5">
+                  <label className="block font-dm-sans text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mb-1.5">
                     ไอคอน
                   </label>
                   <div className="grid grid-cols-4 gap-2">
@@ -1387,7 +1387,7 @@ function RewardsPageContent() {
                           key={item.id}
                           type="button"
                           onClick={() => setRewardIcon(item.id)}
-                          className={`p-2.5 rounded-[12px] flex flex-col items-center gap-1 border transition-all cursor-pointer ${
+                          className={`p-2.5 rounded-[12px] flex flex-col items-center gap-1 border transition-all cursor-pointer font-dm-sans ${
                             isSelected
                               ? 'bg-[#5D4037] text-white border-[#5D4037]'
                               : 'bg-white dark:bg-[#2A2724] text-[#8D6E63] border-[#D7CCC8] dark:border-[#3D3835]'
@@ -1405,14 +1405,14 @@ function RewardsPageContent() {
                   <button
                     type="button"
                     onClick={() => setIsRewardModalOpen(false)}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[13px] font-bold cursor-pointer"
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] font-dm-sans text-[13px] font-bold cursor-pointer"
                   >
                     {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={savingReward}
-                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
+                    className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
                   >
                     {savingReward ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1430,32 +1430,32 @@ function RewardsPageContent() {
         {/* MODAL: REDEEM CONFIRMATION                               */}
         {/* ======================================================== */}
         {redeemConfirmItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl p-6 text-center animate-scale-up space-y-4">
               <div className="w-14 h-14 rounded-[20px] bg-[#FFF3E0] dark:bg-[#2B231D] text-[#E65100] flex items-center justify-center mx-auto">
                 <Gift className="w-8 h-8" />
               </div>
 
               <div>
-                <h3 className="text-[17px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                <h3 className="font-outfit text-[17px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {t.chores.redeemConfirmTitle}
                 </h3>
-                <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                <p className="font-dm-sans text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
                   {t.chores.redeemConfirmDesc}
                 </p>
               </div>
 
-              <div className="p-4 bg-white dark:bg-[#2A2724] rounded-[18px] border border-[#D7CCC8]/60 dark:border-[#3D3835] text-left">
-                <div className="text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+              <div className="p-4 bg-white dark:bg-[#2A2724] rounded-[18px] border border-[#D7CCC8]/60 dark:border-[#3D3835] text-left font-dm-sans">
+                <div className="font-outfit text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                   {redeemConfirmItem.title}
                 </div>
                 {redeemConfirmItem.description && (
-                  <div className="text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+                  <div className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
                     {redeemConfirmItem.description}
                   </div>
                 )}
                 <div className="mt-2 pt-2 border-t border-[#D7CCC8]/40 dark:border-[#3D3835] flex items-center justify-between text-[12px]">
-                  <span className="text-[#8D6E63] dark:text-[#948D87]">{t.chores.cost}:</span>
+                  <span className="font-dm-sans text-[#8D6E63] dark:text-[#948D87]">{t.chores.cost}:</span>
                   <span className="font-outfit font-extrabold text-[15px] text-[#E0533C]">
                     {redeemConfirmItem.points_cost} {t.chores.pointsUnit}
                   </span>
@@ -1466,7 +1466,7 @@ function RewardsPageContent() {
                 <button
                   type="button"
                   onClick={() => setRedeemConfirmItem(null)}
-                  className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] text-[13px] font-bold cursor-pointer"
+                  className="flex-1 py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#292522] text-[#8D6E63] dark:text-[#948D87] font-dm-sans text-[13px] font-bold cursor-pointer"
                 >
                   {t.common.cancel}
                 </button>
@@ -1474,7 +1474,7 @@ function RewardsPageContent() {
                   type="button"
                   onClick={handleRequestRedemption}
                   disabled={redeeming}
-                  className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-[14px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:opacity-90 cursor-pointer disabled:opacity-50"
                 >
                   {redeeming ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1491,28 +1491,28 @@ function RewardsPageContent() {
         {/* MODAL: GACHA SPIN RESULT                                 */}
         {/* ======================================================== */}
         {isGachaModalOpen && spinResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl p-6 text-center animate-scale-up space-y-4">
               <div className="w-16 h-16 rounded-[22px] bg-[#FFF3E0] text-[#E65100] flex items-center justify-center mx-auto animate-bounce">
                 <Dice5 className="w-9 h-9" />
               </div>
 
               <div>
-                <span className="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#E0533C]/10 text-[#E0533C]">
+                <span className="font-dm-sans text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#E0533C]/10 text-[#E0533C]">
                   {language === 'th' ? 'ผลการสุ่มกล่องปริศนา!' : 'Mystery Box Result!'}
                 </span>
-                <h3 className="text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-2">
+                <h3 className="font-outfit text-[18px] font-bold text-[#5D4037] dark:text-[#DDD7D2] mt-2">
                   {spinResult.chore_title}
                 </h3>
                 <div className="mt-3 flex items-center justify-center gap-2">
-                  <span className="text-[13px] text-[#8D6E63] dark:text-[#948D87]">
+                  <span className="font-dm-sans text-[13px] text-[#8D6E63] dark:text-[#948D87]">
                     {language === 'th' ? 'โบนัสคะแนนคูณ:' : 'Points Multiplier:'}
                   </span>
                   <span className="px-3 py-1 rounded-full bg-[#E8F5E9] text-[#2E7D32] font-outfit font-extrabold text-[20px]">
                     x{spinResult.multiplier}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-2">
+                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-2">
                   {language === 'th'
                     ? 'เมื่อทำงานบ้านนี้เสร็จ คะแนนจะถูกคูณตามโบนัสนี้ทันที!'
                     : 'Complete this chore this week to earn multiplied bonus points!'}
@@ -1521,7 +1521,7 @@ function RewardsPageContent() {
 
               <button
                 onClick={() => setIsGachaModalOpen(false)}
-                className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer"
+                className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white font-dm-sans text-[13px] font-bold hover:opacity-90 transition-all cursor-pointer"
               >
                 {language === 'th' ? 'รับทราบ' : 'Got it!'}
               </button>
@@ -1533,10 +1533,10 @@ function RewardsPageContent() {
         {/* MODAL: GACHA HISTORY / STATUS                            */}
         {/* ======================================================== */}
         {isGachaHistoryModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 font-dm-sans">
             <div className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xl overflow-hidden animate-scale-up">
               <div className="px-6 py-4 border-b border-[#D7CCC8]/60 dark:border-[#2E2A27] flex items-center justify-between">
-                <h3 className="text-[16px] font-bold text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-1.5">
+                <h3 className="font-outfit text-[16px] font-bold text-[#5D4037] dark:text-[#DDD7D2] flex items-center gap-1.5">
                   <Dice5 className="w-4 h-4 text-[#5D4037]" />
                   <span>{language === 'th' ? 'ประวัติกล่องสุ่ม' : 'Mystery Box History'}</span>
                 </h3>
@@ -1548,22 +1548,22 @@ function RewardsPageContent() {
                 </button>
               </div>
 
-              <div className="p-6 max-h-[350px] overflow-y-auto space-y-2.5">
+              <div className="p-6 max-h-[350px] overflow-y-auto space-y-2.5 font-dm-sans">
                 {gachaSpins.length === 0 ? (
-                  <p className="text-[12px] text-center text-[#8D6E63] py-6">
+                  <p className="font-dm-sans text-[12px] text-center text-[#8D6E63] py-6">
                     {language === 'th' ? 'ยังไม่มีประวัติการสุ่ม' : 'No spin history yet'}
                   </p>
                 ) : (
                   gachaSpins.map((s) => (
                     <div
                       key={s.id}
-                      className="p-3 bg-white dark:bg-[#2A2724] rounded-[14px] border border-[#D7CCC8]/60 dark:border-[#3D3835] flex items-center justify-between"
+                      className="p-3 bg-white dark:bg-[#2A2724] rounded-[14px] border border-[#D7CCC8]/60 dark:border-[#3D3835] flex items-center justify-between font-dm-sans"
                     >
                       <div>
-                        <div className="text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
+                        <div className="font-outfit text-[12px] font-bold text-[#5D4037] dark:text-[#DDD7D2]">
                           {s.chore_title}
                         </div>
-                        <div className="text-[10px] text-[#8D6E63] dark:text-[#948D87]">
+                        <div className="font-dm-sans text-[10px] text-[#8D6E63] dark:text-[#948D87]">
                           {new Date(s.created_at).toLocaleDateString(language === 'th' ? 'th-TH' : 'en-US')}
                         </div>
                       </div>

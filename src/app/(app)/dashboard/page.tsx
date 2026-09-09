@@ -471,30 +471,30 @@ export default function DashboardPage() {
             {/* Chore Checklist: กล่องยาวแต่ไม่สูง (Horizontal items, no % inside) */}
             {allChoresDone ? (
               <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27]">
-                <div className="text-center py-2 px-3 rounded-[14px] bg-[#E8F5E9]/60 dark:bg-[#1B5E20]/20 border border-[#2E7D32]/20">
-                  <span className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center gap-1.5">
+                <div className="text-center py-2 px-3 rounded-[14px] bg-[#E8F5E9]/60 dark:bg-[#1B5E20]/20 border border-[#2E7D32]/20 font-dm-sans">
+                  <span className="font-dm-sans text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center gap-1.5">
                     🎉 งานบ้านหมดแล้ว
                   </span>
-                  <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
+                  <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] mt-0.5">
                     ทำงานบ้านครบหมดแล้ว พักผ่อนได้เลย~
                   </p>
                 </div>
               </div>
             ) : chores.length === 0 ? (
               <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] text-center py-1">
-                <span className="text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                <span className="font-dm-sans text-[12px] font-bold text-[#2E7D32] dark:text-[#81C784]">
                   งานบ้านหมดแล้ว
                 </span>
               </div>
             ) : (
-              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5">
+              <div className="w-full pt-2 border-t border-[#D7CCC8]/60 dark:border-[#2E2A27] space-y-1.5 font-dm-sans">
                 {chores.slice(0, 3).map((chore) => {
                   const hasBonus = activeGachaSpin && chore.title.toLowerCase().includes(activeGachaSpin.chore_title.toLowerCase());
                   return (
                     <div
                       key={chore.id}
                       onClick={() => handleQuickToggleChore(chore.id, chore.isCompleted)}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-[12px] bg-white/70 dark:bg-[#141312]/60 hover:bg-white dark:hover:bg-[#141312] border border-[#D7CCC8]/50 dark:border-[#2E2A27]/60 transition-colors cursor-pointer"
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-[12px] bg-white/70 dark:bg-[#141312]/60 hover:bg-white dark:hover:bg-[#141312] border border-[#D7CCC8]/50 dark:border-[#2E2A27]/60 transition-colors cursor-pointer font-dm-sans"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <div
@@ -507,7 +507,7 @@ export default function DashboardPage() {
                           {chore.isCompleted && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                         <span
-                          className={`text-[12px] font-semibold truncate ${
+                          className={`font-dm-sans text-[12px] font-semibold truncate ${
                             chore.isCompleted
                               ? 'line-through text-[#8D6E63]/60 dark:text-[#948D87]/60'
                               : 'text-[#5D4037] dark:text-[#DDD7D2]'
@@ -519,11 +519,11 @@ export default function DashboardPage() {
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
                         {hasBonus && (
-                          <span className="px-1.5 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100] text-[9px] font-extrabold animate-pulse">
+                          <span className="px-1.5 py-0.2 rounded-full bg-[#FFF3E0] text-[#E65100] text-[9px] font-outfit font-extrabold animate-pulse">
                             x{activeGachaSpin.multiplier} 🔥
                           </span>
                         )}
-                        <span className="text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784]">
+                        <span className="font-outfit text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784]">
                           +{hasBonus ? Math.round(chore.points * activeGachaSpin.multiplier) : chore.points} ⭐
                         </span>
                       </div>
@@ -537,7 +537,7 @@ export default function DashboardPage() {
           {/* ======================================================== */}
           {/* 2. REWARD SHOP BANNER (แยกขาดจากงานบ้านตามคำขอ)             */}
           {/* ======================================================== */}
-          <section className="w-full p-3.5 rounded-[22px] bg-gradient-to-r from-[#F4EFEA] to-[#ECE5DC] dark:from-[#24211E] dark:to-[#1C1A18] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xs flex items-center justify-between gap-3">
+          <section className="w-full p-3.5 rounded-[22px] bg-gradient-to-r from-[#F4EFEA] to-[#ECE5DC] dark:from-[#24211E] dark:to-[#1C1A18] border border-[#D7CCC8] dark:border-[#2E2A27] shadow-xs flex items-center justify-between gap-3 font-dm-sans">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-10 h-10 rounded-[14px] bg-[#5D4037] text-white flex items-center justify-center shrink-0 shadow-xs">
                 <Gift className="w-5 h-5 text-[#F2C94C]" />
@@ -547,12 +547,12 @@ export default function DashboardPage() {
                   <span className="font-outfit font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
                     {language === 'th' ? 'ร้านค้าแลกรางวัล' : 'Reward Shop'}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[10px] font-extrabold flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full bg-[#5D4037] text-white text-[10px] font-outfit font-extrabold flex items-center gap-1">
                     <Coins className="w-2.5 h-2.5 text-[#F2C94C]" />
                     <span>{myChorePoints} คะแนน</span>
                   </span>
                 </div>
-                <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
+                <p className="font-dm-sans text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
                   {partnerMember
                     ? `${partnerMember.nickname || partnerMember.full_name} มี ${partnerMember.chore_points || 0} คะแนน`
                     : 'ใช้คะแนนสะสมแลกของรางวัลในบ้าน'}
@@ -562,7 +562,7 @@ export default function DashboardPage() {
 
             <Link
               href="/rewards"
-              className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] text-[12px] font-bold hover:opacity-90 shadow-2xs flex items-center gap-1"
+              className="shrink-0 px-3 py-1.5 rounded-[12px] bg-[#5D4037] dark:bg-[#DDD7D2] text-white dark:text-[#1A1816] font-dm-sans text-[12px] font-bold hover:opacity-90 shadow-2xs flex items-center gap-1"
             >
               <span>{language === 'th' ? 'ไปร้านค้า' : 'Shop'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
