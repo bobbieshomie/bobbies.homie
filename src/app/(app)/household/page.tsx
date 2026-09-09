@@ -13,7 +13,6 @@ import {
   X, 
   Eye, 
   EyeOff, 
-  ArrowLeft, 
   Award, 
   Sparkles, 
   User, 
@@ -30,7 +29,6 @@ import {
   fetchProfile, 
   fetchHousehold, 
   fetchHouseholdMembers, 
-  joinHouseholdByCode, 
   type DbProfile, 
   type DbHousehold 
 } from '@/lib/services/db';
@@ -47,8 +45,6 @@ export default function HouseholdSettingsPage() {
   const [household, setHousehold] = useState<DbHousehold | null>(null);
   const [householdName, setHouseholdName] = useState(profile.name || 'Bobbies Homie');
   const [members, setMembers] = useState<DbProfile[]>([]);
-  const [joinCodeInput, setJoinCodeInput] = useState('');
-  const [isJoining, setIsJoining] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Household name edit & invite code visibility
@@ -149,41 +145,6 @@ export default function HouseholdSettingsPage() {
     }
   };
 
-  // Join another household with invite code
-  const handleJoinHousehold = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinCodeInput.trim()) return;
-
-    setIsJoining(true);
-    setStatusMessage(null);
-
-    try {
-      const userId = currentUser?.id;
-      if (!userId) {
-        throw new Error(language === 'th' ? 'กรุณาเข้าสู่ระบบก่อนเข้าร่วมบ้าน' : 'Please sign in to join a household');
-      }
-
-      const joinedH = await joinHouseholdByCode(joinCodeInput.trim(), userId);
-      setHousehold(joinedH);
-      setHouseholdName(joinedH.name);
-      
-      const newMems = await fetchHouseholdMembers(joinedH.id);
-      const sortedMems = [...newMems].sort((a, b) => (b.chore_points ?? 0) - (a.chore_points ?? 0));
-      setMembers(sortedMems);
-
-      setJoinCodeInput('');
-      setStatusMessage({ 
-        type: 'success', 
-        text: language === 'th' ? `เข้าร่วมบ้าน "${joinedH.name}" เรียบร้อยแล้ว` : `Joined "${joinedH.name}" successfully` 
-      });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Invalid invite code';
-      setStatusMessage({ type: 'error', text: errMsg });
-    } finally {
-      setIsJoining(false);
-    }
-  };
-
   // Calculate total household points
   const totalHouseholdPoints = members.reduce((sum, m) => sum + (m.chore_points || 0), 0);
 
@@ -204,30 +165,11 @@ export default function HouseholdSettingsPage() {
     <div className="flex flex-col min-h-screen bg-[#FDFBF7] dark:bg-[#1A1816] text-[#5D4037] dark:text-[#DDD7D2] select-none w-full max-w-md sm:max-w-[448px] mx-auto pb-28 transition-colors duration-200">
       {/* Top Header */}
       <div className="px-6 pt-5 pb-2 w-full">
-        <div className="flex items-center justify-between mb-3">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-[13px] font-dm-sans font-bold text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] dark:hover:text-[#FDFBF7] transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{language === 'th' ? 'ย้อนกลับ' : 'Back'}</span>
-          </button>
-
-          <Link
-            href="/profile"
-            className="text-[12px] font-dm-sans font-bold text-[#5D4037] dark:text-[#D7CCC8] hover:underline flex items-center gap-1"
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>{language === 'th' ? 'ข้อมูลส่วนตัว' : 'My Profile'}</span>
-          </Link>
-        </div>
-
         <div>
           <h1 className="font-outfit font-bold text-[24px] leading-tight text-[#5D4037] dark:text-[#DDD7D2]">
             {language === 'th' ? 'ตั้งค่าบ้าน & สมาชิก' : 'Household & Members'}
           </h1>
-          <p className="font-dm-sans text-[12px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1">
+          <p className="font-dm-sans text-[12px] leading-normal text-[#8D6E63] dark:text-[#948D87] mt-1.5">
             {language === 'th' ? 'จัดการข้อมูลบ้าน รหัสคำเชิญ และดูคะแนนคนในบ้าน' : 'Manage household details, invite codes & member points'}
           </p>
         </div>
@@ -526,53 +468,10 @@ export default function HouseholdSettingsPage() {
               </div>
             )}
           </div>
-
-          {/* Points Tip Box */}
-          <div className="p-3 rounded-[16px] bg-[#FFF8E1]/80 dark:bg-[#221C16] border border-[#FFE082]/60 dark:border-[#423522] flex items-start gap-2 text-[11px] font-dm-sans text-[#8D6E63] dark:text-[#A8988B]">
-            <Sparkles className="w-4 h-4 text-[#FFB300] shrink-0 mt-0.5" />
-            <span>
-              {language === 'th'
-                ? 'คะแนนสะสมจะเพิ่มขึ้นเมื่อกดทำงานบ้านเสร็จในหน้างานบ้าน และนำไปแลกของรางวัลในร้านค้าได้'
-                : 'Points increase upon completing chores and can be spent in the Rewards Shop.'}
-            </span>
-          </div>
         </section>
 
         {/* ======================================================== */}
-        {/* 3. JOIN ANOTHER HOUSEHOLD FORM                           */}
-        {/* ======================================================== */}
-        <section className="bg-[#F4EFEA] dark:bg-[#1F1D1B] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[24px] p-5 shadow-xs transition-colors space-y-3">
-          <h3 className="font-outfit font-bold text-[15px] text-[#5D4037] dark:text-[#DDD7D2]">
-            {language === 'th' ? 'ย้ายหรือเข้าร่วมบ้านอื่น' : 'Join Another Household'}
-          </h3>
-          <p className="font-dm-sans text-[11.5px] text-[#8D6E63] dark:text-[#948D87]">
-            {language === 'th' 
-              ? 'หากคุณต้องการย้ายไปอยู่บ้านของคนอื่น กรุณากรอกรหัสคำเชิญ 8 หลัก' 
-              : 'Enter an 8-digit invite code to join a different household.'}
-          </p>
-
-          <form onSubmit={handleJoinHousehold} className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                placeholder={language === 'th' ? 'กรอกรหัส 8 หลัก' : 'Enter 8-digit code'}
-                className="flex-1 px-3.5 py-2.5 bg-white dark:bg-[#141312] border border-[#D7CCC8] dark:border-[#2E2A27] rounded-[14px] text-[14px] font-bold text-[#5D4037] dark:text-[#DDD7D2] uppercase tracking-wider focus:outline-none focus:border-[#5D4037]"
-              />
-              <button
-                type="submit"
-                disabled={isJoining || !joinCodeInput.trim()}
-                className="px-4 py-2.5 bg-[#5D4037] dark:bg-[#6E544A] hover:bg-[#4A332C] hover:dark:bg-[#2E2A27] text-white rounded-[14px] text-[13px] font-bold disabled:opacity-50 transition-colors cursor-pointer shadow-xs shrink-0"
-              >
-                {isJoining ? '...' : (language === 'th' ? 'เข้าร่วม' : 'Join')}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        {/* ======================================================== */}
-        {/* 4. LINK TO PROFILE PAGE                                  */}
+        {/* 3. LINK TO PROFILE PAGE                                  */}
         {/* ======================================================== */}
         <div className="pt-1">
           <Link
@@ -597,7 +496,7 @@ export default function HouseholdSettingsPage() {
         </div>
 
         {/* ======================================================== */}
-        {/* 5. LOGOUT BUTTON                                         */}
+        {/* 4. LOGOUT BUTTON                                         */}
         {/* ======================================================== */}
         <div className="pt-2">
           <button
