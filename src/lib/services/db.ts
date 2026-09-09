@@ -543,20 +543,21 @@ export async function createChore(
   userId: string,
   chore: {
     title: string;
-    assigned_to?: string;
+    assigned_to?: string | null;
     frequency?: string;
     points?: number;
   }
 ): Promise<DbChore> {
   const supabase = createClient();
+  const assignedTo = chore.assigned_to && chore.assigned_to !== 'All' ? chore.assigned_to : null;
   const { data, error } = await supabase
     .from('chores')
     .insert({
       household_id: householdId,
       title: chore.title,
-      assigned_to: chore.assigned_to || 'All',
+      assigned_to: assignedTo,
       frequency: (chore.frequency as Database['public']['Enums']['chore_frequency']) || 'weekly',
-      points: chore.points || 10,
+      points: chore.points ?? 10,
       created_by: userId,
     })
     .select()
@@ -584,9 +585,13 @@ export async function updateChore(
   updates: Partial<DbChore>
 ): Promise<DbChore> {
   const supabase = createClient();
+  const payload = { ...updates };
+  if (payload.assigned_to === ('All' as any)) {
+    payload.assigned_to = null as any;
+  }
   const { data, error } = await (supabase
     .from('chores') as any)
-    .update(updates)
+    .update(payload)
     .eq('id', choreId)
     .select()
     .single();

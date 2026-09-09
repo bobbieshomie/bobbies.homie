@@ -35,6 +35,7 @@ import {
   Settings2,
   ShieldCheck,
   ArrowRight,
+  Dice5,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -57,11 +58,15 @@ import {
   respondRewardRedemption,
   fetchChorePointLogs,
   fetchHouseholdMembers,
+  fetchChoreGachaSpins,
+  fetchMyActiveGachaSpin,
+  spinChoreGacha,
   type DbChore,
   type DbChoreReward,
   type DbRewardRedemption,
   type DbChorePointLog,
   type DbProfile,
+  type DbChoreGachaSpin,
 } from '@/lib/services/db';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
@@ -133,6 +138,14 @@ export default function ChoresPage() {
   const [redeemConfirmItem, setRedeemConfirmItem] = useState<DbChoreReward | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
+  // Mystery Box Gacha in Reward Shop
+  const [activeGachaSpin, setActiveGachaSpin] = useState<DbChoreGachaSpin | null>(null);
+  const [gachaSpins, setGachaSpins] = useState<DbChoreGachaSpin[]>([]);
+  const [isGachaModalOpen, setIsGachaModalOpen] = useState(false);
+  const [isGachaHistoryModalOpen, setIsGachaHistoryModalOpen] = useState(false);
+  const [isSpinningGacha, setIsSpinningGacha] = useState(false);
+  const [spinResult, setSpinResult] = useState<{ chore_title: string; multiplier: number } | null>(null);
+
   // Toast Helper
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -165,12 +178,14 @@ export default function ChoresPage() {
         setMyPoints(userProfile.chore_points || 0);
 
         // Parallel fetch for speed
-        const [mems, chs, rws, rds, pLogs] = await Promise.all([
+        const [mems, chs, rws, rds, pLogs, activeSpin, spins] = await Promise.all([
           fetchHouseholdMembers(hId).catch(() => []),
           fetchChores(hId).catch(() => []),
           fetchChoreRewards(hId).catch(() => []),
           fetchRewardRedemptions(hId).catch(() => []),
           fetchChorePointLogs(hId).catch(() => []),
+          fetchMyActiveGachaSpin(user.id).catch(() => null),
+          fetchChoreGachaSpins(hId).catch(() => []),
         ]);
 
         setMembers(mems);
@@ -178,6 +193,8 @@ export default function ChoresPage() {
         setRewards(rws);
         setRedemptions(rds);
         setPointLogs(pLogs);
+        setActiveGachaSpin(activeSpin);
+        setGachaSpins(spins);
 
         // Sync with global store
         setStoreChores(
@@ -379,7 +396,7 @@ export default function ChoresPage() {
         const created = await createChore(householdId, currentUserId, {
           title: choreTitle.trim(),
           frequency: choreFrequency as any,
-          assigned_to: choreAssignedTo === 'All' ? undefined : choreAssignedTo,
+          assigned_to: choreAssignedTo === 'All' ? null : choreAssignedTo,
           points: chorePoints,
         });
         setChores((prev) => [created, ...prev]);
@@ -403,6 +420,100 @@ export default function ChoresPage() {
       showToast(language === 'th' ? 'ลบงานบ้านเรียบร้อย' : 'Chore deleted');
     } catch (err) {
       console.error('Error deleting chore:', err);
+    }
+  };
+
+  // Spin Mystery Box in Reward Shop
+  const handleSpinGacha = async () => {
+    if (!householdId || !currentUserId) return;
+    if (myPoints < 10) {
+      alert(language === 'th' ? 'คะแนนสะสมไม่พอ (ต้องใช้ 10 คะแนนในการสุ่ม)' : 'Not enough points (10 pts required)');
+      return;
+    }
+    if (activeGachaSpin) {
+      alert(language === 'th' ? 'คุณสุ่มกล่องปริศนาในสัปดาห์นี้ไปแล้ว! (สุ่มได้อีกครั้งในสัปดาห์หน้า)' : 'You already spun this week!');
+      return;
+    }
+
+    setIsSpinningGacha(true);
+    setSpinResult(null);
+
+    try {
+      const pool = chores.length > 0 
+        ? chores.map((c) => ({ id: c.id, title: c.title })) 
+        : [
+            { id: null, title: 'กวาดบ้าน / ถูบ้าน' },
+            { id: null, title: 'ล้างจาน' },
+            { id: null, title: 'ซักผ้า / ตากผ้า' },
+            { id: null, title: 'ล้างห้องน้ำ' },
+            { id: null, title: 'เก็บขยะไปทิ้ง' },
+            { id: null, title: 'ทำความสะอาดห้องครัว' },
+          ];
+
+      const pickedChore = pool[Math.floor(Math.random() * pool.length)];
+      const multipliers = [1.5, 2, 2, 2, 2.5, 3, 5];
+      const pickedMultiplier = multipliers[Math.floor(Math.random() * multipliers.length)];
+
+      await new Promise((r) => setTimeout(r, 1500));
+
+      const res = await spinChoreGacha({
+        householdId,
+        userId: currentUserId,
+        choreId: pickedChore.id,
+        choreTitle: pickedChore.title,
+        multiplier: pickedMultiplier,
+        pointsCost: 10,
+      });
+
+      if (res.success) {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([80, 50, 120]);
+        }
+        setSpinResult({
+          chore_title: pickedChore.title,
+          multiplier: pickedMultiplier,
+        });
+
+        if (res.new_balance !== undefined) {
+          setMyPoints(res.new_balance);
+        }
+
+        const active = await fetchMyActiveGachaSpin(currentUserId);
+        setActiveGachaSpin(active);
+        const hist = await fetchChoreGachaSpins(householdId);
+        setGachaSpins(hist);
+
+        // Refresh point logs
+        fetchChorePointLogs(householdId).then(setPointLogs).catch(() => {});
+
+        // Push notification to partner
+        const senderName = currentMember?.nickname || currentMember?.full_name || (language === 'th' ? 'คนในบ้าน' : 'Partner');
+        fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            householdId,
+            excludeUserId: currentUserId,
+            title: '🎁 Bobbies Homie',
+            body: language === 'th'
+              ? `${senderName} สุ่มกล่องปริศนาได้งานบ้าน "${pickedChore.title}" รับโบนัสคะแนนคูณ x${pickedMultiplier}! 🌟`
+              : `${senderName} spun the mystery box and got "${pickedChore.title}" with x${pickedMultiplier} pts! 🌟`,
+            link: '/chores',
+          }),
+        }).catch(() => {});
+      } else {
+        if (res.error === 'already_spun_this_week') {
+          alert(language === 'th' ? 'คุณสุ่มกล่องปริศนาในสัปดาห์นี้ไปแล้ว' : 'Already spun this week');
+        } else if (res.error === 'insufficient_points') {
+          alert(language === 'th' ? 'คะแนนของคุณไม่พอ (ต้องใช้ 10 คะแนน)' : 'Insufficient points');
+        } else {
+          alert(language === 'th' ? 'เกิดข้อผิดพลาดในการสุ่ม' : 'Failed to spin');
+        }
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error spinning');
+    } finally {
+      setIsSpinningGacha(false);
     }
   };
 
@@ -988,7 +1099,11 @@ export default function ChoresPage() {
                                 <span>•</span>
                                 <span className="flex items-center gap-0.5">
                                   <User className="w-3 h-3" />
-                                  <span>{chore.assigned_to}</span>
+                                  <span>
+                                    {members.find((m) => m.id === chore.assigned_to)?.nickname ||
+                                      members.find((m) => m.id === chore.assigned_to)?.full_name ||
+                                      'ทุกคน'}
+                                  </span>
                                 </span>
                               </>
                             )}
@@ -1032,6 +1147,58 @@ export default function ChoresPage() {
                 <Settings2 className="w-3 h-3" />
                 <span>จัดการรางวัล</span>
               </button>
+            </div>
+
+            {/* Subtle Weekly Mystery Box Card in Reward Shop */}
+            <div className="p-3.5 rounded-[18px] bg-[#F8F5F0] dark:bg-[#231F1C] border border-[#D7CCC8]/80 dark:border-[#2E2A27] flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-[14px] bg-[#5D4037]/10 dark:bg-[#3E322A]/50 flex items-center justify-center text-[#5D4037] dark:text-[#DDD7D2] shrink-0">
+                  <Dice5 className="w-5 h-5 text-[#8D6E63] dark:text-[#BCAAA4]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                      {language === 'th' ? 'กล่องสุ่มงานบ้าน x ตัวคูณ' : 'Weekly Mystery Box'}
+                    </h3>
+                    <span className="text-[11px] font-bold text-[#8D6E63] dark:text-[#948D87]">
+                      10 pt
+                    </span>
+                  </div>
+                  {activeGachaSpin ? (
+                    <p className="text-[11px] text-[#2E7D32] dark:text-[#81C784] font-medium truncate mt-0.5">
+                      🌟 {activeGachaSpin.chore_title} (x{activeGachaSpin.multiplier})
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[#8D6E63] dark:text-[#948D87] truncate mt-0.5">
+                      {language === 'th' ? 'สุ่มได้ 1 ครั้ง/สัปดาห์ ลุ้นคูณ x1.5-x5' : '1 spin/week • win x1.5-x5'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsGachaHistoryModalOpen(true)}
+                  title={language === 'th' ? 'ประวัติการสุ่ม' : 'History'}
+                  className="p-2 rounded-[12px] bg-white dark:bg-[#2A2421] border border-[#D7CCC8]/70 dark:border-[#3E322A] text-[#8D6E63] dark:text-[#948D87] hover:text-[#5D4037] transition-colors cursor-pointer"
+                >
+                  <History className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsGachaModalOpen(true)}
+                  className={`px-3 py-1.5 rounded-[12px] text-[12px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                    activeGachaSpin
+                      ? 'bg-[#E8F5E9] dark:bg-[#1B2E1D] text-[#2E7D32] dark:text-[#81C784] border border-[#2E7D32]/30'
+                      : 'bg-[#5D4037] text-white hover:opacity-90 shadow-2xs'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{activeGachaSpin ? (language === 'th' ? 'ดูผลสุ่ม' : 'View') : (language === 'th' ? 'สุ่ม 10 pt' : 'Spin')}</span>
+                </button>
+              </div>
             </div>
 
             {activeShopRewards.length === 0 ? (
@@ -1761,6 +1928,237 @@ export default function ChoresPage() {
                   <span>ยืนยันแลก</span>
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODAL: MYSTERY BOX SPIN MODAL                            */}
+        {/* ======================================================== */}
+        {isGachaModalOpen && (
+          <div 
+            onClick={() => setIsGachaModalOpen(false)}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          >
+            <div 
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[370px] bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border-2 border-[#D7CCC8] dark:border-[#3E322A] p-5 shadow-2xl animate-in zoom-in-95 duration-200 text-center relative overflow-hidden cursor-default"
+            >
+              <button
+                onClick={() => setIsGachaModalOpen(false)}
+                className="absolute top-3.5 right-3.5 p-1 rounded-full text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {spinResult ? (
+                /* REVEAL RESULT */
+                <div className="py-2 space-y-3">
+                  <div className="w-16 h-16 rounded-[22px] bg-[#5D4037] text-[#F2C94C] flex items-center justify-center mx-auto shadow-md">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+
+                  <div>
+                    <span className="text-[12px] font-bold text-[#E65100] uppercase tracking-wider block">
+                      ยินดีด้วย! คุณได้รับโบนัส
+                    </span>
+                    <h3 className="text-[20px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2] mt-1">
+                      {spinResult.chore_title}
+                    </h3>
+                  </div>
+
+                  <div className="p-4 rounded-[18px] bg-[#F8F5F0] dark:bg-[#2A231A] border border-[#D7CCC8]/80 text-center">
+                    <span className="text-[12px] text-[#8D6E63] dark:text-[#948D87] block">
+                      ตัวคูณคะแนนที่ได้รับ
+                    </span>
+                    <span className="font-outfit font-black text-[36px] leading-[40px] text-[#E65100] dark:text-[#FFB74D]">
+                      x{spinResult.multiplier}
+                    </span>
+                    <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87] block mt-1">
+                      ทำงานบ้านนี้ในสัปดาห์นี้เพื่อรับคะแนนคูณพิเศษทันที!
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsGachaModalOpen(false)}
+                    className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-bold hover:opacity-90 shadow-xs cursor-pointer"
+                  >
+                    รับทราบ & ลุยเลย!
+                  </button>
+                </div>
+              ) : activeGachaSpin ? (
+                /* ALREADY SPUN THIS WEEK */
+                <div className="py-2 space-y-3">
+                  <div className="w-14 h-14 rounded-[20px] bg-[#E8F5E9] dark:bg-[#1B5E20]/30 text-[#2E7D32] dark:text-[#81C784] flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-[18px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                      สุ่มประจำสัปดาห์แล้ว!
+                    </h3>
+                    <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                      คุณใช้สิทธิ์สุ่ม 1 ครั้ง/สัปดาห์ไปแล้ว สามารถสุ่มใหม่อีกครั้งในสัปดาห์หน้า
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-[16px] bg-[#F4EFEA] dark:bg-[#282421] border border-[#D7CCC8] dark:border-[#2E2A27] text-left">
+                    <span className="text-[11px] text-[#8D6E63] dark:text-[#948D87] block">
+                      โบนัสที่กำลังใช้งานอยู่:
+                    </span>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="font-bold text-[14px] text-[#5D4037] dark:text-[#DDD7D2]">
+                        {activeGachaSpin.chore_title}
+                      </span>
+                      <span className="font-outfit font-extrabold text-[16px] text-[#E65100]">
+                        x{activeGachaSpin.multiplier}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#8D6E63] mt-1 block">
+                      ใช้งานไปแล้ว {activeGachaSpin.times_used} ครั้ง
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsGachaModalOpen(false)}
+                    className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-bold hover:opacity-90 cursor-pointer"
+                  >
+                    ปิด
+                  </button>
+                </div>
+              ) : (
+                /* READY TO SPIN */
+                <div className="py-2 space-y-3">
+                  <div className={`w-16 h-16 rounded-[22px] bg-[#5D4037] text-[#F2C94C] flex items-center justify-center mx-auto shadow-md ${isSpinningGacha ? 'animate-spin' : ''}`}>
+                    <Dice5 className="w-8 h-8" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-[18px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                      กล่องสุ่มงานบ้าน x คะแนนคูณ
+                    </h3>
+                    <p className="text-[12px] text-[#8D6E63] dark:text-[#948D87] mt-1">
+                      สุ่มเลือกงานบ้านที่จะได้รับโบนัสคูณคะแนนประจำสัปดาห์นี้
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-[#F8F5F0] dark:bg-[#282421] rounded-[16px] text-[12px] text-[#8D6E63] dark:text-[#948D87] space-y-1 text-left">
+                    <div className="flex items-center justify-between">
+                      <span>ใช้คะแนนสุ่ม:</span>
+                      <span className="font-bold text-[#5D4037] dark:text-[#DDD7D2]">10 คะแนน</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>สิทธิ์การสุ่ม:</span>
+                      <span className="font-bold text-[#2E7D32]">1 ครั้ง / สัปดาห์</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>โอกาสได้รับตัวคูณ:</span>
+                      <span className="font-bold text-[#5D4037] dark:text-[#DDD7D2]">x1.5 ถึง x5 ⭐</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isSpinningGacha || myPoints < 10}
+                    onClick={handleSpinGacha}
+                    className="w-full py-2.5 rounded-[14px] bg-[#5D4037] text-white text-[13px] font-extrabold shadow-sm hover:opacity-95 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSpinningGacha ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>กำลังสุ่มรางวัล...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>เปิดกล่องปริศนา (10 คะแนน)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODAL: GACHA HISTORY MODAL (ประวัติการสุ่ม)              */}
+        {/* ======================================================== */}
+        {isGachaHistoryModalOpen && (
+          <div 
+            onClick={() => setIsGachaHistoryModalOpen(false)}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          >
+            <div 
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[390px] max-h-[80vh] bg-[#FDFBF7] dark:bg-[#201D1A] rounded-[24px] border border-[#D7CCC8] dark:border-[#2E2A27] p-5 shadow-2xl flex flex-col relative overflow-hidden cursor-default"
+            >
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-[#5D4037] dark:text-[#DDD7D2]" />
+                  <h3 className="text-[17px] font-extrabold text-[#5D4037] dark:text-[#DDD7D2]">
+                    ประวัติการสุ่มกล่องปริศนา
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsGachaHistoryModalOpen(false)}
+                  className="p-1 rounded-full text-[#8D6E63] hover:text-[#5D4037] dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto no-scrollbar space-y-2.5 flex-1 pr-1">
+                {gachaSpins.length === 0 ? (
+                  <div className="py-10 text-center text-[#8D6E63]">
+                    <p className="text-[13px]">ยังไม่มีประวัติการสุ่มกล่องปริศนา</p>
+                  </div>
+                ) : (
+                  gachaSpins.map((spin) => {
+                    const spinUser = spin.user?.nickname || spin.user?.full_name || (spin.user_id === currentUserId ? 'ฉัน' : 'เพื่อนร่วมบ้าน');
+                    return (
+                      <div
+                        key={spin.id}
+                        className="p-3 rounded-[16px] bg-white dark:bg-[#141312] border border-[#D7CCC8]/70 dark:border-[#2E2A27] flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 mb-0.5 text-[11px] text-[#8D6E63] dark:text-[#948D87]">
+                            <span className="font-bold">{spinUser}</span>
+                            <span>•</span>
+                            <span>{spin.week_identifier}</span>
+                          </div>
+                          <h4 className="text-[13px] font-bold text-[#5D4037] dark:text-[#DDD7D2] truncate">
+                            {spin.chore_title}
+                          </h4>
+                          <span className="text-[10px] text-[#8D6E63] dark:text-[#948D87] block mt-0.5">
+                            ใช้งานแล้ว {spin.times_used} ครั้ง {spin.is_active && '• กำลังใช้งานอยู่'}
+                          </span>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="font-outfit font-black text-[18px] text-[#E65100]">
+                            x{spin.multiplier}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsGachaHistoryModalOpen(false)}
+                className="mt-3.5 w-full py-2.5 rounded-[14px] bg-[#F4EFEA] dark:bg-[#282421] text-[#8D6E63] dark:text-[#948D87] text-[12px] font-bold hover:bg-[#D7CCC8]/50 transition-colors cursor-pointer"
+              >
+                ปิด
+              </button>
             </div>
           </div>
         )}

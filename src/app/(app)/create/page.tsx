@@ -397,7 +397,7 @@ function CreatePageContent() {
       setSubmitting(true);
       await createChore(currentUser.household_id, currentUser.id, {
         title: choreTitle.trim(),
-        assigned_to: choreAssignedTo,
+        assigned_to: choreAssignedTo === 'All' ? null : choreAssignedTo,
         frequency: choreFrequency,
         points: chorePoints,
       });
