@@ -42,6 +42,20 @@ export default function DashboardPage() {
   // Dynamic household members
   const [members, setMembers] = useState<DbProfile[]>([]);
   const [activeUserAvatar, setActiveUserAvatar] = useState<string | null>(profile.myAvatarUrl || null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
+  const [nudgeLoading, setNudgeLoading] = useState(false);
+  const [nudgeCooldown, setNudgeCooldown] = useState(0);
+  const [nudgeMessage, setNudgeMessage] = useState<string | null>(null);
+
+  // Nudge cooldown countdown
+  useEffect(() => {
+    if (nudgeCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setNudgeCooldown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [nudgeCooldown]);
 
   // Load real data from Supabase on mount
   useEffect(() => {
@@ -50,6 +64,7 @@ export default function DashboardPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          setCurrentUserId(user.id);
           const p = await fetchProfile(user.id);
           if (p) {
             updateProfile({
@@ -61,6 +76,7 @@ export default function DashboardPage() {
             setActiveUserAvatar(p.avatar_url);
 
             if (p.household_id) {
+              setHouseholdId(p.household_id);
               const h = await fetchHousehold(p.household_id);
               if (h) {
                 updateProfile({
@@ -80,6 +96,42 @@ export default function DashboardPage() {
 
     syncDashboard();
   }, [updateProfile]);
+
+  const handleNudge = async () => {
+    if (!householdId || !currentUserId || nudgeCooldown > 0) return;
+    setNudgeLoading(true);
+    setNudgeMessage(null);
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+      const sender = profile.myNickname || profile.name || (language === 'th' ? 'คนในบ้าน' : 'Homie');
+      const res = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          householdId,
+          excludeUserId: currentUserId,
+          title: '🐻 Bobbies Homie',
+          body: language === 'th'
+            ? `${sender} สะกิดคุณ! 👋 มีอะไรหรือเปล่านะ~`
+            : `${sender} nudged you! 👋 Check in on homie!`,
+          link: '/dashboard',
+        }),
+      });
+      const data = await res.json();
+      if (data.success || data.tokensCount > 0) {
+        setNudgeCooldown(10);
+        setNudgeMessage(language === 'th' ? 'สะกิดเรียบร้อย! ✨' : 'Nudge sent! ✨');
+      } else {
+        setNudgeMessage(language === 'th' ? 'อีกฝ่ายยังไม่ได้เปิดแจ้งเตือน' : 'Partner has not enabled push yet');
+      }
+    } catch {
+      setNudgeMessage(language === 'th' ? 'ส่งไม่สำเร็จ' : 'Failed to send');
+    } finally {
+      setNudgeLoading(false);
+    }
+  };
 
   // Dynamic greeting based on current local hour
   const greeting = useMemo(() => {
@@ -196,6 +248,34 @@ export default function DashboardPage() {
                 </div>
               )}
             </Link>
+          </div>
+
+          {/* Quick Nudge Action Button */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              type="button"
+              disabled={nudgeLoading || nudgeCooldown > 0}
+              onClick={handleNudge}
+              title={language === 'th' ? 'กดสะกิดแฟนหรือคนในบ้าน' : 'Nudge household members'}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F4EFEA] hover:bg-[#EAE4DC] dark:bg-[#25201D] dark:hover:bg-[#2F2722] border border-[#D7CCC8]/80 dark:border-[#3E322A] text-xs font-semibold text-[#5D4037] dark:text-[#DDD7D2] shadow-xs active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-75"
+            >
+              <span className={`text-xs transition-transform duration-300 ${nudgeCooldown > 0 ? 'scale-125' : ''}`}>
+                👋
+              </span>
+              <span>
+                {nudgeCooldown > 0
+                  ? (language === 'th' ? `สะกิดแล้ว (${nudgeCooldown}s)` : `Nudged (${nudgeCooldown}s)`)
+                  : nudgeLoading
+                  ? (language === 'th' ? 'กำลังสะกิด...' : 'Nudging...')
+                  : (language === 'th' ? 'สะกิดคนในบ้าน' : 'Nudge Homie')}
+              </span>
+            </button>
+
+            {nudgeMessage && (
+              <span className="text-[11px] text-[#2E7D32] dark:text-[#81C784] font-medium animate-in fade-in">
+                {nudgeMessage}
+              </span>
+            )}
           </div>
         </header>
 
