@@ -524,7 +524,7 @@ export default function DashboardPage() {
                           </span>
                         )}
                         <span className="font-outfit text-[11px] font-bold text-[#2E7D32] dark:text-[#81C784]">
-                          +{hasBonus ? Math.round(chore.points * activeGachaSpin.multiplier) : chore.points} ⭐
+                          +{hasBonus ? Math.round(chore.points * activeGachaSpin.multiplier) : chore.points} pt
                         </span>
                       </div>
                     </div>

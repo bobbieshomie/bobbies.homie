@@ -9,6 +9,7 @@ export interface DbProfile {
   nickname: string | null;
   avatar_url: string | null;
   bio: string | null;
+  role?: string | null;
   chore_points?: number;
   fcm_token?: string | null;
   created_at?: string;

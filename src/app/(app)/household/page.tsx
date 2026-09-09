@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { 
   Home, 
   Users, 
-  Star, 
   Copy, 
   Check, 
   Pencil, 
@@ -21,6 +20,7 @@ import {
   Plus,
   LogOut
 } from 'lucide-react';
+import { Crown as IconoirCrown } from 'iconoir-react';
 import { useAppStore } from '@/features/shared/stores/use-app-store';
 import { useLanguage } from '@/lib/i18n/language-context';
 import { createClient } from '@/lib/supabase/client';
@@ -371,7 +371,10 @@ export default function HouseholdSettingsPage() {
               members.map((m, index) => {
                 const isMe = m.id === currentUser?.id;
                 const points = m.chore_points ?? 0;
-                const isTopHelper = index === 0 && points > 0;
+                const hasExplicitLeader = members.some((x) => x.role === 'partner_1' || x.role === 'head' || x.role === 'owner');
+                const isHouseLeader = hasExplicitLeader
+                  ? (m.role === 'partner_1' || m.role === 'head' || m.role === 'owner')
+                  : index === 0;
 
                 return (
                   <div 
@@ -393,12 +396,12 @@ export default function HouseholdSettingsPage() {
                               <span>{(m.nickname || m.full_name || 'U').charAt(0).toUpperCase()}</span>
                             )}
                           </div>
-                          {isTopHelper && (
+                          {isHouseLeader && (
                             <div 
-                              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FFB300] text-white flex items-center justify-center shadow-xs text-[9px]"
-                              title={language === 'th' ? 'อันดับ 1 คะแนนสูงสุด' : 'Top Points Leader'}
+                              className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-gradient-to-tr from-[#FFB300] to-[#FFE082] text-[#5D4037] flex items-center justify-center shadow-xs ring-1.5 ring-white dark:ring-[#141312]"
+                              title={language === 'th' ? 'หัวหน้าบ้าน' : 'Head of Household'}
                             >
-                              👑
+                              <IconoirCrown className="w-2.5 h-2.5 text-[#5D4037]" width="10" height="10" strokeWidth={2.4} />
                             </div>
                           )}
                         </div>
@@ -408,6 +411,12 @@ export default function HouseholdSettingsPage() {
                             <h4 className="font-outfit font-bold text-[14.5px] text-[#5D4037] dark:text-[#DDD7D2] truncate">
                               {m.nickname || m.full_name}
                             </h4>
+                            {isHouseLeader && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0">
+                                <IconoirCrown className="w-2.5 h-2.5" width="10" height="10" strokeWidth={2.4} />
+                                {language === 'th' ? 'หัวหน้าบ้าน' : 'Head'}
+                              </span>
+                            )}
                             {isMe && (
                               <span className="text-[10px] font-dm-sans font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0">
                                 {language === 'th' ? 'คุณ' : 'You'}
@@ -420,7 +429,9 @@ export default function HouseholdSettingsPage() {
                             </p>
                           ) : (
                             <p className="font-dm-sans text-[11px] text-[#8D6E63]/70 dark:text-[#948D87]/70 truncate mt-0.5">
-                              {language === 'th' ? 'สมาชิกในบ้าน' : 'Household Member'}
+                              {isHouseLeader
+                                ? (language === 'th' ? 'หัวหน้าบ้าน' : 'Head of Household')
+                                : (language === 'th' ? 'สมาชิกในบ้าน' : 'Household Member')}
                             </p>
                           )}
                         </div>
@@ -428,8 +439,7 @@ export default function HouseholdSettingsPage() {
 
                       {/* Right: Points Badge */}
                       <div className="flex flex-col items-end shrink-0">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[12px] bg-gradient-to-r from-[#FFF8E1] to-[#FFF3E0] dark:from-[#2B2317] dark:to-[#241A12] border border-[#FFE082] dark:border-[#534323] shadow-2xs">
-                          <Star className="w-3.5 h-3.5 text-[#FF9800] fill-[#FF9800]" />
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-[12px] bg-gradient-to-r from-[#FFF8E1] to-[#FFF3E0] dark:from-[#2B2317] dark:to-[#241A12] border border-[#FFE082] dark:border-[#534323] shadow-2xs">
                           <span className="font-outfit font-black text-[14px] text-[#E65100]">
                             {points}
                           </span>
