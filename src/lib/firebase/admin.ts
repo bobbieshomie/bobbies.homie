@@ -3,10 +3,14 @@ import { getMessaging } from 'firebase-admin/messaging';
 import path from 'path';
 import fs from 'fs';
 
-// Parse private key ensuring correct newline formatting
+// Parse private key ensuring correct newline formatting and strip extra quotes
 const getFormattedPrivateKey = () => {
-  const key = process.env.FIREBASE_PRIVATE_KEY;
+  let key = process.env.FIREBASE_PRIVATE_KEY;
   if (!key) return undefined;
+  key = key.trim();
+  if (key.startsWith('"') && key.endsWith('"')) {
+    key = key.slice(1, -1);
+  }
   return key.replace(/\\n/g, '\n');
 };
 
@@ -31,7 +35,19 @@ function getServiceAccountCredential() {
     }
   }
 
-  // 2. Try environment variables
+  // 2. Try JSON string in environment variable (easy 1-line paste)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      const json = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      if (json.project_id && json.private_key) {
+        return cert(json);
+      }
+    } catch (e) {
+      console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e);
+    }
+  }
+
+  // 3. Try individual environment variables
   if (
     process.env.FIREBASE_PROJECT_ID &&
     process.env.FIREBASE_CLIENT_EMAIL &&
